@@ -1,41 +1,144 @@
-# Holdings — Private & Pre-IPO Tracker
+# my-mog-agent
 
-A simple, single-page web app for tracking private, pre-IPO, and public company
-shares that mainstream portfolio apps can't handle. There are no live prices —
-you enter every value manually.
+A **Node.js + TypeScript** project (pnpm) that wraps the
+[`@mog-sdk/node`](https://www.npmjs.com/package/@mog-sdk/node) headless
+spreadsheet engine into a clean set of **callable tools**, plus a complete,
+reusable **equity-research financial model** generator.
 
-## What it does
+The heavy lifting (582 formula functions, XLSX import/export, charts, tables,
+conditional formatting, data validation) is done by the native Rust engine
+inside `@mog-sdk/node`. This repo gives it an ergonomic, fully-typed surface.
 
-For each holding you record:
+## Requirements
 
-- Company name
-- Type (Private / Pre-IPO / Public)
-- Number of shares
-- Cost per share
-- Date acquired
-- Last known valuation per share (e.g. from the most recent funding round)
+- Node.js >= 18 (developed on 22)
+- [pnpm](https://pnpm.io)
 
-The app then shows, per holding and across the whole portfolio:
+## Setup
 
-- **Total cost** (shares × cost per share)
-- **Current value** (shares × last known valuation)
-- **Gain / loss** in both dollars and percent
-
-You can add, edit, and delete holdings. All data is saved in your browser's
-`localStorage`, so it persists across page reloads — nothing is sent anywhere.
-
-## Running it
-
-No build step or server required. Just open `index.html` in any modern browser:
-
-```
-open index.html
+```bash
+pnpm install
+pnpm start    # runs the mog-tools example (index.ts)
+pnpm model    # builds Sector_Consensus_vs_My_Model.xlsx
 ```
 
-(Or double-click the file.)
+## Scripts
 
-## Files
+| Script           | Description                                       |
+| ---------------- | ------------------------------------------------- |
+| `pnpm start`     | Run the mog-tools example (`index.ts`)            |
+| `pnpm model`     | Build the financial model workbook (`financial-model.ts`) |
+| `pnpm build`     | Compile to `dist/` with `tsc`                     |
+| `pnpm typecheck` | Type-check without emitting                       |
+| `pnpm clean`     | Remove the `dist/` folder                         |
 
-- `index.html` — markup and layout
-- `styles.css` — clean, calm visual styling
-- `app.js` — state, calculations, and persistence (localStorage)
+---
+
+## 1. The reusable tools — `mog-tools.ts`
+
+Small, documented, fully-typed functions. Create a workbook handle once, pass
+it to the tools, and `closeWorkbook` it when done.
+
+| Tool                  | What it does                                            |
+| --------------------- | ------------------------------------------------------- |
+| `createWorkbook()`    | Start a new, empty workbook                             |
+| `addDataToSheet()`    | Write a 2D block of values/formulas into a sheet        |
+| `setCellFormula()`    | Write a single formula or value into one cell           |
+| `calculateFormulas()` | Force a full recalculation                              |
+| `getCellValue()`      | Read the computed value of one cell                     |
+| `readSheet()`         | Read a whole sheet as a 2D array                        |
+| `describeSheet()`     | LLM-friendly, line-by-line description (incl. formulas) |
+| `summarizeSheet()`    | Compact overview: dimensions, headers, counts, sample   |
+| `createChart()`       | Add a chart anchored at a cell                          |
+| `addTable()`          | Turn a range into a structured table                    |
+| `exportToXlsx()`      | Save the workbook to an `.xlsx` file                    |
+| `importFromXlsx()`    | Open an `.xlsx` file (path or buffer)                   |
+| `importFromCsv()`     | Build a workbook from CSV text or a CSV file            |
+| `sheetToCsv()`        | Export a sheet/range to CSV                             |
+| `sheetToJson()`       | Export a sheet to row objects keyed by header           |
+| `closeWorkbook()`     | Release the native engine resources                     |
+
+```ts
+import { createWorkbook, addDataToSheet, createChart, exportToXlsx, closeWorkbook } from './mog-tools.js';
+
+const wb = await createWorkbook();
+await addDataToSheet(wb, {
+  data: [
+    ['Product', 'Q1', 'Q2', 'Total'],
+    ['Widgets', 100, 150, '=SUM(B2:C2)'],
+    ['Gadgets', 200, 250, '=SUM(B3:C3)'],
+  ],
+});
+await createChart(wb, { type: 'column', dataRange: 'A1:C3', title: 'Quarterly Sales', anchorCell: 'F2' });
+await exportToXlsx(wb, 'sales.xlsx');
+await closeWorkbook(wb);
+```
+
+---
+
+## 2. The financial model — `financial-model.ts`
+
+`buildFinancialModel(outPath)` generates **`Sector_Consensus_vs_My_Model.xlsx`**,
+a master template comparing **Market Consensus vs. My Model** for Revenue /
+EBITDA / Net Income plus sector-specific KPIs, with valuation multiples, a full
+DCF, sensitivity & scenarios, and charts.
+
+```ts
+import { buildFinancialModel } from './financial-model.js';
+await buildFinancialModel('Sector_Consensus_vs_My_Model.xlsx');
+```
+
+### Workbook structure (8 sheets)
+
+1. **Dashboard** — company header, **sector dropdown** (the master
+   `SelectedSector`), metric cards (Revenue / EBITDA / Net Income with YoY &
+   vs-consensus + colour-coded BEAT/MISS signal), auto-updating sector KPI
+   summary, valuation strip (EV/EBITDA, P/E, EV/Rev, P/S, DCF fair value, avg
+   implied, upside), a **Beat/Miss & implied-stock-move gauge** (editable
+   rules), and an embedded comparison chart.
+2. **Inputs** — every assumption in one place: general, my assumptions,
+   peer multiples, DCF/WACC, editable beat/miss rules, real-time-data
+   placeholders, a scenario dropdown, and a **Load Example Template** table.
+3. **Consensus** — prior / current / NTM consensus financials + EPS.
+4. **MyModel** — projections derived from the assumptions.
+5. **Valuation** — market multiples, implied prices from peer multiples, a
+   **WACC build-up**, a **5-year DCF** (terminal value, PV, equity bridge,
+   fair value/share), and a **WACC × terminal-growth sensitivity grid** with a
+   colour scale.
+6. **Scenarios** — Base / Bull / Bear fair values + a **tornado** table of
+   fair-value swings to ±20% driver moves.
+7. **Charts** — Consensus-vs-My **column** chart, sector-KPI **radar**, and a
+   Net-Income **waterfall** bridge.
+8. **SectorKPIs** — the dynamic backbone: a KPI name/value matrix per sector
+   that the Dashboard reads via `INDEX/MATCH(SelectedSector, …)`.
+
+### Everything is dynamic
+
+- One **dropdown** (`SelectedSector`, the orange cell on the Dashboard) drives
+  every sector-specific KPI on the Dashboard and the radar chart.
+- All numbers are **live Excel formulas** off named ranges — change any Input
+  (or the scenario) and the cards, valuation, DCF, sensitivity and charts
+  recompute.
+
+### Sector templates (5 KPIs each, auto-switching)
+
+Tech/SaaS · Consumer/Retail · Healthcare/Biotech · Industrials · Financials ·
+Energy · Other — e.g. Tech/SaaS shows ARR, Net Revenue Retention, Rule of 40,
+Gross Margin, CAC Payback; Retail shows Same-Store Sales, Inventory Turns, …
+
+### Load Example Template
+
+The workbook ships pre-loaded with a Tech/SaaS sample (Nimbus Cloud, NIMB). The
+**Load Example Template** table on the Inputs sheet lists additional sample
+companies (MetroMart Retail, Helix Therapeutics) you can copy into the General
+block to switch.
+
+---
+
+## Notes
+
+- The engine recalculates on write; `calculateFormulas()` / `wb.calculate()` is
+  there for explicit recompute after bulk edits.
+- Named ranges are created **before** the formulas that reference them — define
+  names first or formulas cache `#NAME?`.
+- Always `closeWorkbook()` / `wb.dispose()` — the engine holds native handles.

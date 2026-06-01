@@ -6,3 +6,5 @@ dist/
 # Generated spreadsheet artifacts from the example script
 *.xlsx
 !fixtures/*.xlsx
+# ...but keep the committed financial-model template output
+!Sector_Consensus_vs_My_Model.xlsx

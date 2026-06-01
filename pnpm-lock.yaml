@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@mog-sdk/contracts':
+        specifier: 0.8.1
+        version: 0.8.1
       '@mog-sdk/node':
         specifier: ^0.8.1
         version: 0.8.1
