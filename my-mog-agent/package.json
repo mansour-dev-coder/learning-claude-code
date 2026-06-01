@@ -1,0 +1,33 @@
+{
+  "name": "my-mog-agent",
+  "version": "1.0.0",
+  "description": "A TypeScript toolkit of spreadsheet tools built on the @mog-sdk/node headless engine.",
+  "type": "module",
+  "main": "dist/mog-tools.js",
+  "types": "dist/mog-tools.d.ts",
+  "scripts": {
+    "start": "tsx index.ts",
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "mog",
+    "spreadsheet",
+    "xlsx",
+    "tools",
+    "agent",
+    "typescript"
+  ],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.33.0",
+  "dependencies": {
+    "@mog-sdk/node": "^0.8.1"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.1",
+    "tsx": "^4.22.4",
+    "typescript": "^6.0.3"
+  }
+}
