@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Holdings — Private &amp; Pre-IPO Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="wrap">
+      <h1>Holdings</h1>
+      <p class="subtitle">Private &amp; pre-IPO share tracker</p>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <!-- Portfolio summary -->
+    <section class="summary" aria-label="Portfolio summary">
+      <div class="summary-card">
+        <span class="summary-label">Total cost</span>
+        <span class="summary-value" id="totalCost">$0</span>
+      </div>
+      <div class="summary-card">
+        <span class="summary-label">Current value</span>
+        <span class="summary-value" id="totalValue">$0</span>
+      </div>
+      <div class="summary-card">
+        <span class="summary-label">Total gain / loss</span>
+        <span class="summary-value" id="totalGain">$0</span>
+        <span class="summary-sub" id="totalGainPct">0.00%</span>
+      </div>
+    </section>
+
+    <div class="toolbar">
+      <h2 class="section-title">Your holdings</h2>
+      <button class="btn btn-primary" id="addBtn" type="button">+ Add holding</button>
+    </div>
+
+    <!-- Holdings list -->
+    <section id="holdingsContainer"></section>
+
+    <!-- Empty state -->
+    <div class="empty-state" id="emptyState" hidden>
+      <p>No holdings yet.</p>
+      <p class="muted">Add your first private or pre-IPO position to get started.</p>
+    </div>
+  </main>
+
+  <!-- Add / edit modal -->
+  <div class="modal-overlay" id="modalOverlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <h2 id="modalTitle">Add holding</h2>
+      <form id="holdingForm">
+        <input type="hidden" id="holdingId" />
+
+        <div class="field">
+          <label for="company">Company name</label>
+          <input type="text" id="company" required placeholder="e.g. Acme Robotics" />
+        </div>
+
+        <div class="field">
+          <label for="type">Type</label>
+          <select id="type">
+            <option value="Private">Private</option>
+            <option value="Pre-IPO">Pre-IPO</option>
+            <option value="Public">Public</option>
+          </select>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="shares">Number of shares</label>
+            <input type="number" id="shares" min="0" step="any" required placeholder="0" />
+          </div>
+          <div class="field">
+            <label for="costPerShare">Cost per share ($)</label>
+            <input type="number" id="costPerShare" min="0" step="any" required placeholder="0.00" />
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="acquiredDate">Date acquired</label>
+            <input type="date" id="acquiredDate" />
+          </div>
+          <div class="field">
+            <label for="valuation">Last known valuation / share ($)</label>
+            <input type="number" id="valuation" min="0" step="any" placeholder="0.00" />
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-ghost" id="cancelBtn">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="saveBtn">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
