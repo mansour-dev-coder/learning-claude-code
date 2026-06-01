@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quote Generator</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Toggle dark/light theme">
+    <span class="theme-toggle__icon" aria-hidden="true">🌙</span>
+  </button>
+
+  <main class="card">
+    <blockquote class="quote">
+      <p id="quote-text" class="quote__text">Click “New quote” to get started.</p>
+      <footer id="quote-author" class="quote__author"></footer>
+    </blockquote>
+
+    <div class="actions">
+      <button id="new-quote" class="btn" type="button">New quote</button>
+      <button id="copy-quote" class="btn btn--secondary" type="button">
+        Copy quote
+      </button>
+    </div>
+
+    <p id="copy-status" class="copy-status" role="status" aria-live="polite"></p>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
