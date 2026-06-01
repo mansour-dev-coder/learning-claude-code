@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Daily Motivation</title>
+  <style>
+    :root {
+      --bg-start: #6a11cb;
+      --bg-end: #2575fc;
+      --card-bg: rgba(255, 255, 255, 0.95);
+      --text: #2c3e50;
+      --muted: #7f8c8d;
+      --accent: #6a11cb;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+      background: linear-gradient(135deg, var(--bg-start), var(--bg-end));
+      color: var(--text);
+    }
+
+    .card {
+      background: var(--card-bg);
+      max-width: 640px;
+      width: 100%;
+      padding: 3rem 2.5rem;
+      border-radius: 20px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+      text-align: center;
+      animation: fadeIn 0.7s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(15px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .quote-mark {
+      font-size: 4rem;
+      line-height: 0.5;
+      color: var(--accent);
+      opacity: 0.25;
+      font-family: Georgia, serif;
+    }
+
+    blockquote {
+      font-size: 1.6rem;
+      font-weight: 500;
+      line-height: 1.5;
+      margin: 1rem 0 1.5rem;
+    }
+
+    .author {
+      font-size: 1.05rem;
+      font-style: italic;
+      color: var(--muted);
+    }
+
+    .author::before {
+      content: "\2014\00a0";
+    }
+
+    button {
+      margin-top: 2.25rem;
+      padding: 0.8rem 1.8rem;
+      font-size: 1rem;
+      font-weight: 600;
+      color: #fff;
+      background: var(--accent);
+      border: none;
+      border-radius: 50px;
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(106, 17, 203, 0.4);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    @media (max-width: 480px) {
+      .card { padding: 2.25rem 1.5rem; }
+      blockquote { font-size: 1.3rem; }
+    }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <div class="quote-mark">&ldquo;</div>
+    <blockquote id="quote">Loading inspiration&hellip;</blockquote>
+    <p class="author" id="author"></p>
+    <button id="newQuote" type="button">New Quote</button>
+  </main>
+
+  <script>
+    const quotes = [
+      { text: "The only way to do great work is to love what you do.", author: "Steve Jobs" },
+      { text: "Believe you can and you're halfway there.", author: "Theodore Roosevelt" },
+      { text: "It always seems impossible until it's done.", author: "Nelson Mandela" },
+      { text: "Success is not final, failure is not fatal: it is the courage to continue that counts.", author: "Winston Churchill" },
+      { text: "Don't watch the clock; do what it does. Keep going.", author: "Sam Levenson" },
+      { text: "The future belongs to those who believe in the beauty of their dreams.", author: "Eleanor Roosevelt" },
+      { text: "Hardships often prepare ordinary people for an extraordinary destiny.", author: "C.S. Lewis" },
+      { text: "Your limitation—it's only your imagination.", author: "Unknown" },
+      { text: "Great things never come from comfort zones.", author: "Unknown" },
+      { text: "Push yourself, because no one else is going to do it for you.", author: "Unknown" },
+      { text: "The harder you work for something, the greater you'll feel when you achieve it.", author: "Unknown" },
+      { text: "Dream it. Wish it. Do it.", author: "Unknown" },
+      { text: "Act as if what you do makes a difference. It does.", author: "William James" },
+      { text: "What you get by achieving your goals is not as important as what you become by achieving them.", author: "Zig Ziglar" },
+      { text: "Whether you think you can or you think you can't, you're right.", author: "Henry Ford" }
+    ];
+
+    const quoteEl = document.getElementById("quote");
+    const authorEl = document.getElementById("author");
+    const button = document.getElementById("newQuote");
+
+    function showRandomQuote() {
+      const { text, author } = quotes[Math.floor(Math.random() * quotes.length)];
+      quoteEl.textContent = text;
+      authorEl.textContent = author;
+    }
+
+    button.addEventListener("click", () => {
+      const card = document.querySelector(".card");
+      card.style.animation = "none";
+      void card.offsetWidth; // restart animation
+      card.style.animation = "fadeIn 0.7s ease";
+      showRandomQuote();
+    });
+
+    // Show a fresh quote on every page load / refresh
+    showRandomQuote();
+  </script>
+</body>
+</html>
