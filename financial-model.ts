@@ -274,19 +274,19 @@ export async function buildFinancialModel(outPath: string): Promise<Uint8Array> 
   await I(11, 'Selected Sector (from Dashboard)', '=SelectedSector');
 
   await section(inputs, 'B13:D13', 'MY ASSUMPTIONS');
-  await I(14, 'Revenue Growth (Year 1)', 0.35, NF.pct);
-  await I(15, 'Growth Fade (per year)', 0.05, NF.pct);
-  await I(16, 'EBITDA Margin', 0.27, NF.pct);
-  await I(17, 'Net Margin', 0.14, NF.pct);
+  await I(14, 'Revenue Growth (Year 1)', 0.16, NF.pct);
+  await I(15, 'Growth Fade (per year)', 0.03, NF.pct);
+  await I(16, 'EBITDA Margin', 0.26, NF.pct);
+  await I(17, 'Net Margin', 0.135, NF.pct);
   await I(18, 'FCF Conversion', 0.85, NF.pct);
   await I(19, 'Scenario', 'Base');
   await I(20, 'Scenario Growth Multiplier', '=IF(ScenarioName="Bull",1.25,IF(ScenarioName="Bear",0.7,1))', NF.mult);
 
   await section(inputs, 'B22:D22', 'CONSENSUS / PEER MULTIPLES');
-  await I(23, 'Peer EV/EBITDA', 14, NF.mult);
-  await I(24, 'Peer P/E', 24, NF.mult);
-  await I(25, 'Peer EV/Revenue', 6, NF.mult);
-  await I(26, 'Peer P/S', 7, NF.mult);
+  await I(23, 'Peer EV/EBITDA', 13, NF.mult);
+  await I(24, 'Peer P/E', 22, NF.mult);
+  await I(25, 'Peer EV/Revenue', 5, NF.mult);
+  await I(26, 'Peer P/S', 5, NF.mult);
 
   await section(inputs, 'B28:D28', 'DCF / WACC');
   await I(29, 'Risk-free Rate', 0.042, NF.pct);
@@ -328,9 +328,9 @@ export async function buildFinancialModel(outPath: string): Promise<Uint8Array> 
   await consensus.layout.setColumnWidths([[0, 30], [1, 200], [2, 150], [3, 150], [4, 150]]);
   await consensus.setRange('A3', [
     ['', 'Metric ($M)', 'Prior FY (Actual)', 'Current FY (Consensus)', 'NTM (Consensus)'],
-    ['', 'Revenue', 1000, 1300, 1500],
-    ['', 'EBITDA', 250, 340, 400],
-    ['', 'Net Income', 120, 175, 205],
+    ['', 'Revenue', 1000, 1150, 1300],
+    ['', 'EBITDA', 250, 295, 340],
+    ['', 'Net Income', 120, 150, 175],
   ]);
   await put(consensus, 'B7', 'EPS ($)');
   await put(consensus, 'C7', '=C6/Shares');
