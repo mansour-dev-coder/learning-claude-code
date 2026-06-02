@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#07090F" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>Orbit Academy — Learn the Rocket Industry</title>
+
+  <!-- React from CDN: no build step, runs on any device with a browser -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    :root {
+      --bg: #07090F;
+      --surface: #0E1520;
+      --surface-2: #131C2A;
+      --cyan: #4AF0E0;
+      --orange: #FF7A45;
+      --gold: #F5C842;
+      --green: #52E07C;
+      --text: #E6ECF5;
+      --muted: #8A99B0;
+      --line: #1E2A3C;
+      --serif: Georgia, 'Times New Roman', serif;
+      --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      --mono: 'SF Mono', ui-monospace, Menlo, Consolas, monospace;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      -webkit-font-smoothing: antialiased;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+    button { font-family: inherit; cursor: pointer; }
+
+    /* ---------- Star field ---------- */
+    .starfield {
+      position: fixed; inset: 0; z-index: 0;
+      pointer-events: none; overflow: hidden;
+      background: radial-gradient(ellipse at 70% -10%, #122033 0%, #07090F 55%);
+    }
+    .star {
+      position: absolute; border-radius: 50%;
+      background: #fff;
+      animation: twinkle var(--dur) ease-in-out infinite alternate;
+    }
+    @keyframes twinkle { from { opacity: .15; } to { opacity: .9; } }
+
+    /* ---------- Layout ---------- */
+    .app { position: relative; z-index: 1; min-height: 100vh; }
+    .header {
+      position: sticky; top: 0; z-index: 20;
+      backdrop-filter: blur(12px);
+      background: rgba(7,9,15,.82);
+      border-bottom: 1px solid var(--line);
+      padding: env(safe-area-inset-top) 0 0;
+    }
+    .header-inner {
+      max-width: 1200px; margin: 0 auto;
+      padding: 14px 20px;
+      display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+    }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand .logo {
+      width: 38px; height: 38px; flex: 0 0 38px;
+      display: grid; place-items: center;
+      border: 1px solid var(--cyan); border-radius: 10px;
+      color: var(--cyan); font-size: 20px;
+      box-shadow: 0 0 18px rgba(74,240,224,.25);
+    }
+    .brand h1 {
+      font-family: var(--serif); font-size: 20px; margin: 0; letter-spacing: .3px;
+    }
+    .brand .tag {
+      font-family: var(--mono); font-size: 10px; letter-spacing: 2px;
+      color: var(--muted); text-transform: uppercase;
+    }
+    .progress-wrap { margin-left: auto; min-width: 200px; flex: 1; max-width: 360px; }
+    .progress-label {
+      display: flex; justify-content: space-between;
+      font-family: var(--mono); font-size: 11px; color: var(--muted);
+      margin-bottom: 6px; letter-spacing: 1px;
+    }
+    .progress-track {
+      height: 7px; border-radius: 99px; background: var(--surface-2);
+      overflow: hidden; border: 1px solid var(--line);
+    }
+    .progress-fill {
+      height: 100%; border-radius: 99px;
+      background: linear-gradient(90deg, var(--cyan), var(--green));
+      transition: width .5s ease;
+      box-shadow: 0 0 12px rgba(74,240,224,.5);
+    }
+
+    .layout {
+      max-width: 1200px; margin: 0 auto;
+      display: grid; grid-template-columns: 280px 1fr; gap: 28px;
+      padding: 28px 20px 80px;
+    }
+
+    /* ---------- Sidebar ---------- */
+    .sidebar { position: sticky; top: 96px; align-self: start; }
+    .sidebar-title {
+      font-family: var(--mono); font-size: 11px; letter-spacing: 2px;
+      color: var(--muted); text-transform: uppercase; margin: 0 0 14px 4px;
+    }
+    .nav-item {
+      width: 100%; text-align: left; background: var(--surface);
+      border: 1px solid var(--line); border-left: 3px solid transparent;
+      border-radius: 12px; padding: 14px 14px; margin-bottom: 10px;
+      color: var(--text); display: flex; gap: 12px; align-items: flex-start;
+      transition: border-color .2s, background .2s, transform .1s;
+    }
+    .nav-item:hover:not(.locked) { background: var(--surface-2); transform: translateX(2px); }
+    .nav-item.active { border-left-color: var(--accent); background: var(--surface-2); }
+    .nav-item.locked { opacity: .5; cursor: not-allowed; }
+    .nav-num {
+      font-family: var(--mono); font-size: 12px; width: 26px; height: 26px;
+      flex: 0 0 26px; border-radius: 7px; display: grid; place-items: center;
+      border: 1px solid var(--line); color: var(--muted);
+    }
+    .nav-item.active .nav-num { border-color: var(--accent); color: var(--accent); }
+    .nav-item.done .nav-num { background: var(--green); color: #06210F; border-color: var(--green); }
+    .nav-body { flex: 1; min-width: 0; }
+    .nav-name { font-size: 14px; font-weight: 600; }
+    .nav-meta { font-family: var(--mono); font-size: 10px; color: var(--muted); margin-top: 3px; letter-spacing: .5px; }
+    .nav-status { font-size: 14px; }
+
+    .sidebar-footer { margin-top: 18px; padding-left: 4px; }
+    .reset-btn {
+      background: none; border: none; color: var(--muted);
+      font-family: var(--mono); font-size: 11px; letter-spacing: 1px;
+      text-decoration: underline; padding: 4px;
+    }
+    .reset-btn:hover { color: var(--orange); }
+
+    /* ---------- Main content ---------- */
+    .main { min-width: 0; }
+    .module-head { margin-bottom: 22px; }
+    .module-kicker {
+      font-family: var(--mono); font-size: 11px; letter-spacing: 3px;
+      text-transform: uppercase; color: var(--accent);
+    }
+    .module-title { font-family: var(--serif); font-size: 30px; margin: 6px 0 4px; line-height: 1.2; }
+    .module-sub { color: var(--muted); font-size: 15px; margin: 0; }
+
+    .tabs { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+    .tab {
+      background: var(--surface); border: 1px solid var(--line);
+      border-radius: 99px; padding: 8px 16px; color: var(--muted);
+      font-size: 13px; font-weight: 600; transition: all .18s;
+    }
+    .tab:hover { color: var(--text); }
+    .tab.active { background: var(--accent); color: #06121A; border-color: var(--accent); }
+
+    .card {
+      background: var(--surface); border: 1px solid var(--line);
+      border-left: 3px solid var(--accent);
+      border-radius: 14px; padding: 24px 26px; margin-bottom: 18px;
+    }
+    .lesson-h {
+      font-family: var(--serif); font-size: 20px; margin: 22px 0 10px;
+    }
+    .lesson-h:first-child { margin-top: 0; }
+    .lesson-p { font-size: 15.5px; margin: 0 0 14px; color: #D5DEEC; }
+    .lesson-p:last-child { margin-bottom: 0; }
+
+    /* callout boxes */
+    .box { border-radius: 12px; padding: 16px 18px; margin: 16px 0; border: 1px solid; }
+    .box-label {
+      font-family: var(--mono); font-size: 10px; letter-spacing: 2px;
+      text-transform: uppercase; display: block; margin-bottom: 7px; font-weight: 700;
+    }
+    .box p { margin: 0; font-size: 14.5px; }
+    .box.analogy { background: rgba(245,200,66,.07); border-color: rgba(245,200,66,.35); }
+    .box.analogy .box-label { color: var(--gold); }
+    .box.insight { background: rgba(74,240,224,.07); border-color: rgba(74,240,224,.35); }
+    .box.insight .box-label { color: var(--cyan); }
+    .box.warning { background: rgba(255,122,69,.08); border-color: rgba(255,122,69,.4); }
+    .box.warning .box-label { color: var(--orange); }
+
+    .term {
+      background: var(--surface-2); border: 1px solid var(--line);
+      border-radius: 12px; padding: 16px 18px; margin: 16px 0;
+    }
+    .term-name { font-family: var(--mono); font-size: 14px; color: var(--cyan); font-weight: 700; margin-bottom: 8px; }
+    .term-plain { font-size: 14.5px; color: var(--gold); margin: 0 0 10px; font-style: italic; }
+    .term-def { font-size: 14.5px; margin: 0; color: #D5DEEC; }
+    .term-def b { color: var(--text); }
+
+    ul.lesson-list { margin: 6px 0 14px; padding-left: 20px; }
+    ul.lesson-list li { margin-bottom: 8px; font-size: 15px; color: #D5DEEC; }
+
+    .specs { display: grid; gap: 10px; margin: 6px 0 14px; }
+    .spec-row {
+      display: grid; grid-template-columns: 160px 1fr; gap: 12px;
+      padding: 10px 0; border-bottom: 1px dashed var(--line);
+    }
+    .spec-row:last-child { border-bottom: none; }
+    .spec-k { font-family: var(--mono); font-size: 12px; color: var(--muted); letter-spacing: .5px; }
+    .spec-v { font-size: 14.5px; }
+
+    .timeline { margin: 6px 0 8px; }
+    .tl-item { display: grid; grid-template-columns: 92px 1fr; gap: 14px; padding: 10px 0; align-items: start; }
+    .tl-time {
+      font-family: var(--mono); font-size: 12px; color: var(--accent);
+      background: var(--surface-2); border: 1px solid var(--line);
+      border-radius: 6px; padding: 4px 0; text-align: center;
+    }
+    .tl-text { font-size: 14.5px; color: #D5DEEC; }
+
+    .parts { margin: 6px 0; }
+    .part { display: grid; grid-template-columns: 150px 1fr; gap: 14px; padding: 11px 0; border-bottom: 1px dashed var(--line); }
+    .part:last-child { border-bottom: none; }
+    .part-name { font-family: var(--mono); font-size: 13px; color: var(--accent); font-weight: 700; }
+    .part-text { font-size: 14.5px; color: #D5DEEC; }
+
+    /* CTA + buttons */
+    .btn {
+      border-radius: 10px; padding: 13px 24px; font-size: 15px; font-weight: 700;
+      border: 1px solid transparent; transition: transform .1s, filter .15s;
+    }
+    .btn:active { transform: translateY(1px); }
+    .btn-primary { background: var(--accent); color: #06121A; }
+    .btn-primary:hover { filter: brightness(1.08); }
+    .btn-ghost { background: transparent; border-color: var(--line); color: var(--text); }
+    .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+    .cta-row { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 8px; }
+
+    /* ---------- Quiz ---------- */
+    .quiz-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 18px; flex-wrap: wrap; gap: 8px; }
+    .q-count { font-family: var(--mono); font-size: 12px; color: var(--muted); letter-spacing: 1px; }
+    .q-text { font-family: var(--serif); font-size: 22px; margin: 0 0 20px; line-height: 1.35; }
+    .options { display: grid; gap: 12px; }
+    .opt {
+      text-align: left; background: var(--surface-2); border: 1px solid var(--line);
+      border-radius: 11px; padding: 15px 18px; color: var(--text); font-size: 15px;
+      display: flex; gap: 13px; align-items: center; transition: all .15s;
+    }
+    .opt:hover:not(:disabled) { border-color: var(--accent); }
+    .opt:disabled { cursor: default; }
+    .opt-key {
+      font-family: var(--mono); font-size: 12px; width: 24px; height: 24px; flex: 0 0 24px;
+      border: 1px solid var(--line); border-radius: 6px; display: grid; place-items: center; color: var(--muted);
+    }
+    .opt.correct { border-color: var(--green); background: rgba(82,224,124,.12); }
+    .opt.correct .opt-key { border-color: var(--green); color: var(--green); }
+    .opt.wrong { border-color: var(--orange); background: rgba(255,122,69,.12); }
+    .opt.wrong .opt-key { border-color: var(--orange); color: var(--orange); }
+
+    .feedback { margin-top: 18px; border-radius: 11px; padding: 15px 18px; border: 1px solid; }
+    .feedback.right { background: rgba(82,224,124,.08); border-color: rgba(82,224,124,.4); }
+    .feedback.wrong-fb { background: rgba(255,122,69,.08); border-color: rgba(255,122,69,.4); }
+    .feedback .fb-label { font-family: var(--mono); font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; font-weight: 700; }
+    .feedback.right .fb-label { color: var(--green); }
+    .feedback.wrong-fb .fb-label { color: var(--orange); }
+    .feedback p { margin: 7px 0 0; font-size: 14.5px; }
+
+    /* ---------- Results ---------- */
+    .results { text-align: center; padding: 30px 26px; }
+    .score-ring {
+      width: 150px; height: 150px; border-radius: 50%; margin: 8px auto 18px;
+      display: grid; place-items: center;
+      background: conic-gradient(var(--ring-color) var(--ring-deg), var(--surface-2) 0);
+    }
+    .score-inner {
+      width: 122px; height: 122px; border-radius: 50%; background: var(--surface);
+      display: grid; place-items: center; flex-direction: column;
+    }
+    .score-pct { font-family: var(--serif); font-size: 38px; line-height: 1; }
+    .score-frac { font-family: var(--mono); font-size: 12px; color: var(--muted); margin-top: 4px; }
+    .results h2 { font-family: var(--serif); font-size: 26px; margin: 6px 0 8px; }
+    .results p.r-sub { color: var(--muted); max-width: 460px; margin: 0 auto 22px; }
+
+    @media (max-width: 880px) {
+      .layout { grid-template-columns: 1fr; gap: 18px; padding: 18px 14px 70px; }
+      .sidebar { position: static; }
+      .nav-list { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 6px; -webkit-overflow-scrolling: touch; }
+      .nav-item { margin-bottom: 0; min-width: 210px; }
+      .sidebar-footer { display: none; }
+      .module-title { font-size: 25px; }
+      .spec-row, .part { grid-template-columns: 1fr; gap: 3px; }
+      .tl-item { grid-template-columns: 74px 1fr; }
+      .progress-wrap { max-width: none; }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel" data-presets="react">
+    const { useState, useEffect, useMemo } = React;
+
+    /* =================================================================
+       CONTENT — all five modules, lessons and quizzes, inline.
+       ================================================================= */
+    const MODULES = [
+      /* -------------------- MODULE 1 -------------------- */
+      {
+        id: 1, accent: "#4AF0E0",
+        title: "How Rockets Work",
+        subtitle: "The basics: why a rocket is not a very fast plane.",
+        lessons: [
+          {
+            tab: "Why rockets are special",
+            blocks: [
+              { type: "p", text: `A car burns petrol using oxygen pulled from the air around it. A jet plane does the same — it scoops in air, mixes it with fuel, and burns it. Both completely depend on the atmosphere. A rocket has to work where there is no atmosphere at all: space.` },
+              { type: "term", term: "Oxidiser", plain: `Think of a campfire. The wood is the fuel, but it only burns because there's air (oxygen) around it. In space there is no air — so a rocket must bring its own "air" along.`, def: `An <b>oxidiser</b> is the substance a rocket carries to supply the oxygen its fuel needs to burn. No oxidiser, no fire.` },
+              { type: "p", text: `This is the single biggest difference between a rocket and a jet engine. A jet engine breathes the air around it. A rocket cannot — so it must carry both the fuel and the oxygen needed to burn that fuel.` },
+              { type: "insight", text: `A rocket carries everything it needs to make fire: the fuel AND the oxygen. That's why it keeps thrusting in the vacuum of space, where a jet engine would simply choke.` }
+            ]
+          },
+          {
+            tab: "Propellant: fuel + oxidiser",
+            blocks: [
+              { type: "term", term: "Propellant", plain: `Back to the campfire: you need wood AND air to make a fire. A rocket's "wood + air" combo has a name.`, def: `<b>Propellant</b> is the combination of FUEL (the part that burns) and OXIDISER (the part that makes it burn). Together they are what the engine consumes to make thrust.` },
+              { type: "p", text: `On Isar Aerospace's Spectrum rocket, the two ingredients are kept extremely cold so they stay liquid and pack tightly into the tanks:` },
+              { type: "specs", items: [
+                { k: "Fuel", v: "Liquid propane, chilled to –42 °C" },
+                { k: "Oxidiser", v: "Liquid oxygen (LOX), chilled to –183 °C" }
+              ]},
+              { type: "p", text: `The fuel and oxidiser sit in separate tanks and only meet inside the engine, at the moment of combustion. Keeping them apart until the last second is what keeps the rocket safe on the launch pad.` },
+              { type: "insight", text: `About 90% of a rocket's weight at launch is propellant. A rocket is essentially a giant flying fuel tank with an engine on the bottom and a tiny payload on top.` }
+            ]
+          },
+          {
+            tab: "Thrust & anatomy",
+            blocks: [
+              { type: "h", text: "Making thrust" },
+              { type: "p", text: `Inside the engine, fuel and oxidiser combust at around 3,000 °C. That violently hot gas is forced out of the nozzle at over 3,000 metres per second. As the gas shoots downward, the rocket is pushed upward.` },
+              { type: "analogy", text: `Blow up a balloon and let go without tying it. The air rushes out of the neck one way, and the balloon flies off the other way. A rocket is the same idea — it throws mass (hot gas) out the back and gets pushed forward in return.` },
+              { type: "term", term: "Thrust — Newton's Third Law", plain: `For every push there's an equal push back the other way — like stepping off a skateboard sends the board rolling backwards.`, def: `<b>Thrust</b> is the forward force created when the engine throws exhaust gas backwards. Newton's Third Law: every action has an equal and opposite reaction.` },
+              { type: "h", text: "Anatomy of a rocket (bottom to top)" },
+              { type: "parts", items: [
+                { k: "First Stage", v: "Nine engines firing together — the heavy lifter that gets the rocket off the pad. Burns for 2–3 minutes, then drops away once empty." },
+                { k: "Interstage", v: "A structural collar that connects the first and second stages." },
+                { k: "Second Stage", v: "Smaller, with a single engine designed to fire in vacuum. Its job is to reach orbital velocity." },
+                { k: "Payload Fairing", v: "The nose cone that shields the satellite during the climb. Jettisoned above ~120 km, where the air is too thin to matter." },
+                { k: "Payload", v: "The reason for the whole mission: the satellite itself." }
+              ]}
+            ]
+          }
+        ],
+        quiz: [
+          { q: "Why can't a jet engine work in space?", options: ["It gets too cold to ignite", "There is no air to breathe for combustion", "Gravity is too strong", "The fuel freezes solid"], answer: 1, explain: "A jet engine scoops in air to get oxygen. In the vacuum of space there's no air, so it has nothing to burn its fuel with." },
+          { q: "What is 'propellant'?", options: ["Just the fuel a rocket burns", "The combination of fuel and oxidiser", "The exhaust gas leaving the nozzle", "The nose cone protecting the satellite"], answer: 1, explain: "Propellant = FUEL (what burns) + OXIDISER (what makes it burn). A rocket must carry both." },
+          { q: "On the Spectrum rocket, what is used as the oxidiser?", options: ["Liquid propane", "Liquid hydrogen", "Liquid oxygen (LOX)", "Compressed air"], answer: 2, explain: "Spectrum's oxidiser is liquid oxygen (LOX), chilled to –183 °C. The fuel is liquid propane at –42 °C." },
+          { q: "Which principle explains how a rocket produces thrust?", options: ["Newton's Third Law", "The law of gravity", "Bernoulli's principle", "Conservation of mass"], answer: 0, explain: "The engine throws hot gas backwards; Newton's Third Law means an equal and opposite force pushes the rocket forward — just like an untied balloon." },
+          { q: "Roughly what fraction of a rocket's weight at launch is propellant?", options: ["About 30%", "About 50%", "About 70%", "About 90%"], answer: 3, explain: "Around 90% of launch weight is propellant. The rocket is basically a giant fuel tank with a small payload on top." }
+        ]
+      },
+
+      /* -------------------- MODULE 2 -------------------- */
+      {
+        id: 2, accent: "#FF7A45",
+        title: "Getting to Orbit",
+        subtitle: "Orbit isn't about height — it's about going sideways fast.",
+        lessons: [
+          {
+            tab: "What orbit really means",
+            blocks: [
+              { type: "p", text: `Most people think being in orbit just means being very high up. It doesn't. The International Space Station orbits at only 400 km — if you could drive straight up, you'd be there in about four hours. Height is the easy part.` },
+              { type: "term", term: "Orbital velocity", plain: `Imagine throwing a ball. Throw it harder and it lands further away. Throw it impossibly hard and the ground curves away beneath it as fast as it falls — so it never lands. That's an orbit.`, def: `<b>Orbital velocity</b> is how fast you must travel sideways to fall around the Earth instead of into it. For low orbit that's about 7.8 km/s — roughly 28,000 km/h.` },
+              { type: "analogy", text: `Newton's cannon: picture a cannon on a very tall mountain. Fire weakly and the ball lands nearby. Fire hard enough and the ball falls toward Earth at exactly the rate the planet curves away — so it keeps "falling" forever, circling the globe. That's all an orbit is: perpetual falling, missing the ground.` },
+              { type: "insight", text: `Getting to orbit is mostly about speed, not altitude. The hard, expensive job of a rocket is reaching 7.8 km/s sideways — not simply getting high.` }
+            ]
+          },
+          {
+            tab: "The launch sequence",
+            blocks: [
+              { type: "p", text: `A climb to orbit takes only about nine minutes, but a lot happens in a tightly choreographed order:` },
+              { type: "timeline", items: [
+                { t: "T+0", v: "Ignition and lift-off. The first stage's engines fire and the rocket leaves the pad." },
+                { t: "T+10s", v: "Gravity turn begins — the rocket tilts slightly so gravity gradually curves its path toward horizontal." },
+                { t: "T+75s", v: "Max-Q: the moment of peak aerodynamic stress, where speed and air thickness combine for the roughest ride." },
+                { t: "T+3min", v: "Stage separation — the empty first stage drops away and the second stage takes over." },
+                { t: "T+4min", v: "Fairing jettison — the nose cone is no longer needed and is discarded to shed weight." },
+                { t: "T+9min", v: "Orbit insertion — the rocket reaches orbital velocity and the satellite deploys." }
+              ]},
+              { type: "term", term: "Gravity turn", plain: `Like leaning into a corner on a bicycle — a small tilt lets a force you already have do the steering for you.`, def: `A <b>gravity turn</b> is a gentle early tilt that lets gravity itself curve the rocket's path from vertical toward horizontal — steering "for free" instead of fighting it with fuel.` },
+              { type: "term", term: "Max-Q", plain: `Like sticking your hand out of a car window: push harder on the pedal and the wind shoves back harder. There's a worst moment before you punch through.`, def: `<b>Max-Q</b> is the point of maximum dynamic pressure — where rising speed and still-thick air combine to put the greatest aerodynamic load on the rocket.` }
+            ]
+          },
+          {
+            tab: "Delta-v & why staging works",
+            blocks: [
+              { type: "term", term: "Delta-v (Δv)", plain: `Think of it as your budget of "speed change" — like a fuel gauge, but measured in how much faster (or slower) you can still make yourself go.`, def: `<b>Delta-v</b> is the total change in velocity a rocket can achieve. Reaching low orbit needs roughly 9.4 km/s: about 7.8 km/s of orbital speed plus ~1.6 km/s lost to gravity drag and pushing through the atmosphere.` },
+              { type: "p", text: `Here's the cruel maths: the rocket equation is logarithmic. Doubling your fuel does NOT double your speed. To go a little faster you need a lot more fuel — and that extra fuel is itself heavy and must also be carried.` },
+              { type: "p", text: `A single-stage rocket trying to reach orbit would need to be about 95% fuel, leaving almost nothing for the structure, engines, or payload. It simply doesn't work.` },
+              { type: "analogy", text: `Packing a suitcase for a long trip: once you've used up and emptied half of it, why keep dragging the empty half around? Staging means throwing away the empty part of the rocket the moment it's done, so you no longer waste energy lifting dead weight.` },
+              { type: "insight", text: `Staging is the trick that makes orbit possible. By dropping empty tanks and engines along the way, the rocket keeps getting lighter exactly when it needs to accelerate hardest.` }
+            ]
+          }
+        ],
+        quiz: [
+          { q: "What does being 'in orbit' actually require?", options: ["Simply being very high above the ground", "Travelling sideways fast enough to fall around the Earth", "Escaping Earth's gravity completely", "Floating where there is no gravity"], answer: 1, explain: "Orbit is about sideways speed (~7.8 km/s), not height. You fall continuously but move so fast the ground curves away beneath you." },
+          { q: "Roughly how high does the International Space Station orbit?", options: ["40 km", "400 km", "4,000 km", "40,000 km"], answer: 1, explain: "Only about 400 km — close enough that you could 'drive' there in around four hours. The hard part is the sideways speed, not the altitude." },
+          { q: "What happens during the 'gravity turn'?", options: ["The engines shut down briefly to save fuel", "The rocket tilts so gravity curves its path toward horizontal", "The rocket spins to stay stable", "The fairing is jettisoned"], answer: 1, explain: "A small early tilt lets gravity steer the rocket from vertical toward horizontal — getting orbital direction 'for free' rather than burning fuel to do it." },
+          { q: "About how much total delta-v is needed to reach low Earth orbit?", options: ["~3 km/s", "~5 km/s", "~9.4 km/s", "~20 km/s"], answer: 2, explain: "Roughly 9.4 km/s: about 7.8 km/s of orbital speed plus ~1.6 km/s lost to gravity and atmospheric drag." },
+          { q: "Why does staging make reaching orbit possible?", options: ["It lets the rocket carry more passengers", "It drops empty tanks so the rocket stops lifting dead weight", "It makes the rocket more aerodynamic", "It allows the engines to breathe air"], answer: 1, explain: "Because the rocket equation is logarithmic, a single-stage rocket would need ~95% fuel. Dropping spent stages sheds dead weight exactly when more speed is needed." }
+        ]
+      },
+
+      /* -------------------- MODULE 3 -------------------- */
+      {
+        id: 3, accent: "#F5C842",
+        title: "Types of Orbit",
+        subtitle: "Where satellites live, and why altitude is a choice.",
+        lessons: [
+          {
+            tab: "LEO & MEO",
+            blocks: [
+              { type: "term", term: "LEO — Low Earth Orbit", plain: `The busy "ground floor" of space — close, quick, and crowded.`, def: `<b>LEO</b> sits between roughly 200 and 2,000 km up. A satellite there completes an orbit in about 90 minutes, travelling at ~7.8 km/s.` },
+              { type: "specs", items: [
+                { k: "Altitude", v: "200–2,000 km" },
+                { k: "Orbit time", v: "~90 minutes" },
+                { k: "Speed", v: "~7.8 km/s" },
+                { k: "Who lives here", v: "Over 90% of all satellites — Starlink, the ISS, Earth-observation craft" }
+              ]},
+              { type: "p", text: `Because it's close, LEO offers low signal delay and cheaper access — which is why the great majority of satellites operate there.` },
+              { type: "term", term: "MEO — Medium Earth Orbit", plain: `The "middle floors" — higher up, with a wider view of the planet.`, def: `<b>MEO</b> spans roughly 2,000 to 36,000 km. Its most famous residents are the GPS satellites, which sit at about 20,200 km.` }
+            ]
+          },
+          {
+            tab: "Sun-Synchronous Orbit",
+            blocks: [
+              { type: "term", term: "SSO — Sun-Synchronous Orbit", plain: `Imagine photographing your garden at exactly 10:30 every morning. Same sun angle, same shadows — so you can fairly compare today's photo with last month's.`, def: `An <b>SSO</b> is tuned so the satellite passes over every location at the SAME local solar time on each visit, giving consistent lighting.` },
+              { type: "specs", items: [
+                { k: "Altitude", v: "600–800 km" },
+                { k: "Inclination", v: "~97° (nearly over the poles)" },
+                { k: "Key trait", v: "Same local solar time on every pass" }
+              ]},
+              { type: "p", text: `That consistent lighting is exactly what Earth-observation satellites need: it lets analysts compare images of the same place over days, months and years without the sun angle changing the picture.` },
+              { type: "insight", text: `SSO is one of the fastest-growing slices of the market, expanding around 14% a year — driven by demand for Earth imaging, climate monitoring and agriculture.` }
+            ]
+          },
+          {
+            tab: "GEO & launch sites",
+            blocks: [
+              { type: "term", term: "GEO — Geostationary Orbit", plain: `Hover over one spot on Earth so a dish on the ground can point at you once and never move again.`, def: `<b>GEO</b> is a precise altitude of 35,786 km. At that distance a satellite circles Earth in exactly one day, so it matches the planet's rotation and appears to hang motionless in the sky.` },
+              { type: "specs", items: [
+                { k: "Altitude", v: "35,786 km (exact)" },
+                { k: "Appears", v: "Stationary from the ground" },
+                { k: "Used for", v: "TV broadcast, weather satellites" },
+                { k: "Coverage", v: "Just three GEO satellites can cover the whole planet" }
+              ]},
+              { type: "warning", text: `GEO's great height has a cost: signals take about 240 milliseconds to make the round trip. That delay is fine for TV, but makes GEO a poor choice for responsive internet.` },
+              { type: "h", text: "Why Andøya, Norway (69°N) is ideal for SSO" },
+              { type: "p", text: `Reaching an SSO needs an inclination of about 97–98° — a near-polar path. Launching from Andøya in northern Norway, at 69° latitude, means the rocket naturally heads into that inclination over the empty Norwegian Sea. No costly steering corrections are needed, and the path avoids populated areas.` }
+            ]
+          }
+        ],
+        quiz: [
+          { q: "Where do over 90% of satellites operate?", options: ["GEO", "MEO", "LEO", "SSO"], answer: 2, explain: "Low Earth Orbit (200–2,000 km) is home to the vast majority of satellites, including Starlink and the ISS — it's close, cheap to reach, and low-latency." },
+          { q: "What makes a Sun-Synchronous Orbit special?", options: ["It never moves relative to the ground", "It passes each location at the same local solar time", "It is the highest possible orbit", "It requires no fuel to maintain"], answer: 1, explain: "An SSO crosses each spot at the same local solar time, giving consistent lighting — essential for comparing Earth-observation images over time." },
+          { q: "Why does a GEO satellite appear to stay still in the sky?", options: ["It is too far away to see moving", "It orbits once per day, matching Earth's rotation", "It uses thrusters to hover", "It is not actually orbiting"], answer: 1, explain: "At 35,786 km a satellite takes exactly one day to circle Earth, matching the planet's spin — so from the ground it looks stationary." },
+          { q: "GPS satellites operate in which orbit?", options: ["LEO", "MEO (~20,200 km)", "GEO", "SSO"], answer: 1, explain: "GPS satellites sit in Medium Earth Orbit at about 20,200 km." },
+          { q: "Why is Andøya, Norway (69°N) well suited to SSO launches?", options: ["It is the warmest launch site in Europe", "Its high latitude naturally gives the ~97° inclination an SSO needs", "It is the closest site to the equator", "It allows launches directly into GEO"], answer: 1, explain: "From 69° latitude the rocket heads naturally into the ~97–98° near-polar inclination over the empty Norwegian Sea — no expensive trajectory corrections required." }
+        ]
+      },
+
+      /* -------------------- MODULE 4 -------------------- */
+      {
+        id: 4, accent: "#52E07C",
+        title: "Isar Aerospace & Spectrum",
+        subtitle: "A German startup, its rocket, and a very public first flight.",
+        lessons: [
+          {
+            tab: "The company",
+            blocks: [
+              { type: "p", text: `Isar Aerospace was founded in March 2018 in Munich by three students from the Technical University of Munich (TUM): Daniel Metzler (CEO), Josef Fleischmann (CTO) and Markus Brandl. They met building rocket engines together in WARR, the university's student rocketry group.` },
+              { type: "h", text: "Funding" },
+              { type: "p", text: `Isar has raised over €600M across Series A–C rounds and beyond. Notable backers include the NATO Innovation Fund — its first-ever investment in a launch provider — and an Eldridge convertible bond. The company has been reported at around a €2B valuation.` },
+              { type: "h", text: "Vertical integration" },
+              { type: "p", text: `Isar builds roughly 80% of the rocket in-house — including the engines, avionics and software. This eliminates supplier markups and lets the team iterate quickly.` },
+              { type: "insight", text: `SpaceX pioneered this vertically-integrated approach, cutting costs by around 90% versus old-school rocket makers who bolt together parts from many suppliers.` }
+            ]
+          },
+          {
+            tab: "Spectrum specs",
+            blocks: [
+              { type: "specs", items: [
+                { k: "Height", v: "28 m tall" },
+                { k: "Diameter", v: "2 m" },
+                { k: "Stages", v: "Two" },
+                { k: "First-stage engines", v: "9 × Aquila (675 kN total thrust)" },
+                { k: "Propellant", v: "Liquid oxygen + liquid propane" },
+                { k: "Payload to LEO", v: "Up to 1,000 kg (from Kourou)" },
+                { k: "Payload to SSO", v: "Up to 700 kg (from Andøya)" },
+                { k: "Structure", v: "Carbon composite" },
+                { k: "Target price", v: "€10,000 / kg" }
+              ]},
+              { type: "term", term: "Why propane, not kerosene?", plain: `If you're packing a small bag, you choose the food that gives the most energy for its size.`, def: `Among carbon-based fuels, propane has the highest energy density per unit volume — keeping the vehicle compact. It also burns cleaner and is far easier to handle than hydrogen.` }
+            ]
+          },
+          {
+            tab: "The flights",
+            blocks: [
+              { type: "h", text: "First launch — 30 March 2025" },
+              { type: "p", text: `Spectrum had a clean lift-off, with all nine engines firing simultaneously, and the pitch-over manoeuvre began normally. Then at T+25s a vent valve — used during ground fuelling to control tank pressure — unexpectedly opened, causing a loss of attitude control. The Flight Termination System (FTS) shut down all engines at T+30s, and the rocket fell into the Norwegian Sea. The launch pad was undamaged.` },
+              { type: "analogy", text: `CEO Daniel Metzler: "We had a clean liftoff, 30 seconds of flight, and even got to validate our Flight Termination System." For a maiden flight, surviving lift-off and proving the safety systems work is genuinely valuable data.` },
+              { type: "h", text: `Second flight — "Onward and Upward" (2026)` },
+              { type: "p", text: `The second mission carries six university payloads and targets a Sun-Synchronous Orbit. It was scrubbed on 21 January over a valve issue, then on 25 March reached T-3 seconds before a fishing vessel inside the safety zone forced an abort.` }
+            ]
+          }
+        ],
+        quiz: [
+          { q: "Where and when was Isar Aerospace founded?", options: ["Berlin, 2010", "Munich, March 2018", "Hamburg, 2021", "Bremen, 2015"], answer: 1, explain: "Isar was founded in Munich in March 2018 by three TUM students who had met in the WARR student rocketry group." },
+          { q: "How many engines does Spectrum's first stage have?", options: ["1", "3", "9", "27"], answer: 2, explain: "Nine Aquila engines power the first stage, producing 675 kN of total thrust." },
+          { q: "Why does Spectrum use liquid propane rather than kerosene?", options: ["It is cheaper than any other fuel", "It has the highest energy density per volume of carbon fuels, keeping the rocket compact", "It is the only fuel that works with LOX", "It does not need an oxidiser"], answer: 1, explain: "Propane offers the highest energy density per unit volume among carbon fuels (compact vehicle), burns cleaner, and is easier to handle than hydrogen." },
+          { q: "What ended Spectrum's first flight in March 2025?", options: ["An engine exploded at lift-off", "A vent valve opened at T+25s, causing loss of attitude control", "It ran out of fuel", "A fishing vessel entered the safety zone"], answer: 1, explain: "A vent valve (used for ground-fuelling pressure control) unexpectedly opened at T+25s; the Flight Termination System shut the engines at T+30s and the rocket fell into the sea. The pad was undamaged." },
+          { q: "What does 'vertical integration' mean for Isar?", options: ["Building the rocket to launch straight up", "Building ~80% of the rocket in-house to cut costs and iterate fast", "Only making satellites, not rockets", "Outsourcing every component to suppliers"], answer: 1, explain: "Isar builds about 80% of the rocket itself — engines, avionics, software — eliminating supplier markups and enabling rapid iteration, much as SpaceX did." }
+        ]
+      },
+
+      /* -------------------- MODULE 5 -------------------- */
+      {
+        id: 5, accent: "#4AF0E0",
+        title: "The Business of Rockets",
+        subtitle: "Why building the rocket is only half the battle.",
+        lessons: [
+          {
+            tab: "Market & customers",
+            blocks: [
+              { type: "h", text: "The market" },
+              { type: "specs", items: [
+                { k: "Small-sat market", v: "$9.4B (2024)" },
+                { k: "Forecast launches", v: "18,500 smallsats over 2024–2033" },
+                { k: "SSO growth", v: "~14% per year" }
+              ]},
+              { type: "h", text: "What customers actually care about (in order)" },
+              { type: "list", items: [
+                "1. Reliability — will my satellite actually reach orbit?",
+                "2. Schedule certainty — will it launch when promised?",
+                "3. Exact orbit — does it go precisely where my satellite needs to be?",
+                "4. Price — how much per kilogram?",
+                "5. Responsiveness — how easy is the provider to work with?"
+              ]},
+              { type: "insight", text: `Notice that price is only fourth on the list. For a customer with an expensive satellite, a cheap launch that loses the payload is the most expensive launch of all.` }
+            ]
+          },
+          {
+            tab: "The economics",
+            blocks: [
+              { type: "h", text: "Insurance reality" },
+              { type: "p", text: `Insurers price risk on track record. A brand-new, unproven rocket can mean a premium of 15–25% of the satellite's value. A proven workhorse like Falcon 9 might be just 1–4%.` },
+              { type: "analogy", text: `On a $50M satellite, that gap alone can reach about $10.5M in extra insurance — before you've paid a cent for the launch itself. A "cheaper" unproven rocket can end up costing far more once insurance is added.` },
+              { type: "h", text: "Rideshare vs dedicated" },
+              { type: "specs", items: [
+                { k: "Rideshare (e.g. SpaceX)", v: "~$5,500/kg — but you accept their orbit and their schedule" },
+                { k: "Dedicated (e.g. Spectrum)", v: "~€10,000/kg — but your exact orbit, your schedule, your mission rules" }
+              ]},
+              { type: "insight", text: `Rideshare is the cheap bus that goes where it's going; a dedicated launch is the taxi that takes you exactly where and when you want. Many customers will pay more for control.` }
+            ]
+          },
+          {
+            tab: "Competitors & the valley of death",
+            blocks: [
+              { type: "h", text: "Who's who" },
+              { type: "parts", items: [
+                { k: "Rocket Lab", v: "Thriving — 79 Electron launches, 94.9% success (100% in 2025), now developing the medium-lift Neutron." },
+                { k: "Firefly", v: "Growing — IPO'd at $10B in 2025, with 163% revenue growth." },
+                { k: "RFA (Augsburg)", v: "Pre-flight — a fellow German competitor not yet to orbit." },
+                { k: "Virgin Orbit", v: "Bankrupt in 2023 — a failed UK launch plus an inability to raise more funding." },
+                { k: "Astra", v: "Collapsed — 5 of 7 launches failed; the stock fell 95%." },
+                { k: "Orbex", v: "Collapsed Feb 2026 — never launched despite raising £90M. A stark warning." }
+              ]},
+              { type: "warning", text: `The "valley of death" pattern: raise funding → hit development delays → first flight fails → investors get nervous → can't raise the next round → the company dies.` },
+              { type: "insight", text: `Survivors share three things: deep pockets, fast iteration, and government anchor customers who provide steady early revenue while the rocket proves itself.` }
+            ]
+          }
+        ],
+        quiz: [
+          { q: "What do launch customers care about MOST?", options: ["The lowest possible price", "Reliability — will my satellite reach orbit?", "How famous the rocket company is", "The colour of the rocket"], answer: 1, explain: "Reliability tops the list, ahead of schedule, exact orbit, price and responsiveness. A cheap launch that loses the payload is the most expensive one of all." },
+          { q: "Insurance for a brand-new, unproven rocket is roughly what share of the satellite's value?", options: ["1–4%", "5–8%", "15–25%", "50–60%"], answer: 2, explain: "An unproven rocket can carry a 15–25% premium, versus just 1–4% for a proven workhorse like Falcon 9 — a huge hidden cost." },
+          { q: "What's the key difference between rideshare and a dedicated launch?", options: ["Rideshare is always more reliable", "Rideshare is cheaper but you accept their orbit and schedule; dedicated gives you your exact orbit and schedule", "Dedicated launches are always cheaper per kg", "There is no real difference"], answer: 1, explain: "Rideshare (~$5,500/kg) is the cheap bus on a fixed route; a dedicated launch (~€10,000/kg) is the taxi that takes you exactly where and when you want." },
+          { q: "Which competitor is clearly thriving, with a 100% success rate in 2025?", options: ["Astra", "Virgin Orbit", "Orbex", "Rocket Lab"], answer: 3, explain: "Rocket Lab has flown 79 Electron launches at 94.9% success (100% in 2025) and is building the medium-lift Neutron. Astra, Virgin Orbit and Orbex all collapsed." },
+          { q: "What is the rocket industry's 'valley of death'?", options: ["A dangerous launch trajectory", "The deadly cycle of delays and a failed first flight scaring off investors so the company can't raise more money", "A region where rockets crash", "The cold storage area for propellant"], answer: 1, explain: "Raise funding → delays → first flight fails → nervous investors → can't raise the next round → collapse. Survivors need deep pockets, fast iteration and government anchor customers." }
+        ]
+      }
+    ];
+
+    const PASS = 0.8; // 80% to unlock the next module
+
+    /* =================================================================
+       Persistence
+       ================================================================= */
+    const STORAGE_KEY = "orbitAcademyProgress.v1";
+    function loadProgress() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) return JSON.parse(raw);
+      } catch (e) {}
+      return {}; // { [id]: { completed: bool, best: number } }
+    }
+    function saveProgress(p) {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(p)); } catch (e) {}
+    }
+    function isUnlocked(id, progress) {
+      if (id === 1) return true;
+      const prev = progress[id - 1];
+      return !!(prev && prev.completed);
+    }
+
+    /* =================================================================
+       Star field
+       ================================================================= */
+    function StarField() {
+      const stars = useMemo(() =>
+        Array.from({ length: 110 }, () => ({
+          top: Math.random() * 100,
+          left: Math.random() * 100,
+          size: Math.random() * 2 + 1,
+          dur: (2 + Math.random() * 3).toFixed(2) + "s",
+          delay: (Math.random() * 4).toFixed(2) + "s"
+        })), []);
+      return (
+        <div className="starfield" aria-hidden="true">
+          {stars.map((s, i) => (
+            <span key={i} className="star" style={{
+              top: s.top + "%", left: s.left + "%",
+              width: s.size + "px", height: s.size + "px",
+              "--dur": s.dur, animationDelay: s.delay
+            }} />
+          ))}
+        </div>
+      );
+    }
+
+    /* =================================================================
+       Lesson block renderer
+       ================================================================= */
+    function Block({ b }) {
+      switch (b.type) {
+        case "h": return <h3 className="lesson-h">{b.text}</h3>;
+        case "p": return <p className="lesson-p">{b.text}</p>;
+        case "analogy":
+          return <div className="box analogy"><span className="box-label">Everyday analogy</span><p>{b.text}</p></div>;
+        case "insight":
+          return <div className="box insight"><span className="box-label">Key insight</span><p>{b.text}</p></div>;
+        case "warning":
+          return <div className="box warning"><span className="box-label">Watch out</span><p>{b.text}</p></div>;
+        case "term":
+          return (
+            <div className="term">
+              <div className="term-name">{b.term}</div>
+              <p className="term-plain">{b.plain}</p>
+              <p className="term-def" dangerouslySetInnerHTML={{ __html: b.def }} />
+            </div>
+          );
+        case "list":
+          return <ul className="lesson-list">{b.items.map((it, i) => <li key={i}>{it}</li>)}</ul>;
+        case "specs":
+          return (
+            <div className="specs">
+              {b.items.map((it, i) => (
+                <div className="spec-row" key={i}>
+                  <div className="spec-k">{it.k}</div>
+                  <div className="spec-v">{it.v}</div>
+                </div>
+              ))}
+            </div>
+          );
+        case "timeline":
+          return (
+            <div className="timeline">
+              {b.items.map((it, i) => (
+                <div className="tl-item" key={i}>
+                  <div className="tl-time">{it.t}</div>
+                  <div className="tl-text">{it.v}</div>
+                </div>
+              ))}
+            </div>
+          );
+        case "parts":
+          return (
+            <div className="parts">
+              {b.items.map((it, i) => (
+                <div className="part" key={i}>
+                  <div className="part-name">{it.k}</div>
+                  <div className="part-text">{it.v}</div>
+                </div>
+              ))}
+            </div>
+          );
+        default: return null;
+      }
+    }
+
+    /* =================================================================
+       Lesson view (tabs + start quiz)
+       ================================================================= */
+    function LessonView({ module, onStartQuiz }) {
+      const [tab, setTab] = useState(0);
+      useEffect(() => { setTab(0); }, [module.id]);
+      const lesson = module.lessons[tab];
+      return (
+        <div>
+          <div className="tabs">
+            {module.lessons.map((l, i) => (
+              <button key={i} className={"tab" + (i === tab ? " active" : "")} onClick={() => setTab(i)}>
+                {l.tab}
+              </button>
+            ))}
+          </div>
+          <div className="card">
+            {lesson.blocks.map((b, i) => <Block key={i} b={b} />)}
+          </div>
+          <div className="cta-row">
+            {tab < module.lessons.length - 1 ? (
+              <button className="btn btn-primary" onClick={() => setTab(tab + 1)}>Next lesson →</button>
+            ) : (
+              <button className="btn btn-primary" onClick={onStartQuiz}>Take the quiz →</button>
+            )}
+            {tab > 0 && (
+              <button className="btn btn-ghost" onClick={() => setTab(tab - 1)}>← Back</button>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    /* =================================================================
+       Quiz
+       ================================================================= */
+    function Quiz({ module, onFinish, onExit }) {
+      const [idx, setIdx] = useState(0);
+      const [picked, setPicked] = useState(null);
+      const [correct, setCorrect] = useState(0);
+      const total = module.quiz.length;
+      const question = module.quiz[idx];
+
+      function choose(i) {
+        if (picked !== null) return;
+        setPicked(i);
+        if (i === question.answer) setCorrect(c => c + 1);
+      }
+      function next() {
+        if (idx + 1 < total) { setIdx(idx + 1); setPicked(null); }
+        else { onFinish(correct, total); }
+      }
+
+      const letters = ["A", "B", "C", "D"];
+      return (
+        <div>
+          <div className="quiz-head">
+            <span className="q-count">QUESTION {idx + 1} / {total}</span>
+            <button className="reset-btn" onClick={onExit}>← Back to lessons</button>
+          </div>
+          <div className="card">
+            <h2 className="q-text">{question.q}</h2>
+            <div className="options">
+              {question.options.map((opt, i) => {
+                let cls = "opt";
+                if (picked !== null) {
+                  if (i === question.answer) cls += " correct";
+                  else if (i === picked) cls += " wrong";
+                }
+                return (
+                  <button key={i} className={cls} disabled={picked !== null} onClick={() => choose(i)}>
+                    <span className="opt-key">{letters[i]}</span>
+                    <span>{opt}</span>
+                  </button>
+                );
+              })}
+            </div>
+            {picked !== null && (
+              <div className={"feedback " + (picked === question.answer ? "right" : "wrong-fb")}>
+                <span className="fb-label">{picked === question.answer ? "Correct" : "Not quite"}</span>
+                <p>{question.explain}</p>
+              </div>
+            )}
+          </div>
+          {picked !== null && (
+            <div className="cta-row">
+              <button className="btn btn-primary" onClick={next}>
+                {idx + 1 < total ? "Next question →" : "See results →"}
+              </button>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    /* =================================================================
+       Results
+       ================================================================= */
+    function Results({ module, score, total, hasNext, onRetry, onContinue, onReview }) {
+      const pct = Math.round((score / total) * 100);
+      const passed = score / total >= PASS;
+      const deg = Math.round((score / total) * 360);
+      const ringColor = passed ? "var(--green)" : "var(--orange)";
+      return (
+        <div className="card results">
+          <div className="score-ring" style={{ "--ring-deg": deg + "deg", "--ring-color": ringColor }}>
+            <div className="score-inner">
+              <span className="score-pct">{pct}%</span>
+              <span className="score-frac">{score} / {total}</span>
+            </div>
+          </div>
+          {passed ? (
+            <>
+              <h2>Module cleared! 🚀</h2>
+              <p className="r-sub">
+                You scored {pct}% — above the 80% needed to advance.
+                {hasNext ? " The next module is now unlocked." : " That was the final module — you've completed Orbit Academy!"}
+              </p>
+              <div className="cta-row" style={{ justifyContent: "center" }}>
+                {hasNext
+                  ? <button className="btn btn-primary" onClick={onContinue}>Continue to next module →</button>
+                  : <button className="btn btn-primary" onClick={onReview}>Review this module</button>}
+                <button className="btn btn-ghost" onClick={onRetry}>Retake quiz</button>
+              </div>
+            </>
+          ) : (
+            <>
+              <h2>Not quite there yet</h2>
+              <p className="r-sub">
+                You scored {pct}%. You need 80% (at least {Math.ceil(total * PASS)} of {total}) to unlock the next module.
+                Review the lessons and try again — you've got this.
+              </p>
+              <div className="cta-row" style={{ justifyContent: "center" }}>
+                <button className="btn btn-primary" onClick={onRetry}>Try again</button>
+                <button className="btn btn-ghost" onClick={onReview}>Review lessons</button>
+              </div>
+            </>
+          )}
+        </div>
+      );
+    }
+
+    /* =================================================================
+       App
+       ================================================================= */
+    function App() {
+      const [progress, setProgress] = useState(loadProgress);
+      const [currentId, setCurrentId] = useState(1);
+      const [mode, setMode] = useState("lesson"); // lesson | quiz | results
+      const [result, setResult] = useState(null);  // { score, total }
+
+      useEffect(() => { saveProgress(progress); }, [progress]);
+
+      const module = MODULES.find(m => m.id === currentId);
+      const completedCount = MODULES.filter(m => progress[m.id] && progress[m.id].completed).length;
+      const pctComplete = Math.round((completedCount / MODULES.length) * 100);
+
+      function selectModule(id) {
+        if (!isUnlocked(id, progress)) return;
+        setCurrentId(id);
+        setMode("lesson");
+        setResult(null);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+
+      function finishQuiz(score, total) {
+        setResult({ score, total });
+        setMode("results");
+        if (score / total >= PASS) {
+          setProgress(prev => {
+            const next = { ...prev };
+            const prevBest = (next[currentId] && next[currentId].best) || 0;
+            next[currentId] = { completed: true, best: Math.max(prevBest, score) };
+            return next;
+          });
+        }
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+
+      function continueNext() {
+        const nextId = currentId + 1;
+        if (MODULES.some(m => m.id === nextId)) selectModule(nextId);
+      }
+
+      function resetProgress() {
+        if (window.confirm("Reset all progress? This will re-lock every module.")) {
+          setProgress({});
+          setCurrentId(1);
+          setMode("lesson");
+          setResult(null);
+        }
+      }
+
+      const hasNext = MODULES.some(m => m.id === currentId + 1);
+
+      return (
+        <>
+          <StarField />
+          <div className="app" style={{ "--accent": module.accent }}>
+            {/* Header */}
+            <header className="header">
+              <div className="header-inner">
+                <div className="brand">
+                  <div className="logo">🛰️</div>
+                  <div>
+                    <h1>Orbit Academy</h1>
+                    <div className="tag">Learn the rocket industry</div>
+                  </div>
+                </div>
+                <div className="progress-wrap">
+                  <div className="progress-label">
+                    <span>COURSE PROGRESS</span>
+                    <span>{pctComplete}%</span>
+                  </div>
+                  <div className="progress-track">
+                    <div className="progress-fill" style={{ width: pctComplete + "%" }} />
+                  </div>
+                </div>
+              </div>
+            </header>
+
+            {/* Layout */}
+            <div className="layout">
+              {/* Sidebar */}
+              <aside className="sidebar">
+                <p className="sidebar-title">Modules</p>
+                <div className="nav-list">
+                  {MODULES.map(m => {
+                    const unlocked = isUnlocked(m.id, progress);
+                    const done = progress[m.id] && progress[m.id].completed;
+                    const active = m.id === currentId;
+                    let cls = "nav-item";
+                    if (active) cls += " active";
+                    if (done) cls += " done";
+                    if (!unlocked) cls += " locked";
+                    return (
+                      <button key={m.id} className={cls}
+                        style={{ "--accent": m.accent }}
+                        onClick={() => selectModule(m.id)}
+                        disabled={!unlocked}>
+                        <span className="nav-num">{done ? "✓" : m.id}</span>
+                        <span className="nav-body">
+                          <span className="nav-name">{m.title}</span>
+                          <span className="nav-meta">
+                            {!unlocked ? "🔒 Locked" : done ? "Completed · best " + progress[m.id].best + "/" + m.quiz.length : (active ? "In progress" : "Unlocked")}
+                          </span>
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="sidebar-footer">
+                  <button className="reset-btn" onClick={resetProgress}>Reset progress</button>
+                </div>
+              </aside>
+
+              {/* Main */}
+              <main className="main">
+                <div className="module-head">
+                  <div className="module-kicker">Module {module.id} of {MODULES.length}</div>
+                  <h2 className="module-title">{module.title}</h2>
+                  <p className="module-sub">{module.subtitle}</p>
+                </div>
+
+                {mode === "lesson" && (
+                  <LessonView module={module} onStartQuiz={() => { setMode("quiz"); window.scrollTo({ top: 0, behavior: "smooth" }); }} />
+                )}
+                {mode === "quiz" && (
+                  <Quiz module={module}
+                    onFinish={finishQuiz}
+                    onExit={() => setMode("lesson")} />
+                )}
+                {mode === "results" && result && (
+                  <Results module={module} score={result.score} total={result.total}
+                    hasNext={hasNext}
+                    onRetry={() => { setMode("quiz"); setResult(null); }}
+                    onContinue={continueNext}
+                    onReview={() => setMode("lesson")} />
+                )}
+              </main>
+            </div>
+          </div>
+        </>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  </script>
+</body>
+</html>
