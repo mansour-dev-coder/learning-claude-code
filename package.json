@@ -8,6 +8,7 @@
   "scripts": {
     "start": "tsx index.ts",
     "model": "tsx financial-model.ts",
+    "run-model": "tsx run-model.ts",
     "build": "tsc",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist"

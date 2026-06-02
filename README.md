@@ -27,7 +27,8 @@ pnpm model    # builds Sector_Consensus_vs_My_Model.xlsx
 | Script           | Description                                       |
 | ---------------- | ------------------------------------------------- |
 | `pnpm start`     | Run the mog-tools example (`index.ts`)            |
-| `pnpm model`     | Build the financial model workbook (`financial-model.ts`) |
+| `pnpm model`     | Build the default financial model (`financial-model.ts`) |
+| `pnpm run-model` | Build presets for any company (`run-model.ts`) — see below |
 | `pnpm build`     | Compile to `dist/` with `tsc`                     |
 | `pnpm typecheck` | Type-check without emitting                       |
 | `pnpm clean`     | Remove the `dist/` folder                         |
@@ -125,6 +126,36 @@ await buildFinancialModel('Sector_Consensus_vs_My_Model.xlsx');
 Tech/SaaS · Consumer/Retail · Healthcare/Biotech · Industrials · Financials ·
 Energy · Other — e.g. Tech/SaaS shows ARR, Net Revenue Retention, Rule of 40,
 Gross Margin, CAC Payback; Retail shows Same-Store Sales, Inventory Turns, …
+
+### Regenerate for any company — `run-model.ts`
+
+One command builds the workbook for any company. Three sector presets ship in
+the box (realistic base cases where DCF fair value lands near the price):
+
+```bash
+pnpm run-model            # build all three presets
+pnpm run-model saas       # Tech/SaaS  — Nimbus Cloud (NIMB)
+pnpm run-model retail     # Retail     — MetroMart Retail (MMRT)
+pnpm run-model energy     # Energy     — Helios Energy (HELI)
+pnpm run-model energy --out ./heli.xlsx
+```
+
+Add your own company by dropping a preset into `run-model.ts`, or import the
+generator directly:
+
+```ts
+import { buildFinancialModel } from './financial-model.js';
+
+await buildFinancialModel('MyCo.xlsx', {
+  company: 'Acme Corp', ticker: 'ACME', sector: 'Industrials',
+  price: 120, shares: 50, netDebt: 800,
+  assumptions: { revGrowth: 0.10, ebitdaMargin: 0.18, niMargin: 0.09, fcfConv: 0.6,
+                 peerEvEbitda: 11, peerPe: 18, peerEvRev: 2, peerPs: 1.8 },
+  consensus: { revenue: { prior: 4000, current: 4300, ntm: 4600 } },
+});
+```
+
+Any field you omit falls back to `DEFAULT_CONFIG` (the Tech/SaaS base case).
 
 ### Load Example Template
 

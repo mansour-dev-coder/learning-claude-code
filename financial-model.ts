@@ -128,8 +128,86 @@ const KPI: Record<string, { names: string[]; values: number[] }> = {
 const EXAMPLES: Array<[string, string, string, number, number, number]> = [
   ['Nimbus Cloud Inc', 'NIMB', 'Tech/SaaS', 45, 100, -150],
   ['MetroMart Retail', 'MMRT', 'Consumer/Retail', 62, 210, 480],
-  ['Helix Therapeutics', 'HLXT', 'Healthcare/Biotech', 88, 75, -300],
+  ['Helios Energy', 'HELI', 'Energy', 95, 400, 6000],
 ];
+
+// ---------------------------------------------------------------------------
+// Per-company configuration (lets run-model.ts build any company)
+// ---------------------------------------------------------------------------
+
+export interface ModelAssumptions {
+  revGrowth: number;
+  growthFade: number;
+  ebitdaMargin: number;
+  niMargin: number;
+  fcfConv: number;
+  peerEvEbitda: number;
+  peerPe: number;
+  peerEvRev: number;
+  peerPs: number;
+}
+
+/** A consensus line item: prior-FY actual, current-FY estimate, next-twelve-months. */
+export interface ConsensusTriple {
+  prior: number;
+  current: number;
+  ntm: number;
+}
+
+export interface ModelConfig {
+  company: string;
+  ticker: string;
+  sector: string;
+  price: number;
+  shares: number;
+  netDebt: number;
+  nextEarnings: string;
+  taxRate: number;
+  assumptions: ModelAssumptions;
+  consensus: { revenue: ConsensusTriple; ebitda: ConsensusTriple; netIncome: ConsensusTriple };
+}
+
+/** The shipped Tech/SaaS base case. `buildFinancialModel()` uses this by default. */
+export const DEFAULT_CONFIG: ModelConfig = {
+  company: 'Nimbus Cloud Inc',
+  ticker: 'NIMB',
+  sector: 'Tech/SaaS',
+  price: 45,
+  shares: 100,
+  netDebt: -150,
+  nextEarnings: '2026-07-28',
+  taxRate: 0.21,
+  assumptions: {
+    revGrowth: 0.16,
+    growthFade: 0.03,
+    ebitdaMargin: 0.26,
+    niMargin: 0.135,
+    fcfConv: 0.85,
+    peerEvEbitda: 13,
+    peerPe: 22,
+    peerEvRev: 5,
+    peerPs: 5,
+  },
+  consensus: {
+    revenue: { prior: 1000, current: 1150, ntm: 1300 },
+    ebitda: { prior: 250, current: 295, ntm: 340 },
+    netIncome: { prior: 120, current: 150, ntm: 175 },
+  },
+};
+
+/** Deep-merge a partial config onto the defaults. */
+function resolveConfig(c: Partial<ModelConfig>): ModelConfig {
+  return {
+    ...DEFAULT_CONFIG,
+    ...c,
+    assumptions: { ...DEFAULT_CONFIG.assumptions, ...(c.assumptions ?? {}) },
+    consensus: {
+      revenue: { ...DEFAULT_CONFIG.consensus.revenue, ...(c.consensus?.revenue ?? {}) },
+      ebitda: { ...DEFAULT_CONFIG.consensus.ebitda, ...(c.consensus?.ebitda ?? {}) },
+      netIncome: { ...DEFAULT_CONFIG.consensus.netIncome, ...(c.consensus?.netIncome ?? {}) },
+    },
+  };
+}
 
 // ---------------------------------------------------------------------------
 // Small styling helpers
@@ -182,7 +260,12 @@ async function section(ws: Worksheet, range: string, text: string) {
 // Builder
 // ---------------------------------------------------------------------------
 
-export async function buildFinancialModel(outPath: string): Promise<Uint8Array> {
+export async function buildFinancialModel(
+  outPath: string,
+  config: Partial<ModelConfig> = {},
+): Promise<Uint8Array> {
+  const cfg = resolveConfig(config);
+  const a = cfg.assumptions;
   const wb = await createWorkbook();
 
   const dashboard = wb.activeSheet;
@@ -195,8 +278,8 @@ export async function buildFinancialModel(outPath: string): Promise<Uint8Array> 
   const charts = await wb.sheets.add('Charts');
   const sectorKpis = await wb.sheets.add('SectorKPIs');
 
-  // -- the sample (Tech/SaaS) company that ships pre-loaded ------------------
-  const [coName, ticker, coSector, price, shares, netDebt] = EXAMPLES[0]!;
+  // -- company identity (from config; defaults to the Tech/SaaS sample) ------
+  const { company: coName, ticker, sector: coSector, price, shares, netDebt } = cfg;
 
   // =========================================================================
   // Named ranges (single source of truth). Defined FIRST so every formula
@@ -268,25 +351,25 @@ export async function buildFinancialModel(outPath: string): Promise<Uint8Array> 
   await I(6, 'Current Price ($)', price, NF.usd2);
   await I(7, 'Shares Outstanding (M)', shares, NF.int);
   await I(8, 'Net Debt ($M)  [negative = net cash]', netDebt, NF.usd);
-  await I(9, 'Tax Rate', 0.21, NF.pct);
-  await I(10, 'Next Earnings Date', '2026-07-28');
+  await I(9, 'Tax Rate', cfg.taxRate, NF.pct);
+  await I(10, 'Next Earnings Date', cfg.nextEarnings);
   await fmt(inputs, 'D10', { numberFormat: NF.date });
   await I(11, 'Selected Sector (from Dashboard)', '=SelectedSector');
 
   await section(inputs, 'B13:D13', 'MY ASSUMPTIONS');
-  await I(14, 'Revenue Growth (Year 1)', 0.16, NF.pct);
-  await I(15, 'Growth Fade (per year)', 0.03, NF.pct);
-  await I(16, 'EBITDA Margin', 0.26, NF.pct);
-  await I(17, 'Net Margin', 0.135, NF.pct);
-  await I(18, 'FCF Conversion', 0.85, NF.pct);
+  await I(14, 'Revenue Growth (Year 1)', a.revGrowth, NF.pct);
+  await I(15, 'Growth Fade (per year)', a.growthFade, NF.pct);
+  await I(16, 'EBITDA Margin', a.ebitdaMargin, NF.pct);
+  await I(17, 'Net Margin', a.niMargin, NF.pct);
+  await I(18, 'FCF Conversion', a.fcfConv, NF.pct);
   await I(19, 'Scenario', 'Base');
   await I(20, 'Scenario Growth Multiplier', '=IF(ScenarioName="Bull",1.25,IF(ScenarioName="Bear",0.7,1))', NF.mult);
 
   await section(inputs, 'B22:D22', 'CONSENSUS / PEER MULTIPLES');
-  await I(23, 'Peer EV/EBITDA', 13, NF.mult);
-  await I(24, 'Peer P/E', 22, NF.mult);
-  await I(25, 'Peer EV/Revenue', 5, NF.mult);
-  await I(26, 'Peer P/S', 5, NF.mult);
+  await I(23, 'Peer EV/EBITDA', a.peerEvEbitda, NF.mult);
+  await I(24, 'Peer P/E', a.peerPe, NF.mult);
+  await I(25, 'Peer EV/Revenue', a.peerEvRev, NF.mult);
+  await I(26, 'Peer P/S', a.peerPs, NF.mult);
 
   await section(inputs, 'B28:D28', 'DCF / WACC');
   await I(29, 'Risk-free Rate', 0.042, NF.pct);
@@ -326,11 +409,12 @@ export async function buildFinancialModel(outPath: string): Promise<Uint8Array> 
   // =========================================================================
   await banner(consensus, 'A1:E1', 'MARKET CONSENSUS');
   await consensus.layout.setColumnWidths([[0, 30], [1, 200], [2, 150], [3, 150], [4, 150]]);
+  const cn = cfg.consensus;
   await consensus.setRange('A3', [
     ['', 'Metric ($M)', 'Prior FY (Actual)', 'Current FY (Consensus)', 'NTM (Consensus)'],
-    ['', 'Revenue', 1000, 1150, 1300],
-    ['', 'EBITDA', 250, 295, 340],
-    ['', 'Net Income', 120, 150, 175],
+    ['', 'Revenue', cn.revenue.prior, cn.revenue.current, cn.revenue.ntm],
+    ['', 'EBITDA', cn.ebitda.prior, cn.ebitda.current, cn.ebitda.ntm],
+    ['', 'Net Income', cn.netIncome.prior, cn.netIncome.current, cn.netIncome.ntm],
   ]);
   await put(consensus, 'B7', 'EPS ($)');
   await put(consensus, 'C7', '=C6/Shares');
