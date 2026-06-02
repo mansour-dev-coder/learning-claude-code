@@ -38,6 +38,10 @@ jobs:
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
+        with:
+          # Auto-enable Pages via the API so no manual Settings toggle is needed.
+          # Requires the repo to be public (free plan) or on a paid plan.
+          enablement: true
 
       - name: Upload game folder as Pages artifact
         uses: actions/upload-pages-artifact@v3
