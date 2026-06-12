@@ -286,7 +286,7 @@
       .sidebar { position: static; }
       .nav-list { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 6px; -webkit-overflow-scrolling: touch; }
       .nav-item { margin-bottom: 0; min-width: 210px; }
-      .sidebar-footer { display: none; }
+      .sidebar-footer { margin-top: 12px; text-align: center; }
       .module-title { font-size: 25px; }
       .spec-row, .part { grid-template-columns: 1fr; gap: 3px; }
       .tl-item { grid-template-columns: 74px 1fr; }
@@ -363,6 +363,17 @@
     @media (max-width: 720px) {
       .rk-wrap, .ov-wrap { grid-template-columns: 1fr; gap: 14px; }
       .rk-svg, .ov-svg { margin: 0 auto; }
+    }
+
+    /* Respect users who prefer reduced motion: calm the decorative animation. */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: .001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .001ms !important;
+        scroll-behavior: auto !important;
+      }
+      .star { opacity: .55; }
     }
   </style>
 </head>
@@ -769,10 +780,10 @@
         fillOpacity: sel === id ? 0.85 : 0.55,
         stroke: color, strokeWidth: 1.5
       });
-      const label = (id, color, x, y, text, anchor = "end") => (
+      const label = (id, color, y, text) => (
         <g style={{ pointerEvents: "none", opacity: sel && sel !== id ? 0.3 : 1, transition: "opacity .25s" }}>
-          <line x1={x + (anchor === "end" ? 4 : -4)} y1={y} x2={anchor === "end" ? 122 : 178} y2={y} stroke={color} strokeWidth="1" strokeDasharray="2 2" />
-          <text x={x} y={y + 3} textAnchor={anchor} fill={color} fontFamily="ui-monospace, Menlo, monospace" fontSize="9">{text}</text>
+          <line x1="112" y1={y} x2="122" y2={y} stroke={color} strokeWidth="1" strokeDasharray="2 2" />
+          <text x="108" y={y + 3} textAnchor="end" fill={color} fontFamily="ui-monospace, Menlo, monospace" fontSize="9">{text}</text>
         </g>
       );
       return (
@@ -804,20 +815,12 @@
               <path d="M145,360 L143,388 L157,388 L155,360 Z" {...shape("engines", "#FF7A45")} />
               <path d="M158,360 L156,386 L170,386 L168,360 Z" {...shape("engines", "#FF7A45")} />
             </g>
-            {/* Labels */}
-            {label("fairing", "#4AF0E0", 108, 60)}
-            {label("second", "#F5C842", 108, 155)}
-            {label("interstage", "#FF7A45", 108, 201)}
-            {label("first", "#52E07C", 108, 290)}
-            {label("engines", "#FF7A45", 108, 372)}
-            {/* duplicate text content via tspans handled below */}
-            <g style={{ pointerEvents: "none" }} fontFamily="ui-monospace, Menlo, monospace" fontSize="9">
-              <text x="108" y="63" textAnchor="end" fill="#4AF0E0" opacity={sel && sel !== "fairing" ? 0.3 : 1}>Payload Fairing</text>
-              <text x="108" y="158" textAnchor="end" fill="#F5C842" opacity={sel && sel !== "second" ? 0.3 : 1}>Second Stage</text>
-              <text x="108" y="204" textAnchor="end" fill="#FF7A45" opacity={sel && sel !== "interstage" ? 0.3 : 1}>Interstage</text>
-              <text x="108" y="293" textAnchor="end" fill="#52E07C" opacity={sel && sel !== "first" ? 0.3 : 1}>First Stage</text>
-              <text x="108" y="375" textAnchor="end" fill="#FF7A45" opacity={sel && sel !== "engines" ? 0.3 : 1}>Engine Cluster</text>
-            </g>
+            {/* Labels with leader lines */}
+            {label("fairing", "#4AF0E0", 60, "Payload Fairing")}
+            {label("second", "#F5C842", 155, "Second Stage")}
+            {label("interstage", "#FF7A45", 201, "Interstage")}
+            {label("first", "#52E07C", 290, "First Stage")}
+            {label("engines", "#FF7A45", 372, "Engine Cluster")}
           </svg>
           <div className="rk-panel" key={sel}>
             <div className="rk-pname" style={{ color: part.color }}>{part.name}</div>
@@ -1235,16 +1238,33 @@
        Quiz
        ================================================================= */
     function Quiz({ module, onFinish, onExit }) {
+      // Shuffle question order and the options within each question, fresh per attempt.
+      const deck = useMemo(() => {
+        const shuffle = (arr) => {
+          const a = arr.slice();
+          for (let i = a.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [a[i], a[j]] = [a[j], a[i]];
+          }
+          return a;
+        };
+        return shuffle(module.quiz).map(q => ({
+          q: q.q,
+          explain: q.explain,
+          options: shuffle(q.options.map((text, i) => ({ text, correct: i === q.answer })))
+        }));
+      }, [module]);
+
       const [idx, setIdx] = useState(0);
       const [picked, setPicked] = useState(null);
       const [correct, setCorrect] = useState(0);
-      const total = module.quiz.length;
-      const question = module.quiz[idx];
+      const total = deck.length;
+      const question = deck[idx];
 
       function choose(i) {
         if (picked !== null) return;
         setPicked(i);
-        if (i === question.answer) setCorrect(c => c + 1);
+        if (question.options[i].correct) setCorrect(c => c + 1);
       }
       function next() {
         if (idx + 1 < total) { setIdx(idx + 1); setPicked(null); }
@@ -1252,6 +1272,7 @@
       }
 
       const letters = ["A", "B", "C", "D"];
+      const isRight = picked !== null && question.options[picked].correct;
       return (
         <div>
           <div className="quiz-head">
@@ -1264,20 +1285,20 @@
               {question.options.map((opt, i) => {
                 let cls = "opt";
                 if (picked !== null) {
-                  if (i === question.answer) cls += " correct";
+                  if (opt.correct) cls += " correct";
                   else if (i === picked) cls += " wrong";
                 }
                 return (
                   <button key={i} className={cls} disabled={picked !== null} onClick={() => choose(i)}>
                     <span className="opt-key">{letters[i]}</span>
-                    <span>{opt}</span>
+                    <span>{opt.text}</span>
                   </button>
                 );
               })}
             </div>
             {picked !== null && (
-              <div className={"feedback " + (picked === question.answer ? "right" : "wrong-fb")}>
-                <span className="fb-label">{picked === question.answer ? "Correct" : "Not quite"}</span>
+              <div className={"feedback " + (isRight ? "right" : "wrong-fb")}>
+                <span className="fb-label">{isRight ? "Correct" : "Not quite"}</span>
                 <p>{question.explain}</p>
               </div>
             )}
