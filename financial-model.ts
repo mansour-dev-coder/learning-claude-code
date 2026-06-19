@@ -205,9 +205,14 @@ export const CAPIQ_FIELDS: Record<string, CapIqField> = {
   niNtm: { m: 'IQ_NI_EST', period: 'IQ_NTM', scale: 1e-6 },
 };
 
-/** Build a CapIQ Excel formula string, e.g. =CIQ("AAPL","IQ_TOTAL_REV",IQ_FY)*0.000001 */
-export function ciq(ticker: string, f: CapIqField): string {
-  const args = f.period ? `"${ticker}","${f.m}",${f.period}` : `"${ticker}","${f.m}"`;
+/**
+ * Build a CapIQ Excel formula. `idRef` is the identifier token, inserted as-is:
+ * pass a named range like `Ticker` (recommended — change one cell and every
+ * formula re-pulls) or a quoted literal like `"AAPL"`.
+ * e.g. =CIQ(Ticker,"IQ_TOTAL_REV",IQ_FY)*0.000001
+ */
+export function ciq(idRef: string, f: CapIqField): string {
+  const args = f.period ? `${idRef},"${f.m}",${f.period}` : `${idRef},"${f.m}"`;
   const call = `CIQ(${args})`;
   return f.scale && f.scale !== 1 ? `=${call}*${f.scale}` : `=${call}`;
 }
@@ -370,16 +375,18 @@ export async function buildFinancialModel(
   // -- company identity (from config; defaults to the Tech/SaaS sample) ------
   const { company: coName, ticker, sector: coSector, price, shares, netDebt } = cfg;
 
-  // In CapIQ mode, source cells hold live =CIQ(...) formulas keyed to `ticker`.
+  // In CapIQ mode, source cells hold live =CIQ(...) formulas that reference the
+  // `Ticker` named range (the Ticker cell). Change that one cell -> all re-pull.
   const cap = cfg.dataSource === 'capiq';
   const F = CAPIQ_FIELDS;
+  const TICK = 'Ticker'; // named range -> Inputs!$D$5 (added below)
   const src = {
-    company: cap ? ciq(ticker, F.companyName!) : coName,
-    price: cap ? ciq(ticker, F.price!) : price,
-    shares: cap ? ciq(ticker, F.shares!) : shares,
-    netDebt: cap ? ciq(ticker, F.netDebt!) : netDebt,
-    taxRate: cap ? ciq(ticker, F.taxRate!) : cfg.taxRate,
-    nextEarnings: cap ? ciq(ticker, F.nextEarnings!) : cfg.nextEarnings,
+    company: cap ? ciq(TICK, F.companyName!) : coName,
+    price: cap ? ciq(TICK, F.price!) : price,
+    shares: cap ? ciq(TICK, F.shares!) : shares,
+    netDebt: cap ? ciq(TICK, F.netDebt!) : netDebt,
+    taxRate: cap ? ciq(TICK, F.taxRate!) : cfg.taxRate,
+    nextEarnings: cap ? ciq(TICK, F.nextEarnings!) : cfg.nextEarnings,
   };
 
   // =========================================================================
@@ -387,6 +394,7 @@ export async function buildFinancialModel(
   // written below resolves immediately — names must exist before referenced.
   // =========================================================================
   const names: [string, string][] = [
+    ['Ticker', 'Inputs!$D$5'],
     ['Price', 'Inputs!$D$6'], ['Shares', 'Inputs!$D$7'], ['NetDebt', 'Inputs!$D$8'],
     ['TaxRate', 'Inputs!$D$9'], ['RevGrowthMy', 'Inputs!$D$14'], ['GrowthFade', 'Inputs!$D$15'],
     ['EbitdaMarginMy', 'Inputs!$D$16'], ['NiMarginMy', 'Inputs!$D$17'], ['FcfConv', 'Inputs!$D$18'],
@@ -487,14 +495,17 @@ export async function buildFinancialModel(
   await I(40, 'Reaction Sensitivity (move per 1% surprise)', 8, NF.mult);
 
   await section(inputs, 'B42:D42', cap ? 'REAL-TIME DATA (live via Capital IQ)' : 'REAL-TIME DATA (placeholders — wire to a feed)');
-  await I(43, 'Live Price', cap ? ciq(ticker, F.price!) : null, NF.usd2);
-  await I(44, 'Live Consensus Revenue ($M)', cap ? ciq(ticker, F.revCons!) : null, NF.usd);
-  await I(45, 'Live Consensus EPS', cap ? ciq(ticker, F.epsEst!) : null, NF.usd2);
+  await I(43, 'Live Price', cap ? ciq(TICK, F.price!) : null, NF.usd2);
+  await I(44, 'Live Consensus Revenue ($M)', cap ? ciq(TICK, F.revCons!) : null, NF.usd);
+  await I(45, 'Live Consensus EPS', cap ? ciq(TICK, F.epsEst!) : null, NF.usd2);
   await I(46, 'Last Updated', cap ? '=TODAY()' : null);
   if (cap) {
-    await put(inputs, 'B48', 'Data: S&P Capital IQ (CIQ formulas). Open in Excel with the CapIQ add-in to populate.');
-    await put(inputs, 'B49', 'If a cell shows #NAME?, verify the mnemonic/period in CAPIQ_FIELDS for your CapIQ version.');
-    await fmt(inputs, 'B48:B49', { italic: true, fontColor: C.blue });
+    // Highlight the Ticker cell as the single editable driver.
+    await fmt(inputs, 'D5', { backgroundColor: C.amberBg, fontColor: C.amberFg, bold: true, horizontalAlign: 'center', borders: { outline: true, top: thinBorder, bottom: thinBorder, left: thinBorder, right: thinBorder } });
+    await put(inputs, 'B48', '▶ DYNAMIC: change the Ticker cell (D5) and every figure re-pulls from Capital IQ automatically.');
+    await put(inputs, 'B49', 'Open in Excel with the CapIQ add-in to populate. If a cell shows #NAME?, verify its mnemonic/period in CAPIQ_FIELDS.');
+    await fmt(inputs, 'B48', { italic: true, bold: true, fontColor: C.greenFg });
+    await fmt(inputs, 'B49', { italic: true, fontColor: C.blue });
   }
 
   // Validation: scenario dropdown
@@ -517,7 +528,7 @@ export async function buildFinancialModel(
   await consensus.layout.setColumnWidths([[0, 30], [1, 200], [2, 150], [3, 150], [4, 150]]);
   const cn = cfg.consensus;
   // In CapIQ mode each figure is a live CIQ formula; otherwise the static number.
-  const cq = (field: CapIqField, fallback: number) => (cap ? ciq(ticker, field) : fallback);
+  const cq = (field: CapIqField, fallback: number) => (cap ? ciq(TICK, field) : fallback);
   await consensus.setRange('A3', [
     ['', 'Metric ($M)', 'Prior FY (Actual)', 'Current FY (Consensus)', 'NTM (Consensus)'],
     ['', 'Revenue', cq(F.revPrior!, cn.revenue.prior), cq(F.revCons!, cn.revenue.current), cq(F.revNtm!, cn.revenue.ntm)],

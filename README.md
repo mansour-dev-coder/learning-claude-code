@@ -175,6 +175,11 @@ What becomes live (the rest stays as your editable judgment):
 | Company / Price / Shares / Net debt / Tax / Next earnings | `IQ_COMPANY_NAME`, `IQ_CLOSEPRICE`, `IQ_SHARESOUTSTANDING`, `IQ_NET_DEBT`, `IQ_EFFECT_TAX_RATE`, `IQ_NEXT_EARNINGS_DATE` |
 | Consensus Revenue / EBITDA / Net income | `IQ_TOTAL_REV` (actual `IQ_FY`), `IQ_REVENUE_EST` / `IQ_EBITDA_EST` / `IQ_NI_EST` (`IQ_FY+1`, `IQ_NTM`) |
 
+**Dynamic:** every CIQ formula references the `Ticker` named range (the
+amber Ticker cell, `Inputs!D5`). Change that one cell — e.g. `AAPL` → `MSFT` —
+and the whole model (company, price, consensus, valuation, DCF, charts)
+re-pulls automatically. No rebuild needed.
+
 Notes:
 - These cells show `#NAME?` until opened in Excel **with the CapIQ add-in** —
   only Excel + CapIQ can evaluate `CIQ()` (the headless build can't).
