@@ -185,32 +185,46 @@ export interface ModelConfig {
 export interface CapIqField {
   m: string;          // CapIQ mnemonic
   period?: string;    // period token, e.g. IQ_FY, 'IQ_FY-1', 'IQ_FY+1', IQ_NTM, IQ_LTM
-  scale?: number;     // multiplier applied to the result (e.g. 1e-6 for $ -> $M)
+  scale?: number;     // multiplier applied to the result
 }
+
+/**
+ * CapIQ returns currency figures in this magnitude. Institutional templates
+ * default to MILLIONS, so values already arrive in $M and need NO scaling
+ * (CAPIQ_MAG = 1). If your CapIQ returns ACTUAL units instead, set 1e-6.
+ */
+export const CAPIQ_MAG = 1;
+const MAGX = CAPIQ_MAG === 1 ? '' : `*${CAPIQ_MAG}`; // formula suffix for inline $ pulls
+const PCT = 0.01; // CapIQ rates come back as whole percents (e.g. 21, 8.5) -> decimal
 
 export const CAPIQ_FIELDS: Record<string, CapIqField> = {
   companyName: { m: 'IQ_COMPANY_NAME' },
   price: { m: 'IQ_LASTSALEPRICE' }, // last-traded (live); IQ_CLOSEPRICE is prior close
-  // Shares are derived as MarketCap/Price (see src.shares) — robust to CapIQ's
-  // share-count unit convention, which varies. IQ_SHARESOUTSTANDING (scale 1e-6)
-  // is the direct alternative if your environment returns actual share counts.
-  marketCap: { m: 'IQ_MARKETCAP', scale: 1e-6 }, // total market cap -> $M
-  sharesDirect: { m: 'IQ_SHARESOUTSTANDING', scale: 1e-6 }, // fallback share count -> millions
-  beta: { m: 'IQ_BETA' }, // levered beta (IFERROR-guarded; fallback 1.1)
-  totalDebt: { m: 'IQ_TOTAL_DEBT', scale: 1e-6 }, // for equity/debt weights
-  netDebt: { m: 'IQ_NET_DEBT', period: 'IQ_LTM', scale: 1e-6 },
-  taxRate: { m: 'IQ_EFFECT_TAX_RATE', period: 'IQ_FY', scale: 0.01 }, // % -> decimal
-  nextEarnings: { m: 'IQ_EST_NEXT_EARNINGS_DATE' }, // forward expected date (NEXT_EARNINGS_DATE can be stale)
+  // Shares are derived as MarketCap/Price (see src.shares); IQ_SHARESOUTSTANDING fallback.
+  marketCap: { m: 'IQ_MARKETCAP', scale: CAPIQ_MAG }, // total market cap ($M)
+  sharesDirect: { m: 'IQ_SHARESOUTSTANDING', scale: CAPIQ_MAG }, // fallback share count
+  beta: { m: 'IQ_BETA' }, // levered beta (IFERROR-guarded)
+  totalDebt: { m: 'IQ_TOTAL_DEBT', scale: CAPIQ_MAG }, // for equity/debt weights
+  netDebt: { m: 'IQ_NET_DEBT', period: 'IQ_LTM', scale: CAPIQ_MAG },
+  taxRate: { m: 'IQ_EFFECT_TAX_RATE', period: 'IQ_FY', scale: PCT }, // % -> decimal
+  nextEarnings: { m: 'IQ_EST_NEXT_EARNINGS_DATE' }, // forward expected date
   epsEst: { m: 'IQ_EPS_EST', period: 'IQ_FY+1' },
-  revPrior: { m: 'IQ_TOTAL_REV', period: 'IQ_FY', scale: 1e-6 },
-  revCons: { m: 'IQ_REVENUE_EST', period: 'IQ_FY+1', scale: 1e-6 },
-  revNtm: { m: 'IQ_REVENUE_EST', period: 'IQ_NTM', scale: 1e-6 },
-  ebitdaPrior: { m: 'IQ_EBITDA', period: 'IQ_FY', scale: 1e-6 },
-  ebitdaCons: { m: 'IQ_EBITDA_EST', period: 'IQ_FY+1', scale: 1e-6 },
-  ebitdaNtm: { m: 'IQ_EBITDA_EST', period: 'IQ_NTM', scale: 1e-6 },
-  niPrior: { m: 'IQ_NI', period: 'IQ_FY', scale: 1e-6 },
-  niCons: { m: 'IQ_NI_EST', period: 'IQ_FY+1', scale: 1e-6 },
-  niNtm: { m: 'IQ_NI_EST', period: 'IQ_NTM', scale: 1e-6 },
+  revPrior: { m: 'IQ_TOTAL_REV', period: 'IQ_FY', scale: CAPIQ_MAG },
+  revCons: { m: 'IQ_REVENUE_EST', period: 'IQ_FY+1', scale: CAPIQ_MAG },
+  revNtm: { m: 'IQ_REVENUE_EST', period: 'IQ_NTM', scale: CAPIQ_MAG },
+  ebitdaPrior: { m: 'IQ_EBITDA', period: 'IQ_FY', scale: CAPIQ_MAG },
+  ebitdaCons: { m: 'IQ_EBITDA_EST', period: 'IQ_FY+1', scale: CAPIQ_MAG },
+  ebitdaNtm: { m: 'IQ_EBITDA_EST', period: 'IQ_NTM', scale: CAPIQ_MAG },
+  niPrior: { m: 'IQ_NI', period: 'IQ_FY', scale: CAPIQ_MAG },
+  niCons: { m: 'IQ_NI_EST', period: 'IQ_FY+1', scale: CAPIQ_MAG },
+  niNtm: { m: 'IQ_NI_EST', period: 'IQ_NTM', scale: CAPIQ_MAG },
+  // WACC build-up + valuation cross-checks (all IFERROR-guarded at the call site)
+  riskFree: { m: 'IQ_RISK_FREE_RATE', scale: PCT },
+  erp: { m: 'IQ_EQUITY_RISK_PREMIUM', scale: PCT },
+  costDebt: { m: 'IQ_COST_DEBT', scale: PCT },
+  priceTarget: { m: 'IQ_PRICE_TARGET' }, // consensus analyst target price
+  high52: { m: 'IQ_HIGH_PRICE_52_WEEKS' },
+  low52: { m: 'IQ_LOW_PRICE_52_WEEKS' },
 };
 
 /**
@@ -480,7 +494,7 @@ export async function buildFinancialModel(
     company: cap ? ciq(TICK, F.companyName!) : coName,
     price: cap ? ciq(TICK, F.price!) : price,
     // MarketCap($M)/Price -> shares (M); falls back to direct share count if needed.
-    shares: cap ? `=IFERROR(CIQ(${TICK},"${F.marketCap!.m}")*0.000001/Price,CIQ(${TICK},"${F.sharesDirect!.m}")*0.000001)` : shares,
+    shares: cap ? `=IFERROR(CIQ(${TICK},"${F.marketCap!.m}")${MAGX}/Price,CIQ(${TICK},"${F.sharesDirect!.m}")${MAGX})` : shares,
     netDebt: cap ? ciq(TICK, F.netDebt!) : netDebt,
     taxRate: cap ? ciq(TICK, F.taxRate!) : cfg.taxRate,
     nextEarnings: cap ? ciq(TICK, F.nextEarnings!) : cfg.nextEarnings,
@@ -586,12 +600,12 @@ export async function buildFinancialModel(
   // WACC: Beta is pulled (guarded), equity/debt weights derived from live market
   // cap & total debt. Risk-free, ERP, cost of debt are MARKET/HOUSE assumptions
   // (the same across every ticker) — left as inputs by design.
-  await section(inputs, 'B28:D28', cap ? 'DCF / WACC  (Beta & weights live; Rf/ERP/CoD = house)' : 'DCF / WACC');
-  await I(29, 'Risk-free Rate  (house)', 0.042, NF.pct);
-  await I(30, 'Equity Risk Premium  (house)', 0.05, NF.pct);
+  await section(inputs, 'B28:D28', cap ? 'DCF / WACC  (live build-up; terminal growth = house)' : 'DCF / WACC');
+  await I(29, 'Risk-free Rate', cap ? `=IFERROR(CIQ(${TICK},"${F.riskFree!.m}")*${PCT},0.042)` : 0.042, NF.pct);
+  await I(30, 'Equity Risk Premium', cap ? `=IFERROR(CIQ(${TICK},"${F.erp!.m}")*${PCT},0.05)` : 0.05, NF.pct);
   await I(31, 'Beta', cap ? `=IFERROR(CIQ(${TICK},"${F.beta!.m}"),1.1)` : 1.2, NF.num1);
-  await I(32, 'Pre-tax Cost of Debt  (house)', 0.06, NF.pct);
-  await I(33, 'Weight — Equity', cap ? `=IFERROR((Price*Shares)/(Price*Shares+CIQ(${TICK},"${F.totalDebt!.m}")*0.000001),0.85)` : 0.85, NF.pct);
+  await I(32, 'Pre-tax Cost of Debt', cap ? `=IFERROR(CIQ(${TICK},"${F.costDebt!.m}")*${PCT},0.06)` : 0.06, NF.pct);
+  await I(33, 'Weight — Equity', cap ? `=IFERROR((Price*Shares)/(Price*Shares+CIQ(${TICK},"${F.totalDebt!.m}")${MAGX}),0.85)` : 0.85, NF.pct);
   await I(34, 'Weight — Debt', cap ? '=1-WeightEquity' : 0.15, NF.pct);
   await I(35, 'Terminal Growth  (house)', 0.03, NF.pct);
 
@@ -611,7 +625,7 @@ export async function buildFinancialModel(
     // Tint the HOUSE / SIGNAL assumption cells gold so it's obvious what is NOT
     // ticker-driven (these are the same for every company by design).
     const gold = '#FFF2CC';
-    for (const r of [15, 18, 29, 30, 32, 35, 38, 39, 40]) {
+    for (const r of [15, 18, 35, 38, 39, 40]) {
       await fmt(inputs, `D${r}`, { backgroundColor: gold });
     }
     await put(inputs, 'B48', '▶ DYNAMIC: change the Ticker cell (D5) and every company figure re-pulls from Capital IQ automatically.');
@@ -764,6 +778,59 @@ export async function buildFinancialModel(
   await fmt(valuation, 'C34', { numberFormat: NF.usd2, bold: true, backgroundColor: C.greenBg, fontColor: C.greenFg });
   await fmt(valuation, 'C35', { numberFormat: NF.pct, bold: true });
   await fmt(valuation, 'B32:B34', { bold: true });
+
+  // -- DCF cross-check (exit multiple) + valuation football field (cols I–K) --
+  await valuation.layout.setColumnWidths([[8, 210], [9, 110], [10, 95]]);
+  await section(valuation, 'I3:K3', 'DCF CROSS-CHECK & VALUATION SUMMARY');
+  await put(valuation, 'I5', 'Terminal Value ($M)'); await put(valuation, 'J5', 'Value');
+  await fmt(valuation, 'I5:J5', { bold: true, backgroundColor: C.lightBlue });
+  await put(valuation, 'I6', 'Gordon Growth'); await put(valuation, 'J6', '=C30');
+  await put(valuation, 'I7', 'Exit Multiple (EV/EBITDA)'); await put(valuation, 'J7', '=G26*PeerEVEBITDA');
+  await put(valuation, 'I8', 'Implied exit multiple (Gordon)'); await put(valuation, 'J8', '=C30/G26');
+  await put(valuation, 'I9', 'Implied perpetuity g (Exit)'); await put(valuation, 'J9', '=(WACC*J7-G27)/(J7+G27)');
+  await fmt(valuation, 'J6:J7', { numberFormat: NF.usd });
+  await fmt(valuation, 'J8', { numberFormat: NF.mult });
+  await fmt(valuation, 'J9', { numberFormat: NF.pct });
+
+  await put(valuation, 'I11', 'Fair Value / Share'); await put(valuation, 'J11', 'Value'); await put(valuation, 'K11', 'vs Price');
+  await fmt(valuation, 'I11:K11', { bold: true, backgroundColor: C.lightBlue });
+  const fvRows: [string, string | null][] = [
+    ['DCF — Gordon Growth', '=FairValue'],
+    ['DCF — Exit Multiple', '=((C29+J7/(1+WACC)^5)-NetDebt)/Shares'],
+    ['Comps — Avg Implied', '=AvgImplied'],
+    ['Analyst Target (CapIQ)', cap ? `=IFERROR(CIQ(${TICK},"${F.priceTarget!.m}"),"")` : null],
+  ];
+  for (let i = 0; i < fvRows.length; i++) {
+    const r = 12 + i;
+    await put(valuation, `I${r}`, fvRows[i]![0]);
+    if (fvRows[i]![1]) {
+      await put(valuation, `J${r}`, fvRows[i]![1]);
+      await put(valuation, `K${r}`, `=IFERROR(J${r}/Price-1,"")`);
+    }
+  }
+  await fmt(valuation, 'J12:J15', { numberFormat: NF.usd2 });
+  await fmt(valuation, 'K12:K15', { numberFormat: NF.pct });
+
+  await put(valuation, 'I17', '52-Wk High / Low');
+  if (cap) {
+    await put(valuation, 'J17', `=IFERROR(CIQ(${TICK},"${F.high52!.m}"),"")`);
+    await put(valuation, 'K17', `=IFERROR(CIQ(${TICK},"${F.low52!.m}"),"")`);
+  }
+  await fmt(valuation, 'J17:K17', { numberFormat: NF.usd2 });
+
+  await section(valuation, 'I19:K19', 'VALUATION RANGE');
+  await put(valuation, 'I20', 'Low'); await put(valuation, 'J20', '=MIN(J12:J15)');
+  await put(valuation, 'I21', 'Midpoint'); await put(valuation, 'J21', '=MEDIAN(J12:J15)');
+  await put(valuation, 'I22', 'High'); await put(valuation, 'J22', '=MAX(J12:J15)');
+  await put(valuation, 'I23', 'Current Price'); await put(valuation, 'J23', '=Price');
+  await put(valuation, 'I24', 'Upside to Midpoint'); await put(valuation, 'J24', '=J21/Price-1');
+  await fmt(valuation, 'J20:J23', { numberFormat: NF.usd2 });
+  await fmt(valuation, 'J21', { numberFormat: NF.usd2, bold: true, backgroundColor: C.greenBg, fontColor: C.greenFg });
+  await fmt(valuation, 'J24', { numberFormat: NF.pct, bold: true });
+  // Add the new valuation cells to the named set used by the Dashboard.
+  await wb.names.add('DcfExit', 'Valuation!$J$13');
+  await wb.names.add('AnalystTgt', 'Valuation!$J$15');
+  await wb.names.add('ValMid', 'Valuation!$J$21');
 
   // Sensitivity: Fair Value / Share over WACC (rows) × Terminal Growth (cols)
   await section(valuation, 'B37:H37', 'SENSITIVITY — Fair Value / Share  (WACC × Terminal Growth)');
@@ -945,9 +1012,9 @@ export async function buildFinancialModel(
 
   // Valuation summary
   await section(dashboard, 'B17:L17', 'VALUATION');
-  const valLabels = ['EV/EBITDA', 'P/E', 'EV/Rev', 'P/S', 'DCF Fair Value', 'Avg Implied', 'Current Price', 'DCF Upside'];
-  const valRefs = ['=Valuation!C5', '=Valuation!C6', '=Valuation!C7', '=Valuation!C8', '=FairValue', '=AvgImplied', '=Price', '=Valuation!C35'];
-  const valFmts = [NF.mult, NF.mult, NF.mult, NF.mult, NF.usd2, NF.usd2, NF.usd2, NF.pct];
+  const valLabels = ['EV/EBITDA', 'P/E', 'EV/Rev', 'P/S', 'DCF (Gordon)', 'DCF (Exit)', 'Val Midpt', 'Avg Implied', 'Current Price', 'Upside (Mid)'];
+  const valRefs = ['=Valuation!C5', '=Valuation!C6', '=Valuation!C7', '=Valuation!C8', '=FairValue', '=DcfExit', '=ValMid', '=AvgImplied', '=Price', '=Valuation!J24'];
+  const valFmts = [NF.mult, NF.mult, NF.mult, NF.mult, NF.usd2, NF.usd2, NF.usd2, NF.usd2, NF.usd2, NF.pct];
   for (let i = 0; i < valLabels.length; i++) {
     const c = 1 + i; // B..I
     await put(dashboard, `${col(c)}18`, valLabels[i]!);
@@ -955,7 +1022,7 @@ export async function buildFinancialModel(
     await fmt(dashboard, `${col(c)}18`, { bold: true, fontSize: 9, fontColor: C.blue, horizontalAlign: 'center' });
     await fmt(dashboard, `${col(c)}19`, { bold: true, numberFormat: valFmts[i]!, horizontalAlign: 'center', backgroundColor: C.cardBg });
   }
-  await dashboard.conditionalFormats.add(['I19'], asRules(cfUpDown(0)));
+  await dashboard.conditionalFormats.add(['K19'], asRules(cfUpDown(0)));
 
   // Beat / Miss & stock-reaction gauge
   await section(dashboard, 'B21:L21', 'EARNINGS SIGNAL  —  Beat/Miss & implied stock move');

@@ -176,8 +176,13 @@ What becomes live (the rest stays as your editable judgment):
 | Shares | `IQ_MARKETCAP/Price` (falls back to `IQ_SHARESOUTSTANDING`) — unit-robust |
 | My Assumptions | seeded from consensus — `RevGrowth = ConsRev/PriorRev-1`, margins = `ConsX/ConsRev` |
 | Valuation multiples | the stock's **current trading** multiples, derived live (e.g. `EV/EBITDA = (Px*Sh+NetDebt)/ConsEBITDA`); edit for peer premium |
-| WACC | **Beta** = `IQ_BETA`, **weights** derived from live market cap & `IQ_TOTAL_DEBT`; recomputes per ticker |
-| **House assumptions** (gold cells) | risk-free, ERP, cost of debt, terminal growth, growth fade, FCF conversion, beat/miss rules — **not** ticker-specific; set once. Every live pull is `IFERROR`-guarded with a sensible fallback. |
+| WACC build-up | **Risk-free** `IQ_RISK_FREE_RATE`, **ERP** `IQ_EQUITY_RISK_PREMIUM`, **Beta** `IQ_BETA`, **cost of debt** `IQ_COST_DEBT`, **weights** from live market cap & `IQ_TOTAL_DEBT` — WACC recomputes per ticker |
+| Valuation cross-checks | analyst target `IQ_PRICE_TARGET`, 52-wk range `IQ_HIGH/LOW_PRICE_52_WEEKS` |
+| **House assumptions** (gold cells) | terminal growth, growth fade, FCF conversion, beat/miss rules — **not** ticker-specific; set once. Every live pull is `IFERROR`-guarded with a sensible fallback. |
+
+**Units:** CapIQ currency figures are assumed to arrive in **millions** (institutional default), matching the model's `$M` labels — so no scaling is applied. If your CapIQ returns *actual* units (revenue shows ~391,000,000,000 instead of 391,000), set `CAPIQ_MAG = 1e-6` at the top of `financial-model.ts`.
+
+**Valuation (Goldman-style football field, Valuation sheet, cols I–K):** terminal value by Gordon growth **and** exit multiple (with implied-exit-multiple and implied-perpetuity-growth cross-checks); fair value by DCF (Gordon & exit), comps, and analyst target; a 52-week range; and a consolidated **valuation range** (low / midpoint / high) with upside.
 | Consensus Revenue / EBITDA / Net income | `IQ_TOTAL_REV` (actual `IQ_FY`), `IQ_REVENUE_EST` / `IQ_EBITDA_EST` / `IQ_NI_EST` (`IQ_FY+1`, `IQ_NTM`) |
 
 **Dynamic:** every CIQ formula references the `Ticker` named range (the
