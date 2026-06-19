@@ -172,8 +172,12 @@ What becomes live (the rest stays as your editable judgment):
 
 | Cell(s) | CapIQ formula |
 |---|---|
-| Company / Price / Shares / Net debt / Tax / Next earnings | `IQ_COMPANY_NAME`, `IQ_LASTSALEPRICE`, `IQ_SHARESOUTSTANDING`, `IQ_NET_DEBT`, `IQ_EFFECT_TAX_RATE`, `IQ_EST_NEXT_EARNINGS_DATE` |
-| My Assumptions (CapIQ mode) | seeded from consensus — `RevGrowth = ConsRev/PriorRev-1`, margins = `ConsX/ConsRev` — so they track the ticker; edit any cell to express your own view |
+| Company / Price / Net debt / Tax / Next earnings | `IQ_COMPANY_NAME`, `IQ_LASTSALEPRICE`, `IQ_NET_DEBT`, `IQ_EFFECT_TAX_RATE`, `IQ_EST_NEXT_EARNINGS_DATE` |
+| Shares | `IQ_MARKETCAP/Price` (falls back to `IQ_SHARESOUTSTANDING`) — unit-robust |
+| My Assumptions | seeded from consensus — `RevGrowth = ConsRev/PriorRev-1`, margins = `ConsX/ConsRev` |
+| Valuation multiples | the stock's **current trading** multiples, derived live (e.g. `EV/EBITDA = (Px*Sh+NetDebt)/ConsEBITDA`); edit for peer premium |
+| WACC | **Beta** = `IQ_BETA`, **weights** derived from live market cap & `IQ_TOTAL_DEBT`; recomputes per ticker |
+| **House assumptions** (gold cells) | risk-free, ERP, cost of debt, terminal growth, growth fade, FCF conversion, beat/miss rules — **not** ticker-specific; set once. Every live pull is `IFERROR`-guarded with a sensible fallback. |
 | Consensus Revenue / EBITDA / Net income | `IQ_TOTAL_REV` (actual `IQ_FY`), `IQ_REVENUE_EST` / `IQ_EBITDA_EST` / `IQ_NI_EST` (`IQ_FY+1`, `IQ_NTM`) |
 
 **Dynamic:** every CIQ formula references the `Ticker` named range (the

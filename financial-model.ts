@@ -195,6 +195,9 @@ export const CAPIQ_FIELDS: Record<string, CapIqField> = {
   // share-count unit convention, which varies. IQ_SHARESOUTSTANDING (scale 1e-6)
   // is the direct alternative if your environment returns actual share counts.
   marketCap: { m: 'IQ_MARKETCAP', scale: 1e-6 }, // total market cap -> $M
+  sharesDirect: { m: 'IQ_SHARESOUTSTANDING', scale: 1e-6 }, // fallback share count -> millions
+  beta: { m: 'IQ_BETA' }, // levered beta (IFERROR-guarded; fallback 1.1)
+  totalDebt: { m: 'IQ_TOTAL_DEBT', scale: 1e-6 }, // for equity/debt weights
   netDebt: { m: 'IQ_NET_DEBT', period: 'IQ_LTM', scale: 1e-6 },
   taxRate: { m: 'IQ_EFFECT_TAX_RATE', period: 'IQ_FY', scale: 0.01 }, // % -> decimal
   nextEarnings: { m: 'IQ_EST_NEXT_EARNINGS_DATE' }, // forward expected date (NEXT_EARNINGS_DATE can be stale)
@@ -476,7 +479,8 @@ export async function buildFinancialModel(
   const src = {
     company: cap ? ciq(TICK, F.companyName!) : coName,
     price: cap ? ciq(TICK, F.price!) : price,
-    shares: cap ? `${ciq(TICK, F.marketCap!)}/Price` : shares, // MarketCap($M) / Price -> shares (M)
+    // MarketCap($M)/Price -> shares (M); falls back to direct share count if needed.
+    shares: cap ? `=IFERROR(CIQ(${TICK},"${F.marketCap!.m}")*0.000001/Price,CIQ(${TICK},"${F.sharesDirect!.m}")*0.000001)` : shares,
     netDebt: cap ? ciq(TICK, F.netDebt!) : netDebt,
     taxRate: cap ? ciq(TICK, F.taxRate!) : cfg.taxRate,
     nextEarnings: cap ? ciq(TICK, F.nextEarnings!) : cfg.nextEarnings,
@@ -570,22 +574,28 @@ export async function buildFinancialModel(
   await I(19, 'Scenario', 'Base');
   await I(20, 'Scenario Growth Multiplier', '=IF(ScenarioName="Bull",1.25,IF(ScenarioName="Bear",0.7,1))', NF.mult);
 
-  await section(inputs, 'B22:D22', 'CONSENSUS / PEER MULTIPLES');
-  await I(23, 'Peer EV/EBITDA', a.peerEvEbitda, NF.mult);
-  await I(24, 'Peer P/E', a.peerPe, NF.mult);
-  await I(25, 'Peer EV/Revenue', a.peerEvRev, NF.mult);
-  await I(26, 'Peer P/S', a.peerPs, NF.mult);
+  // Valuation multiples: in CapIQ mode default to the stock's CURRENT trading
+  // multiples (derived from live data — fully dynamic, no extra mnemonics). Edit
+  // to apply a peer premium/discount.
+  await section(inputs, 'B22:D22', cap ? 'VALUATION MULTIPLES  (live current — edit for peer premium)' : 'CONSENSUS / PEER MULTIPLES');
+  await I(23, 'Peer EV/EBITDA', cap ? '=(Price*Shares+NetDebt)/ConsEBITDA' : a.peerEvEbitda, NF.mult);
+  await I(24, 'Peer P/E', cap ? '=Price*Shares/ConsNI' : a.peerPe, NF.mult);
+  await I(25, 'Peer EV/Revenue', cap ? '=(Price*Shares+NetDebt)/ConsRev' : a.peerEvRev, NF.mult);
+  await I(26, 'Peer P/S', cap ? '=Price*Shares/ConsRev' : a.peerPs, NF.mult);
 
-  await section(inputs, 'B28:D28', 'DCF / WACC');
-  await I(29, 'Risk-free Rate', 0.042, NF.pct);
-  await I(30, 'Equity Risk Premium', 0.05, NF.pct);
-  await I(31, 'Beta', 1.2, NF.num1);
-  await I(32, 'Pre-tax Cost of Debt', 0.06, NF.pct);
-  await I(33, 'Weight — Equity', 0.85, NF.pct);
-  await I(34, 'Weight — Debt', 0.15, NF.pct);
-  await I(35, 'Terminal Growth', 0.03, NF.pct);
+  // WACC: Beta is pulled (guarded), equity/debt weights derived from live market
+  // cap & total debt. Risk-free, ERP, cost of debt are MARKET/HOUSE assumptions
+  // (the same across every ticker) — left as inputs by design.
+  await section(inputs, 'B28:D28', cap ? 'DCF / WACC  (Beta & weights live; Rf/ERP/CoD = house)' : 'DCF / WACC');
+  await I(29, 'Risk-free Rate  (house)', 0.042, NF.pct);
+  await I(30, 'Equity Risk Premium  (house)', 0.05, NF.pct);
+  await I(31, 'Beta', cap ? `=IFERROR(CIQ(${TICK},"${F.beta!.m}"),1.1)` : 1.2, NF.num1);
+  await I(32, 'Pre-tax Cost of Debt  (house)', 0.06, NF.pct);
+  await I(33, 'Weight — Equity', cap ? `=IFERROR((Price*Shares)/(Price*Shares+CIQ(${TICK},"${F.totalDebt!.m}")*0.000001),0.85)` : 0.85, NF.pct);
+  await I(34, 'Weight — Debt', cap ? '=1-WeightEquity' : 0.15, NF.pct);
+  await I(35, 'Terminal Growth  (house)', 0.03, NF.pct);
 
-  await section(inputs, 'B37:D37', 'BEAT / MISS RULES (editable)');
+  await section(inputs, 'B37:D37', 'BEAT / MISS RULES (signal settings)');
   await I(38, 'Beat Threshold (surprise %)', 0.02, NF.pct);
   await I(39, 'Miss Threshold (surprise %)', -0.02, NF.pct);
   await I(40, 'Reaction Sensitivity (move per 1% surprise)', 8, NF.mult);
@@ -598,10 +608,17 @@ export async function buildFinancialModel(
   if (cap) {
     // Highlight the Ticker cell as the single editable driver.
     await fmt(inputs, 'D5', { backgroundColor: C.amberBg, fontColor: C.amberFg, bold: true, horizontalAlign: 'center', borders: { outline: true, top: thinBorder, bottom: thinBorder, left: thinBorder, right: thinBorder } });
-    await put(inputs, 'B48', '▶ DYNAMIC: change the Ticker cell (D5) and every figure re-pulls from Capital IQ automatically.');
-    await put(inputs, 'B49', 'Open in Excel with the CapIQ add-in to populate. If a cell shows #NAME?, verify its mnemonic/period in CAPIQ_FIELDS.');
+    // Tint the HOUSE / SIGNAL assumption cells gold so it's obvious what is NOT
+    // ticker-driven (these are the same for every company by design).
+    const gold = '#FFF2CC';
+    for (const r of [15, 18, 29, 30, 32, 35, 38, 39, 40]) {
+      await fmt(inputs, `D${r}`, { backgroundColor: gold });
+    }
+    await put(inputs, 'B48', '▶ DYNAMIC: change the Ticker cell (D5) and every company figure re-pulls from Capital IQ automatically.');
+    await put(inputs, 'B49', 'Gold cells = global house/market assumptions (Rf, ERP, terminal growth, fade, FCF conv, signal rules) — set once, same for all tickers.');
+    await put(inputs, 'B50', 'Open in Excel with the CapIQ add-in to populate. Each pull is IFERROR-guarded; if a value looks off, verify its mnemonic in CAPIQ_FIELDS.');
     await fmt(inputs, 'B48', { italic: true, bold: true, fontColor: C.greenFg });
-    await fmt(inputs, 'B49', { italic: true, fontColor: C.blue });
+    await fmt(inputs, 'B49:B50', { italic: true, fontColor: C.blue });
   }
 
   // Validation: scenario dropdown
