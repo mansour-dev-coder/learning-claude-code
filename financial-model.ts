@@ -303,6 +303,49 @@ async function section(ws: Worksheet, range: string, text: string) {
 }
 
 // ---------------------------------------------------------------------------
+// Chart helper
+// ---------------------------------------------------------------------------
+
+interface ChartSpec {
+  ws: Worksheet;
+  type: 'column' | 'bar' | 'line' | 'radar' | 'waterfall';
+  title: string;
+  series: Array<{ name: string; values: string; categories: string }>;
+  anchorRow: number;
+  anchorCol: number;
+  width?: number;
+  height?: number;
+  valueAxisTitle?: string;
+  dataLabels?: boolean;
+}
+
+/**
+ * Add a chart with proper labels and position.
+ * - Uses an explicit `series[]` (name/values/categories) — this is what
+ *   survives the XLSX round-trip, so legend + category labels show in Excel.
+ * - `add()` ignores the anchor, so we position with `update()` afterward
+ *   (that anchor DOES persist to the file Excel opens).
+ */
+async function addChart(s: ChartSpec): Promise<void> {
+  const chart = await s.ws.charts.add({
+    type: s.type,
+    anchorRow: 0,
+    anchorCol: 0,
+    width: s.width ?? 8,
+    height: s.height ?? 14,
+    title: s.title,
+    series: s.series,
+    legend: { show: true, visible: true, position: 'b' },
+    axis: {
+      categoryAxis: { visible: true },
+      valueAxis: { visible: true, ...(s.valueAxisTitle ? { title: s.valueAxisTitle } : {}) },
+    },
+    ...(s.dataLabels ? { dataLabels: { show: true, showValue: true } } : {}),
+  });
+  await s.ws.charts.update(chart.id, { anchorRow: s.anchorRow, anchorCol: s.anchorCol });
+}
+
+// ---------------------------------------------------------------------------
 // Builder
 // ---------------------------------------------------------------------------
 
@@ -708,9 +751,27 @@ export async function buildFinancialModel(
   await fmt(charts, 'A17:B17', { bold: true, backgroundColor: C.header, fontColor: C.white });
   await fmt(charts, 'B18:B21', { numberFormat: NF.usd });
 
-  await charts.charts.add({ type: 'column', dataRange: 'A3:C6', anchorRow: 2, anchorCol: 4, width: 9, height: 14, title: 'Consensus vs My Model ($M)' });
-  await charts.charts.add({ type: 'radar', dataRange: 'A9:B14', anchorRow: 17, anchorCol: 4, width: 9, height: 14, title: 'Sector KPI Profile' });
-  await charts.charts.add({ type: 'waterfall', dataRange: 'A17:B21', anchorRow: 32, anchorCol: 4, width: 9, height: 14, title: 'Net Income Bridge' });
+  // Three charts placed to the RIGHT of the data tables (col E), stacked with
+  // gaps so they never overlap each other or the data.
+  // Series refs MUST be sheet-qualified & absolute or Excel won't plot them.
+  await addChart({
+    ws: charts, type: 'column', title: 'Consensus vs My Model ($M)',
+    anchorRow: 2, anchorCol: 4, valueAxisTitle: '$M', dataLabels: true,
+    series: [
+      { name: 'Consensus', values: 'Charts!$B$4:$B$6', categories: 'Charts!$A$4:$A$6' },
+      { name: 'My Model', values: 'Charts!$C$4:$C$6', categories: 'Charts!$A$4:$A$6' },
+    ],
+  });
+  await addChart({
+    ws: charts, type: 'radar', title: 'Sector KPI Profile',
+    anchorRow: 18, anchorCol: 4,
+    series: [{ name: 'Active Sector', values: 'Charts!$B$10:$B$14', categories: 'Charts!$A$10:$A$14' }],
+  });
+  await addChart({
+    ws: charts, type: 'waterfall', title: 'Net Income Bridge ($M)',
+    anchorRow: 34, anchorCol: 4, valueAxisTitle: '$M', dataLabels: true,
+    series: [{ name: 'Net Income', values: 'Charts!$B$18:$B$21', categories: 'Charts!$A$18:$A$21' }],
+  });
 
   // =========================================================================
   // Dashboard (home screen)
@@ -791,11 +852,28 @@ export async function buildFinancialModel(
     { type: 'formula', formula: '=$D$22<=MissThresh', style: { backgroundColor: C.redBg, fontColor: C.redFg, bold: true } },
   ]));
 
-  // Embedded comparison chart on the dashboard
-  await dashboard.charts.add({ type: 'column', dataRange: 'Charts!A3:C6', anchorRow: 24, anchorCol: 1, width: 9, height: 14, title: 'Consensus vs My Model ($M)' });
-
   await put(dashboard, 'B40', 'Tip: change the Sector dropdown (orange cell, G3) or any Inputs value — the entire model recomputes.');
   await fmt(dashboard, 'B40', { italic: true, fontColor: C.blue });
+
+  // Embedded comparison chart — its own small data block (cols B–D) with the
+  // chart anchored to the right (col F) so neither covers the other.
+  await dashboard.setRange('B43', [
+    ['Metric', 'Consensus', 'My Model'],
+    ['Revenue', '=ConsRev', '=RevMy'],
+    ['EBITDA', '=ConsEBITDA', '=EbitdaMy'],
+    ['Net Income', '=ConsNI', '=NiMy'],
+  ]);
+  await fmt(dashboard, 'B43:D43', { bold: true, fontColor: C.white, backgroundColor: C.header, fontSize: 9 });
+  await fmt(dashboard, 'C44:D46', { numberFormat: NF.usd });
+  await fmt(dashboard, 'B44:B46', { bold: true });
+  await addChart({
+    ws: dashboard, type: 'column', title: 'Consensus vs My Model ($M)',
+    anchorRow: 42, anchorCol: 5, valueAxisTitle: '$M', dataLabels: true,
+    series: [
+      { name: 'Consensus', values: 'Dashboard!$C$44:$C$46', categories: 'Dashboard!$B$44:$B$46' },
+      { name: 'My Model', values: 'Dashboard!$D$44:$D$46', categories: 'Dashboard!$B$44:$B$46' },
+    ],
+  });
 
   // -- finalize --------------------------------------------------------------
   await wb.calculate();
