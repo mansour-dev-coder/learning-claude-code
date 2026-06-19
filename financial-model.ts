@@ -191,7 +191,10 @@ export interface CapIqField {
 export const CAPIQ_FIELDS: Record<string, CapIqField> = {
   companyName: { m: 'IQ_COMPANY_NAME' },
   price: { m: 'IQ_LASTSALEPRICE' }, // last-traded (live); IQ_CLOSEPRICE is prior close
-  shares: { m: 'IQ_SHARESOUTSTANDING', scale: 1e-6 }, // -> millions
+  // Shares are derived as MarketCap/Price (see src.shares) — robust to CapIQ's
+  // share-count unit convention, which varies. IQ_SHARESOUTSTANDING (scale 1e-6)
+  // is the direct alternative if your environment returns actual share counts.
+  marketCap: { m: 'IQ_MARKETCAP', scale: 1e-6 }, // total market cap -> $M
   netDebt: { m: 'IQ_NET_DEBT', period: 'IQ_LTM', scale: 1e-6 },
   taxRate: { m: 'IQ_EFFECT_TAX_RATE', period: 'IQ_FY', scale: 0.01 }, // % -> decimal
   nextEarnings: { m: 'IQ_EST_NEXT_EARNINGS_DATE' }, // forward expected date (NEXT_EARNINGS_DATE can be stale)
@@ -473,7 +476,7 @@ export async function buildFinancialModel(
   const src = {
     company: cap ? ciq(TICK, F.companyName!) : coName,
     price: cap ? ciq(TICK, F.price!) : price,
-    shares: cap ? ciq(TICK, F.shares!) : shares,
+    shares: cap ? `${ciq(TICK, F.marketCap!)}/Price` : shares, // MarketCap($M) / Price -> shares (M)
     netDebt: cap ? ciq(TICK, F.netDebt!) : netDebt,
     taxRate: cap ? ciq(TICK, F.taxRate!) : cfg.taxRate,
     nextEarnings: cap ? ciq(TICK, F.nextEarnings!) : cfg.nextEarnings,
@@ -613,6 +616,9 @@ export async function buildFinancialModel(
     ...EXAMPLES.map((e) => [...e]),
   ]);
   await fmt(inputs, 'F6:K6', { bold: true, backgroundColor: C.lightBlue });
+  await fmt(inputs, 'I7:I9', { numberFormat: NF.usd2 }); // Price
+  await fmt(inputs, 'J7:J9', { numberFormat: NF.int }); // Shares
+  await fmt(inputs, 'K7:K9', { numberFormat: NF.usd }); // Net Debt
 
   // =========================================================================
   // Consensus
@@ -898,9 +904,10 @@ export async function buildFinancialModel(
   await put(dashboard, 'G3', coSector);
   await dashboard.validations.set('G3', listRule([...SECTORS]));
   await fmt(dashboard, 'G3', { bold: true, backgroundColor: C.amberBg, fontColor: C.amberFg, horizontalAlign: 'center', borders: { outline: true, top: thinBorder, bottom: thinBorder, left: thinBorder, right: thinBorder } });
-  await fmt(dashboard, 'K3', { numberFormat: NF.usd2, bold: true });
-  await fmt(dashboard, 'G4', { numberFormat: NF.date });
-  await fmt(dashboard, 'K4', { numberFormat: NF.int });
+  // Header value cells live in the column right of each label (I3->J3, etc.).
+  await fmt(dashboard, 'J3', { numberFormat: NF.usd2, bold: true });
+  await fmt(dashboard, 'F4', { numberFormat: NF.date, bold: true });
+  await fmt(dashboard, 'J4', { numberFormat: NF.int, bold: true });
 
   // Metric cards
   await metricCard(dashboard, 'B', 6, 'REVENUE ($M)', 'RevMy', 'ConsRev', 'PriorRev', NF.usd);
