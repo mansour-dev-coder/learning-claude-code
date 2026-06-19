@@ -26,7 +26,8 @@
   "packageManager": "pnpm@10.33.0",
   "dependencies": {
     "@mog-sdk/contracts": "0.8.1",
-    "@mog-sdk/node": "^0.8.1"
+    "@mog-sdk/node": "^0.8.1",
+    "fflate": "^0.8.3"
   },
   "devDependencies": {
     "@types/node": "^25.9.1",

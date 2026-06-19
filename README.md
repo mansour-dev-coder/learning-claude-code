@@ -172,7 +172,8 @@ What becomes live (the rest stays as your editable judgment):
 
 | Cell(s) | CapIQ formula |
 |---|---|
-| Company / Price / Shares / Net debt / Tax / Next earnings | `IQ_COMPANY_NAME`, `IQ_CLOSEPRICE`, `IQ_SHARESOUTSTANDING`, `IQ_NET_DEBT`, `IQ_EFFECT_TAX_RATE`, `IQ_NEXT_EARNINGS_DATE` |
+| Company / Price / Shares / Net debt / Tax / Next earnings | `IQ_COMPANY_NAME`, `IQ_LASTSALEPRICE`, `IQ_SHARESOUTSTANDING`, `IQ_NET_DEBT`, `IQ_EFFECT_TAX_RATE`, `IQ_EST_NEXT_EARNINGS_DATE` |
+| My Assumptions (CapIQ mode) | seeded from consensus — `RevGrowth = ConsRev/PriorRev-1`, margins = `ConsX/ConsRev` — so they track the ticker; edit any cell to express your own view |
 | Consensus Revenue / EBITDA / Net income | `IQ_TOTAL_REV` (actual `IQ_FY`), `IQ_REVENUE_EST` / `IQ_EBITDA_EST` / `IQ_NI_EST` (`IQ_FY+1`, `IQ_NTM`) |
 
 **Dynamic:** every CIQ formula references the `Ticker` named range (the
@@ -199,6 +200,12 @@ block to switch.
 
 ## Notes
 
+- **XLSX post-processing.** `@mog-sdk/node` 0.8.1's writer drops list-validation
+  dropdowns and the fill/font colors for cellIs/expression conditional formats.
+  `buildFinancialModel` re-injects both into the OOXML after save (see
+  `injectExcelFeatures`), so the sector/scenario **dropdowns** and the
+  **beat/miss color-coding** work in Excel, and `fullCalcOnLoad` is set so
+  everything (incl. CapIQ) recalculates on open.
 - The engine recalculates on write; `calculateFormulas()` / `wb.calculate()` is
   there for explicit recompute after bulk edits.
 - Named ranges are created **before** the formulas that reference them — define

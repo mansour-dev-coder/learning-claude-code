@@ -23,6 +23,8 @@ import type { CellFormat } from '@mog-sdk/contracts/core';
 import type { ValidationRule, CFRuleInput, CFValueType } from '@mog-sdk/contracts/api';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import { writeFileSync } from 'node:fs';
+import { unzipSync, zipSync, strToU8, strFromU8 } from 'fflate';
 
 // Precise local shape for conditional-format inputs. The SDK's CFRuleInput is a
 // (lossy) Omit-union, so we model the variants we use and let them flow into it.
@@ -188,11 +190,11 @@ export interface CapIqField {
 
 export const CAPIQ_FIELDS: Record<string, CapIqField> = {
   companyName: { m: 'IQ_COMPANY_NAME' },
-  price: { m: 'IQ_CLOSEPRICE' },
+  price: { m: 'IQ_LASTSALEPRICE' }, // last-traded (live); IQ_CLOSEPRICE is prior close
   shares: { m: 'IQ_SHARESOUTSTANDING', scale: 1e-6 }, // -> millions
   netDebt: { m: 'IQ_NET_DEBT', period: 'IQ_LTM', scale: 1e-6 },
   taxRate: { m: 'IQ_EFFECT_TAX_RATE', period: 'IQ_FY', scale: 0.01 }, // % -> decimal
-  nextEarnings: { m: 'IQ_NEXT_EARNINGS_DATE' },
+  nextEarnings: { m: 'IQ_EST_NEXT_EARNINGS_DATE' }, // forward expected date (NEXT_EARNINGS_DATE can be stale)
   epsEst: { m: 'IQ_EPS_EST', period: 'IQ_FY+1' },
   revPrior: { m: 'IQ_TOTAL_REV', period: 'IQ_FY', scale: 1e-6 },
   revCons: { m: 'IQ_REVENUE_EST', period: 'IQ_FY+1', scale: 1e-6 },
@@ -351,6 +353,94 @@ async function addChart(s: ChartSpec): Promise<void> {
 }
 
 // ---------------------------------------------------------------------------
+// XLSX post-processing
+//
+// @mog-sdk/node 0.8.1's writer drops two things on export: (1) data-validation
+// list dropdowns, and (2) the fill/font colors for cellIs/expression
+// conditional-format rules (it emits <dxfs count="0"/> and no dxfId). We
+// re-inject both directly into the OOXML so they work in Excel.
+// ---------------------------------------------------------------------------
+
+const DXFS =
+  '<dxfs count="3">' +
+  '<dxf><font><color rgb="FF006100"/></font><fill><patternFill><bgColor rgb="FFC6EFCE"/></patternFill></fill></dxf>' + // 0 green
+  '<dxf><font><color rgb="FF9C0006"/></font><fill><patternFill><bgColor rgb="FFFFC7CE"/></patternFill></fill></dxf>' + // 1 red
+  '<dxf><font><color rgb="FF9C6500"/></font><fill><patternFill><bgColor rgb="FFFFEB9C"/></patternFill></fill></dxf>' + // 2 amber
+  '</dxfs>';
+
+// sheet file -> list dropdowns to add (sheet order is fixed: 1=Dashboard, 2=Inputs)
+function dropdownsFor(path: string): Array<{ sqref: string; values: string[] }> {
+  if (path === 'xl/worksheets/sheet1.xml') return [{ sqref: 'G3', values: [...SECTORS] }];
+  if (path === 'xl/worksheets/sheet2.xml') return [{ sqref: 'D19', values: ['Base', 'Bull', 'Bear'] }];
+  return [];
+}
+
+/** Pick a dxfId for a conditional-format rule from its operator/formula. */
+function cfDxfId(tag: string, formula?: string): number {
+  if (/operator="(greaterThan|greaterThanOrEqual)"/.test(tag)) return 0; // green
+  if (/operator="(lessThan|lessThanOrEqual)"/.test(tag)) return 1; // red
+  if (/operator="between"/.test(tag)) return 2; // amber
+  // Matches both ="BEAT" and >=BeatThresh (and the XML-escaped &gt;/&lt;).
+  if (formula && /beat/i.test(formula)) return 0; // green
+  if (formula && /miss/i.test(formula)) return 1; // red
+  return -1;
+}
+
+function injectExcelFeatures(xlsx: Uint8Array): Uint8Array {
+  const files = unzipSync(xlsx);
+  const get = (p: string) => strFromU8(files[p]!);
+  const set = (p: string, s: string) => { files[p] = strToU8(s); };
+
+  // 1. styles.xml — replace the empty <dxfs count="0"/> with our 3 fills.
+  if (files['xl/styles.xml']) {
+    set('xl/styles.xml', get('xl/styles.xml').replace(/<dxfs count="0"\s*\/>/, DXFS));
+  }
+
+  // 2. each worksheet — add dxfId to cfRules + inject dataValidations.
+  for (const path of Object.keys(files)) {
+    if (!/^xl\/worksheets\/sheet\d+\.xml$/.test(path)) continue;
+    let s = get(path);
+
+    // 2a. cellIs rules: add dxfId by operator.
+    s = s.replace(/<cfRule\b[^>]*type="cellIs"[^>]*>/g, (tag) =>
+      tag.includes('dxfId') ? tag : (() => { const id = cfDxfId(tag); return id < 0 ? tag : tag.replace('<cfRule ', `<cfRule dxfId="${id}" `); })());
+    // 2b. expression rules: add dxfId by formula content.
+    s = s.replace(/<cfRule type="expression"([^>]*)><formula>([^<]*)<\/formula>/g, (m, attrs: string, formula: string) => {
+      if (/dxfId/.test(attrs)) return m;
+      const id = cfDxfId('', formula);
+      return id < 0 ? m : `<cfRule type="expression" dxfId="${id}"${attrs}><formula>${formula}</formula>`;
+    });
+
+    // 2c. dataValidations — insert after conditionalFormatting, before drawing/end.
+    const dvs = dropdownsFor(path);
+    if (dvs.length) {
+      const xml =
+        `<dataValidations count="${dvs.length}">` +
+        dvs.map((d) => `<dataValidation type="list" allowBlank="1" showInputMessage="1" showErrorMessage="1" sqref="${d.sqref}"><formula1>"${d.values.join(',')}"</formula1></dataValidation>`).join('') +
+        `</dataValidations>`;
+      let idx = -1;
+      for (const mk of ['<hyperlinks', '<printOptions', '<pageMargins', '<drawing', '</worksheet>']) {
+        const i = s.indexOf(mk);
+        if (i >= 0 && (idx < 0 || i < idx)) idx = i;
+      }
+      s = s.slice(0, idx) + xml + s.slice(idx);
+    }
+    set(path, s);
+  }
+
+  // 3. workbook.xml — force a full recalc on open (so CapIQ + seeded formulas compute).
+  if (files['xl/workbook.xml']) {
+    let w = get('xl/workbook.xml');
+    w = /<calcPr\b[^>]*\/>/.test(w)
+      ? w.replace(/<calcPr\b[^>]*\/>/, '<calcPr calcId="0" fullCalcOnLoad="1"/>')
+      : w.replace('</workbook>', '<calcPr calcId="0" fullCalcOnLoad="1"/></workbook>');
+    set('xl/workbook.xml', w);
+  }
+
+  return zipSync(files);
+}
+
+// ---------------------------------------------------------------------------
 // Builder
 // ---------------------------------------------------------------------------
 
@@ -465,11 +555,14 @@ export async function buildFinancialModel(
   await fmt(inputs, 'D10', { numberFormat: NF.date });
   await I(11, 'Selected Sector (from Dashboard)', '=SelectedSector');
 
-  await section(inputs, 'B13:D13', 'MY ASSUMPTIONS');
-  await I(14, 'Revenue Growth (Year 1)', a.revGrowth, NF.pct);
+  // In CapIQ mode, seed the operating assumptions from consensus so they adapt
+  // to the ticker (still user-overridable — type a number to replace). Peer
+  // multiples & FCF conversion stay manual judgment calls.
+  await section(inputs, 'B13:D13', cap ? 'MY ASSUMPTIONS  (seeded from consensus — edit to express your view)' : 'MY ASSUMPTIONS');
+  await I(14, 'Revenue Growth (Year 1)', cap ? '=ConsRev/PriorRev-1' : a.revGrowth, NF.pct);
   await I(15, 'Growth Fade (per year)', a.growthFade, NF.pct);
-  await I(16, 'EBITDA Margin', a.ebitdaMargin, NF.pct);
-  await I(17, 'Net Margin', a.niMargin, NF.pct);
+  await I(16, 'EBITDA Margin', cap ? '=ConsEBITDA/ConsRev' : a.ebitdaMargin, NF.pct);
+  await I(17, 'Net Margin', cap ? '=ConsNI/ConsRev' : a.niMargin, NF.pct);
   await I(18, 'FCF Conversion', a.fcfConv, NF.pct);
   await I(19, 'Scenario', 'Base');
   await I(20, 'Scenario Growth Multiplier', '=IF(ScenarioName="Bull",1.25,IF(ScenarioName="Bear",0.7,1))', NF.mult);
@@ -705,7 +798,7 @@ export async function buildFinancialModel(
   await scenarios.conditionalFormats.add(['H4:H6'], asRules(cfUpDown(0)));
 
   await section(scenarios, 'B8:H8', 'TORNADO — Fair Value swing to ±20% driver moves');
-  await scenarios.setRange('A9', [['', 'Driver', 'Low FV', 'High FV', 'Swing']]);
+  await scenarios.setRange('A9', [['', 'Driver', 'FV @ -20%', 'FV @ +20%', 'Swing']]);
   await fmt(scenarios, 'B9:E9', { bold: true, backgroundColor: C.lightBlue });
   const fvMult = (gExpr: string, mExpr: string, peerExpr: string, ndExpr: string, shExpr: string) =>
     `=(${peerExpr}*(PriorRev*(1+${gExpr})*${mExpr})-${ndExpr})/${shExpr}`;
@@ -787,8 +880,8 @@ export async function buildFinancialModel(
   // =========================================================================
   // Dashboard (home screen)
   // =========================================================================
-  await banner(dashboard, 'A1:L1', '📊  SECTOR CONSENSUS  vs  MY MODEL  —  EQUITY DASHBOARD');
-  await dashboard.layout.setColumnWidths([[0, 24], ...rangeWidths(1, 11, 96)]);
+  await banner(dashboard, 'A1:L1', 'SECTOR CONSENSUS  vs  MY MODEL  —  EQUITY DASHBOARD');
+  await dashboard.layout.setColumnWidths([[0, 78], ...rangeWidths(1, 11, 96)]);
 
   // Company header strip
   const hdr: [string, string, string][] = [
@@ -864,6 +957,7 @@ export async function buildFinancialModel(
   ]));
 
   await put(dashboard, 'B40', 'Tip: change the Sector dropdown (orange cell, G3) or any Inputs value — the entire model recomputes.');
+  await dashboard.structure.merge('B40:L40');
   await fmt(dashboard, 'B40', { italic: true, fontColor: C.blue });
 
   // Embedded comparison chart — its own small data block (cols B–D) with the
@@ -888,7 +982,10 @@ export async function buildFinancialModel(
 
   // -- finalize --------------------------------------------------------------
   await wb.calculate();
-  const bytes = await wb.save(outPath);
+  // Post-process the OOXML to restore dropdowns + conditional-format colors
+  // that the SDK writer drops, then write the file.
+  const bytes = injectExcelFeatures(await wb.toXlsx());
+  writeFileSync(outPath, bytes);
   await wb.dispose();
   return bytes;
 }
