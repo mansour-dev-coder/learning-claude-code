@@ -125,6 +125,17 @@ const KPI: Record<string, { names: string[]; values: number[] }> = {
   },
 };
 
+// Sector-default comp sets (fallback if CapIQ's auto comp set isn't available).
+const DEFAULT_PEERS: Record<string, string[]> = {
+  'Tech/SaaS': ['CRWD', 'PANW', 'ZS', 'NET', 'DDOG', 'SNOW', 'MDB', 'OKTA'],
+  'Consumer/Retail': ['WMT', 'COST', 'TGT', 'HD', 'LOW', 'TJX', 'DG', 'KR'],
+  'Healthcare/Biotech': ['JNJ', 'MRK', 'ABBV', 'LLY', 'PFE', 'AMGN', 'GILD', 'BMY'],
+  Industrials: ['HON', 'GE', 'CAT', 'DE', 'MMM', 'EMR', 'ETN', 'ITW'],
+  Financials: ['JPM', 'BAC', 'WFC', 'C', 'GS', 'MS', 'USB', 'PNC'],
+  Energy: ['XOM', 'CVX', 'COP', 'EOG', 'SLB', 'PSX', 'MPC', 'OXY'],
+  Other: ['', '', '', '', '', '', '', ''],
+};
+
 // Sample "Load Example Template" companies (editable on the Inputs sheet).
 // [name, ticker, sector, price, shares(M), netDebt($M)]
 const EXAMPLES: Array<[string, string, string, number, number, number]> = [
@@ -481,6 +492,7 @@ export async function buildFinancialModel(
   const scenarios = await wb.sheets.add('Scenarios');
   const charts = await wb.sheets.add('Charts');
   const sectorKpis = await wb.sheets.add('SectorKPIs');
+  const comps = await wb.sheets.add('Comps');
 
   // -- company identity (from config; defaults to the Tech/SaaS sample) ------
   const { company: coName, ticker, sector: coSector, price, shares, netDebt } = cfg;
@@ -1119,6 +1131,74 @@ export async function buildFinancialModel(
       { name: 'My Model', values: 'Dashboard!$D$44:$D$46', categories: 'Dashboard!$B$44:$B$46' },
     ],
   });
+
+  // =========================================================================
+  // Comps — comparable companies: live CapIQ peer data -> median -> implied value
+  // =========================================================================
+  await banner(comps, 'A1:H1', 'COMPARABLE COMPANIES  (live peer multiples → implied value)');
+  await comps.layout.setColumnWidths([[0, 90], [1, 190], ...rangeWidths(2, 7, 110)]);
+  const peers = DEFAULT_PEERS[cfg.sector] ?? DEFAULT_PEERS['Other']!;
+  await comps.setRange('A3', [['Ticker', 'Company', 'Price', 'Mkt Cap ($M)', 'EV ($M)', 'EV/Rev (NTM)', 'EV/EBITDA (NTM)', 'P/E (NTM)']]);
+  await fmt(comps, 'A3:H3', { bold: true, backgroundColor: C.header, fontColor: C.white, horizontalAlign: 'center' });
+  const N = peers.length;
+  for (let i = 0; i < N; i++) {
+    const r = 4 + i;
+    const def = peers[i] ?? '';
+    const A = `$A${r}`;
+    // Peer ticker: CapIQ auto comp set (guarded) -> sector-default fallback.
+    await put(comps, `A${r}`, cap ? `=IFERROR(CIQ(${TICK},"IQ_COMPARABLE_COMPANIES",${i + 1}),"${def}")` : def);
+    if (cap) {
+      await put(comps, `B${r}`, `=IFERROR(CIQ(${A},"IQ_COMPANY_NAME"),"")`);
+      await put(comps, `C${r}`, `=IFERROR(CIQ(${A},"IQ_LASTSALEPRICE"),"")`);
+      await put(comps, `D${r}`, `=IFERROR(CIQ(${A},"IQ_MARKETCAP"),"")`);
+      await put(comps, `E${r}`, `=IFERROR(CIQ(${A},"IQ_TEV"),IFERROR(D${r}+CIQ(${A},"IQ_NET_DEBT",IQ_LTM),""))`);
+      await put(comps, `F${r}`, `=IFERROR(E${r}/CIQ(${A},"IQ_REVENUE_EST",IQ_NTM),"")`);
+      await put(comps, `G${r}`, `=IFERROR(E${r}/CIQ(${A},"IQ_EBITDA_EST",IQ_NTM),"")`);
+      await put(comps, `H${r}`, `=IFERROR(D${r}/CIQ(${A},"IQ_NI_EST",IQ_NTM),"")`);
+    }
+  }
+  await fmt(comps, `C4:C${3 + N}`, { numberFormat: NF.usd2 });
+  await fmt(comps, `D4:E${3 + N}`, { numberFormat: NF.usd });
+  await fmt(comps, `F4:H${3 + N}`, { numberFormat: NF.mult, horizontalAlign: 'center' });
+  const mr = 5 + N; // median row
+  await put(comps, `B${mr}`, 'Peer Median');
+  for (const cc of ['F', 'G', 'H']) await put(comps, `${cc}${mr}`, `=IFERROR(MEDIAN(${cc}4:${cc}${3 + N}),"")`);
+  await fmt(comps, `B${mr}:H${mr}`, { bold: true, backgroundColor: C.lightBlue });
+  await fmt(comps, `F${mr}:H${mr}`, { numberFormat: NF.mult, horizontalAlign: 'center', bold: true });
+
+  const ir = mr + 2; // implied-value block
+  await section(comps, `A${ir}:F${ir}`, 'IMPLIED VALUE — peer median × our consensus metric');
+  await comps.setRange(`A${ir + 1}`, [['Method', 'Median ×', 'Our Metric ($M)', 'Implied ($M)', 'Implied Price', 'vs Price']]);
+  await fmt(comps, `A${ir + 1}:F${ir + 1}`, { bold: true, backgroundColor: C.lightBlue });
+  const implied: [string, string, string, string][] = [
+    ['EV/EBITDA', `=G${mr}`, '=ConsEBITDA', `=IFERROR(G${mr}*ConsEBITDA,"")`],
+    ['EV/Revenue', `=F${mr}`, '=ConsRev', `=IFERROR(F${mr}*ConsRev,"")`],
+    ['P/E', `=H${mr}`, '=ConsNI', `=IFERROR(H${mr}*ConsNI,"")`],
+  ];
+  for (let i = 0; i < implied.length; i++) {
+    const r = ir + 2 + i;
+    await put(comps, `A${r}`, implied[i]![0]);
+    await put(comps, `B${r}`, implied[i]![1]);
+    await put(comps, `C${r}`, implied[i]![2]);
+    await put(comps, `D${r}`, implied[i]![3]);
+    const px = implied[i]![0] === 'P/E' ? `=IFERROR(D${r}/Shares,"")` : `=IFERROR((D${r}-NetDebt-Minorities+Associates)/Shares,"")`;
+    await put(comps, `E${r}`, px);
+    await put(comps, `F${r}`, `=IFERROR(E${r}/Price-1,"")`);
+  }
+  const avgr = ir + 2 + implied.length;
+  await put(comps, `A${avgr}`, 'Average Implied');
+  await put(comps, `E${avgr}`, `=IFERROR(AVERAGE(E${ir + 2}:E${ir + 1 + implied.length}),"")`);
+  await put(comps, `F${avgr}`, `=IFERROR(E${avgr}/Price-1,"")`);
+  await fmt(comps, `A${avgr}:F${avgr}`, { bold: true, backgroundColor: C.greenBg, fontColor: C.greenFg });
+  await fmt(comps, `B${ir + 2}:B${avgr}`, { numberFormat: NF.mult });
+  await fmt(comps, `C${ir + 2}:D${avgr}`, { numberFormat: NF.usd });
+  await fmt(comps, `E${ir + 2}:E${avgr}`, { numberFormat: NF.usd2 });
+  await fmt(comps, `F${ir + 2}:F${avgr}`, { numberFormat: NF.pct });
+  await wb.names.add('CompsImplied', `Comps!$E$${avgr}`);
+  await put(comps, `A${avgr + 2}`, cap
+    ? 'Peers: CapIQ auto comp set (IQ_COMPARABLE_COMPANIES) with a sector-default fallback — edit column A to override.'
+    : 'Comps populate in CapIQ mode (--capiq). Tickers shown are the sector-default peer set.');
+  await fmt(comps, `A${avgr + 2}`, { italic: true, fontColor: C.blue });
 
   // -- finalize --------------------------------------------------------------
   await wb.calculate();

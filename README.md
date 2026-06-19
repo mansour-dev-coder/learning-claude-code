@@ -182,7 +182,12 @@ What becomes live (the rest stays as your editable judgment):
 
 **Units:** CapIQ currency figures are assumed to arrive in **millions** (institutional default), matching the model's `$M` labels — so no scaling is applied. If your CapIQ returns *actual* units (revenue shows ~391,000,000,000 instead of 391,000), set `CAPIQ_MAG = 1e-6` at the top of `financial-model.ts`.
 
-**Valuation (Goldman-style football field, Valuation sheet, cols I–K):** terminal value by Gordon growth **and** exit multiple (with implied-exit-multiple and implied-perpetuity-growth cross-checks); fair value by DCF (Gordon & exit), comps, and analyst target; a 52-week range; and a consolidated **valuation range** (low / midpoint / high) with upside.
+**Valuation (Goldman-style, adapted from a sell-side CrowdStrike model):**
+- **DCF rigor** — proper **unlevered FCF** (EBITDA − capex − cash-tax-on-EBIT − ΔNWC − SBC), EBITDA **margin ramp** to a terminal margin, **mid-year convention**, and a post-/pre-**SBC** basis toggle. Capex/D&A/SBC pulled from CapIQ (IFERROR → % of revenue).
+- **EV bridge** — market cap + net debt + minority interest − associates.
+- **Football field** (cols I–K) — TV by Gordon **and** exit multiple (with implied-exit-multiple & implied-perpetuity-growth checks); fair value by DCF (Gordon/exit), comps, analyst target; 52-wk range; consolidated **low / midpoint / high** range.
+- **Forward multiples grid** — EV/Rev, EV/EBITDA, P/E, FCF yield (current FY & NTM).
+- **Comps tab** — comparable companies pulled live from CapIQ (`IQ_COMPARABLE_COMPANIES` auto comp set, with a sector-default fallback), peer **median** multiples → **implied value** on our consensus metrics.
 | Consensus Revenue / EBITDA / Net income | `IQ_TOTAL_REV` (actual `IQ_FY`), `IQ_REVENUE_EST` / `IQ_EBITDA_EST` / `IQ_NI_EST` (`IQ_FY+1`, `IQ_NTM`) |
 
 **Dynamic:** every CIQ formula references the `Ticker` named range (the
