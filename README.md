@@ -157,6 +157,32 @@ await buildFinancialModel('MyCo.xlsx', {
 
 Any field you omit falls back to `DEFAULT_CONFIG` (the Tech/SaaS base case).
 
+### Live data via S&P Capital IQ (`--capiq`)
+
+If you have the **Capital IQ Excel add-in**, build a workbook whose data cells
+are live `=CIQ(...)` formulas keyed to a ticker — they populate the moment you
+open the file in Excel:
+
+```bash
+pnpm run-model --ticker AAPL --capiq --sector "Tech/SaaS" --name "Apple Inc."
+# -> Model_AAPL_CapIQ.xlsx
+```
+
+What becomes live (the rest stays as your editable judgment):
+
+| Cell(s) | CapIQ formula |
+|---|---|
+| Company / Price / Shares / Net debt / Tax / Next earnings | `IQ_COMPANY_NAME`, `IQ_CLOSEPRICE`, `IQ_SHARESOUTSTANDING`, `IQ_NET_DEBT`, `IQ_EFFECT_TAX_RATE`, `IQ_NEXT_EARNINGS_DATE` |
+| Consensus Revenue / EBITDA / Net income | `IQ_TOTAL_REV` (actual `IQ_FY`), `IQ_REVENUE_EST` / `IQ_EBITDA_EST` / `IQ_NI_EST` (`IQ_FY+1`, `IQ_NTM`) |
+
+Notes:
+- These cells show `#NAME?` until opened in Excel **with the CapIQ add-in** —
+  only Excel + CapIQ can evaluate `CIQ()` (the headless build can't).
+- Every mnemonic/period/scale lives in one editable map, **`CAPIQ_FIELDS`** in
+  `financial-model.ts`. If a cell shows `#NAME?` in Excel, adjust the mnemonic
+  there for your CapIQ version (they vary slightly by release).
+- Values are scaled to the model's units ($M, decimal %, millions of shares).
+
 ### Load Example Template
 
 The workbook ships pre-loaded with a Tech/SaaS sample (Nimbus Cloud, NIMB). The

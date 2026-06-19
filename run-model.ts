@@ -94,19 +94,56 @@ const PRESETS: Record<string, Preset> = {
 
 const here = dirname(fileURLToPath(import.meta.url));
 
-function parseArgs(argv: string[]): { names: string[]; out?: string } {
+interface Args {
+  names: string[];
+  out?: string;
+  ticker?: string;
+  sector?: string;
+  name?: string;
+  capiq: boolean;
+}
+
+function parseArgs(argv: string[]): Args {
   const args = argv.slice(2);
-  let out: string | undefined;
-  const names: string[] = [];
+  const a: Args = { names: [], capiq: false };
   for (let i = 0; i < args.length; i++) {
-    if (args[i] === '--out') out = args[++i];
-    else names.push(args[i]!);
+    const x = args[i]!;
+    if (x === '--out') a.out = args[++i];
+    else if (x === '--ticker') a.ticker = args[++i];
+    else if (x === '--sector') a.sector = args[++i];
+    else if (x === '--name') a.name = args[++i];
+    else if (x === '--capiq') a.capiq = true;
+    else a.names.push(x);
   }
-  return { names, out };
+  return a;
 }
 
 async function main(): Promise<void> {
-  const { names, out } = parseArgs(process.argv);
+  const { names, out, ticker, sector, name, capiq } = parseArgs(process.argv);
+
+  // Ticker mode: build one workbook for any company.
+  //   pnpm run-model --ticker AAPL --capiq --sector "Tech/SaaS"
+  if (ticker) {
+    const config: Partial<ModelConfig> = {
+      company: name ?? ticker,
+      ticker,
+      sector: sector ?? 'Other',
+      dataSource: capiq ? 'capiq' : 'static',
+    };
+    const safe = ticker.replace(/[^A-Za-z0-9]/g, '_');
+    const outPath = out
+      ? isAbsolute(out) ? out : join(here, out)
+      : join(here, `Model_${safe}${capiq ? '_CapIQ' : ''}.xlsx`);
+    const bytes = await buildFinancialModel(outPath, config);
+    console.log(
+      `✓ ${ticker} (${config.sector}${capiq ? ', CapIQ live' : ''}) -> ${outPath}  (${bytes.byteLength.toLocaleString()} bytes)`,
+    );
+    if (capiq) {
+      console.log('  Open in Excel with the S&P Capital IQ add-in — the =CIQ(...) cells will populate.');
+    }
+    return;
+  }
+
   const which = names.length === 0 || names[0] === 'all' ? Object.keys(PRESETS) : names;
 
   for (const name of which) {

@@ -165,6 +165,51 @@ export interface ModelConfig {
   taxRate: number;
   assumptions: ModelAssumptions;
   consensus: { revenue: ConsensusTriple; ebitda: ConsensusTriple; netIncome: ConsensusTriple };
+  /**
+   * 'static'  — write the literal numbers above (default; works in any Excel).
+   * 'capiq'   — write live S&P Capital IQ formulas keyed to `ticker`. The cells
+   *             populate when opened in Excel with the CapIQ add-in; in this
+   *             headless build they show #NAME? (only Excel+CapIQ can evaluate).
+   */
+  dataSource: 'static' | 'capiq';
+}
+
+// ---------------------------------------------------------------------------
+// Capital IQ field map — every mnemonic in one place so you can adjust any
+// that differ in your CapIQ environment. `scale` converts CapIQ units to the
+// model's units ($M, decimal %, millions of shares).
+// ---------------------------------------------------------------------------
+
+export interface CapIqField {
+  m: string;          // CapIQ mnemonic
+  period?: string;    // period token, e.g. IQ_FY, 'IQ_FY-1', 'IQ_FY+1', IQ_NTM, IQ_LTM
+  scale?: number;     // multiplier applied to the result (e.g. 1e-6 for $ -> $M)
+}
+
+export const CAPIQ_FIELDS: Record<string, CapIqField> = {
+  companyName: { m: 'IQ_COMPANY_NAME' },
+  price: { m: 'IQ_CLOSEPRICE' },
+  shares: { m: 'IQ_SHARESOUTSTANDING', scale: 1e-6 }, // -> millions
+  netDebt: { m: 'IQ_NET_DEBT', period: 'IQ_LTM', scale: 1e-6 },
+  taxRate: { m: 'IQ_EFFECT_TAX_RATE', period: 'IQ_FY', scale: 0.01 }, // % -> decimal
+  nextEarnings: { m: 'IQ_NEXT_EARNINGS_DATE' },
+  epsEst: { m: 'IQ_EPS_EST', period: 'IQ_FY+1' },
+  revPrior: { m: 'IQ_TOTAL_REV', period: 'IQ_FY', scale: 1e-6 },
+  revCons: { m: 'IQ_REVENUE_EST', period: 'IQ_FY+1', scale: 1e-6 },
+  revNtm: { m: 'IQ_REVENUE_EST', period: 'IQ_NTM', scale: 1e-6 },
+  ebitdaPrior: { m: 'IQ_EBITDA', period: 'IQ_FY', scale: 1e-6 },
+  ebitdaCons: { m: 'IQ_EBITDA_EST', period: 'IQ_FY+1', scale: 1e-6 },
+  ebitdaNtm: { m: 'IQ_EBITDA_EST', period: 'IQ_NTM', scale: 1e-6 },
+  niPrior: { m: 'IQ_NI', period: 'IQ_FY', scale: 1e-6 },
+  niCons: { m: 'IQ_NI_EST', period: 'IQ_FY+1', scale: 1e-6 },
+  niNtm: { m: 'IQ_NI_EST', period: 'IQ_NTM', scale: 1e-6 },
+};
+
+/** Build a CapIQ Excel formula string, e.g. =CIQ("AAPL","IQ_TOTAL_REV",IQ_FY)*0.000001 */
+export function ciq(ticker: string, f: CapIqField): string {
+  const args = f.period ? `"${ticker}","${f.m}",${f.period}` : `"${ticker}","${f.m}"`;
+  const call = `CIQ(${args})`;
+  return f.scale && f.scale !== 1 ? `=${call}*${f.scale}` : `=${call}`;
 }
 
 /** The shipped Tech/SaaS base case. `buildFinancialModel()` uses this by default. */
@@ -193,6 +238,7 @@ export const DEFAULT_CONFIG: ModelConfig = {
     ebitda: { prior: 250, current: 295, ntm: 340 },
     netIncome: { prior: 120, current: 150, ntm: 175 },
   },
+  dataSource: 'static',
 };
 
 /** Deep-merge a partial config onto the defaults. */
@@ -281,6 +327,18 @@ export async function buildFinancialModel(
   // -- company identity (from config; defaults to the Tech/SaaS sample) ------
   const { company: coName, ticker, sector: coSector, price, shares, netDebt } = cfg;
 
+  // In CapIQ mode, source cells hold live =CIQ(...) formulas keyed to `ticker`.
+  const cap = cfg.dataSource === 'capiq';
+  const F = CAPIQ_FIELDS;
+  const src = {
+    company: cap ? ciq(ticker, F.companyName!) : coName,
+    price: cap ? ciq(ticker, F.price!) : price,
+    shares: cap ? ciq(ticker, F.shares!) : shares,
+    netDebt: cap ? ciq(ticker, F.netDebt!) : netDebt,
+    taxRate: cap ? ciq(ticker, F.taxRate!) : cfg.taxRate,
+    nextEarnings: cap ? ciq(ticker, F.nextEarnings!) : cfg.nextEarnings,
+  };
+
   // =========================================================================
   // Named ranges (single source of truth). Defined FIRST so every formula
   // written below resolves immediately — names must exist before referenced.
@@ -345,14 +403,14 @@ export async function buildFinancialModel(
     await fmt(inputs, `D${row}`, { backgroundColor: C.cardBg, borders: { outline: true, top: thinBorder, bottom: thinBorder, left: thinBorder, right: thinBorder } });
   };
 
-  await section(inputs, 'B3:D3', 'GENERAL');
-  await I(4, 'Company', coName);
+  await section(inputs, 'B3:D3', cap ? 'GENERAL  (live via S&P Capital IQ)' : 'GENERAL');
+  await I(4, 'Company', src.company);
   await I(5, 'Ticker', ticker);
-  await I(6, 'Current Price ($)', price, NF.usd2);
-  await I(7, 'Shares Outstanding (M)', shares, NF.int);
-  await I(8, 'Net Debt ($M)  [negative = net cash]', netDebt, NF.usd);
-  await I(9, 'Tax Rate', cfg.taxRate, NF.pct);
-  await I(10, 'Next Earnings Date', cfg.nextEarnings);
+  await I(6, 'Current Price ($)', src.price, NF.usd2);
+  await I(7, 'Shares Outstanding (M)', src.shares, NF.int);
+  await I(8, 'Net Debt ($M)  [negative = net cash]', src.netDebt, NF.usd);
+  await I(9, 'Tax Rate', src.taxRate, NF.pct);
+  await I(10, 'Next Earnings Date', src.nextEarnings);
   await fmt(inputs, 'D10', { numberFormat: NF.date });
   await I(11, 'Selected Sector (from Dashboard)', '=SelectedSector');
 
@@ -385,11 +443,16 @@ export async function buildFinancialModel(
   await I(39, 'Miss Threshold (surprise %)', -0.02, NF.pct);
   await I(40, 'Reaction Sensitivity (move per 1% surprise)', 8, NF.mult);
 
-  await section(inputs, 'B42:D42', 'REAL-TIME DATA (placeholders — wire to a feed)');
-  await I(43, 'Live Price', null);
-  await I(44, 'Live Consensus Revenue', null);
-  await I(45, 'Live Consensus EPS', null);
-  await I(46, 'Last Updated', null);
+  await section(inputs, 'B42:D42', cap ? 'REAL-TIME DATA (live via Capital IQ)' : 'REAL-TIME DATA (placeholders — wire to a feed)');
+  await I(43, 'Live Price', cap ? ciq(ticker, F.price!) : null, NF.usd2);
+  await I(44, 'Live Consensus Revenue ($M)', cap ? ciq(ticker, F.revCons!) : null, NF.usd);
+  await I(45, 'Live Consensus EPS', cap ? ciq(ticker, F.epsEst!) : null, NF.usd2);
+  await I(46, 'Last Updated', cap ? '=TODAY()' : null);
+  if (cap) {
+    await put(inputs, 'B48', 'Data: S&P Capital IQ (CIQ formulas). Open in Excel with the CapIQ add-in to populate.');
+    await put(inputs, 'B49', 'If a cell shows #NAME?, verify the mnemonic/period in CAPIQ_FIELDS for your CapIQ version.');
+    await fmt(inputs, 'B48:B49', { italic: true, fontColor: C.blue });
+  }
 
   // Validation: scenario dropdown
   await inputs.validations.set('D19', listRule(['Base', 'Bull', 'Bear']));
@@ -410,12 +473,18 @@ export async function buildFinancialModel(
   await banner(consensus, 'A1:E1', 'MARKET CONSENSUS');
   await consensus.layout.setColumnWidths([[0, 30], [1, 200], [2, 150], [3, 150], [4, 150]]);
   const cn = cfg.consensus;
+  // In CapIQ mode each figure is a live CIQ formula; otherwise the static number.
+  const cq = (field: CapIqField, fallback: number) => (cap ? ciq(ticker, field) : fallback);
   await consensus.setRange('A3', [
     ['', 'Metric ($M)', 'Prior FY (Actual)', 'Current FY (Consensus)', 'NTM (Consensus)'],
-    ['', 'Revenue', cn.revenue.prior, cn.revenue.current, cn.revenue.ntm],
-    ['', 'EBITDA', cn.ebitda.prior, cn.ebitda.current, cn.ebitda.ntm],
-    ['', 'Net Income', cn.netIncome.prior, cn.netIncome.current, cn.netIncome.ntm],
+    ['', 'Revenue', cq(F.revPrior!, cn.revenue.prior), cq(F.revCons!, cn.revenue.current), cq(F.revNtm!, cn.revenue.ntm)],
+    ['', 'EBITDA', cq(F.ebitdaPrior!, cn.ebitda.prior), cq(F.ebitdaCons!, cn.ebitda.current), cq(F.ebitdaNtm!, cn.ebitda.ntm)],
+    ['', 'Net Income', cq(F.niPrior!, cn.netIncome.prior), cq(F.niCons!, cn.netIncome.current), cq(F.niNtm!, cn.netIncome.ntm)],
   ]);
+  if (cap) {
+    await put(consensus, 'B9', 'Live S&P Capital IQ consensus — open in Excel with the CapIQ add-in to populate.');
+    await fmt(consensus, 'B9', { italic: true, fontColor: C.blue });
+  }
   await put(consensus, 'B7', 'EPS ($)');
   await put(consensus, 'C7', '=C6/Shares');
   await put(consensus, 'D7', '=D6/Shares');
