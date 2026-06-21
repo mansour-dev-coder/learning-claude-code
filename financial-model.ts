@@ -527,7 +527,9 @@ export async function buildFinancialModel(
     shares: cap ? `=IFERROR((CIQ(${TICK},"${F.marketCap!.m}")${MAGX}/Price)+0,IFERROR((CIQ(${TICK},"${F.sharesDirect!.m}")${MAGX})+0,${shares}))` : shares,
     netDebt: cap ? ciq(TICK, F.netDebt!, netDebt) : netDebt,
     taxRate: cap ? ciq(TICK, F.taxRate!, cfg.taxRate) : cfg.taxRate,
-    nextEarnings: cap ? ciq(TICK, F.nextEarnings!, cfg.nextEarnings) : cfg.nextEarnings,
+    nextEarnings: cap
+      ? `=IFERROR(CIQ(${TICK},"${F.nextEarnings!.m}"),DATE(${cfg.nextEarnings.split('-').map(Number).join(',')}))`
+      : cfg.nextEarnings,
   };
 
   // =========================================================================
@@ -831,7 +833,7 @@ export async function buildFinancialModel(
 
   // Mid-year convention: explicit FCF uplifted by (1+WACC)^0.5; terminal at yr 4.5.
   await put(valuation, 'B29', 'PV of explicit FCF (mid-yr)'); await put(valuation, 'C29', '=NPV(WACC,C27:G27)*(1+WACC)^0.5');
-  await put(valuation, 'B30', 'Terminal Value'); await put(valuation, 'C30', '=G27*(1+TermGrowth)/(WACC-TermGrowth)');
+  await put(valuation, 'B30', 'Terminal Value'); await put(valuation, 'C30', '=G27*(1+TermGrowth)/MAX(WACC-TermGrowth,0.005)');
   await put(valuation, 'B31', 'PV of Terminal Value'); await put(valuation, 'C31', '=C30/(1+WACC)^4.5');
   await put(valuation, 'B32', 'Enterprise Value (DCF)'); await put(valuation, 'C32', '=C29+C31');
   await put(valuation, 'B33', 'Equity Value (DCF)'); await put(valuation, 'C33', '=C32-NetDebt-Minorities+Associates');
@@ -929,7 +931,7 @@ export async function buildFinancialModel(
       await put(
         valuation,
         `${cc}${r}`,
-        `=(NPV($B${r},$C$27:$G$27)*(1+$B${r})^0.5+($G$27*(1+${cc}$38)/($B${r}-${cc}$38))/(1+$B${r})^4.5-NetDebt-Minorities+Associates)/Shares`,
+        `=(NPV($B${r},$C$27:$G$27)*(1+$B${r})^0.5+($G$27*(1+${cc}$38)/MAX($B${r}-${cc}$38,0.005))/(1+$B${r})^4.5-NetDebt-Minorities+Associates)/Shares`,
       );
     }
   }
