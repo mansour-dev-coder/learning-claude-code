@@ -243,11 +243,20 @@ export const CAPIQ_FIELDS: Record<string, CapIqField> = {
  * pass a named range like `Ticker` (recommended — change one cell and every
  * formula re-pulls) or a quoted literal like `"AAPL"`.
  * e.g. =CIQ(Ticker,"IQ_TOTAL_REV",IQ_FY)*0.000001
+ *
+ * Pass `fallback` to wrap the pull in IFERROR(...). This is essential: if the
+ * CapIQ add-in is missing, a mnemonic is wrong, or a value is unavailable, the
+ * raw call returns #NAME?/#VALUE! and that error cascades through every
+ * dependent formula (EV, margins, multiples, the DCF, the football field). A
+ * fallback keeps the whole model computing on sensible defaults — live data
+ * when CapIQ resolves, the static config value otherwise.
  */
-export function ciq(idRef: string, f: CapIqField): string {
+export function ciq(idRef: string, f: CapIqField, fallback?: string | number): string {
   const args = f.period ? `${idRef},"${f.m}",${f.period}` : `${idRef},"${f.m}"`;
-  const call = `CIQ(${args})`;
-  return f.scale && f.scale !== 1 ? `=${call}*${f.scale}` : `=${call}`;
+  const call = f.scale && f.scale !== 1 ? `CIQ(${args})*${f.scale}` : `CIQ(${args})`;
+  if (fallback === undefined) return `=${call}`;
+  const fb = typeof fallback === 'number' ? `${fallback}` : `"${fallback}"`;
+  return `=IFERROR(${call},${fb})`;
 }
 
 /** The shipped Tech/SaaS base case. `buildFinancialModel()` uses this by default. */
@@ -503,13 +512,14 @@ export async function buildFinancialModel(
   const F = CAPIQ_FIELDS;
   const TICK = 'Ticker'; // named range -> Inputs!$D$5 (added below)
   const src = {
-    company: cap ? ciq(TICK, F.companyName!) : coName,
-    price: cap ? ciq(TICK, F.price!) : price,
-    // MarketCap($M)/Price -> shares (M); falls back to direct share count if needed.
-    shares: cap ? `=IFERROR(CIQ(${TICK},"${F.marketCap!.m}")${MAGX}/Price,CIQ(${TICK},"${F.sharesDirect!.m}")${MAGX})` : shares,
-    netDebt: cap ? ciq(TICK, F.netDebt!) : netDebt,
-    taxRate: cap ? ciq(TICK, F.taxRate!) : cfg.taxRate,
-    nextEarnings: cap ? ciq(TICK, F.nextEarnings!) : cfg.nextEarnings,
+    company: cap ? ciq(TICK, F.companyName!, coName) : coName,
+    price: cap ? ciq(TICK, F.price!, price) : price,
+    // MarketCap($M)/Price -> shares (M); falls back to direct share count, then
+    // to the static config count if neither pull resolves.
+    shares: cap ? `=IFERROR(IFERROR(CIQ(${TICK},"${F.marketCap!.m}")${MAGX}/Price,CIQ(${TICK},"${F.sharesDirect!.m}")${MAGX}),${shares})` : shares,
+    netDebt: cap ? ciq(TICK, F.netDebt!, netDebt) : netDebt,
+    taxRate: cap ? ciq(TICK, F.taxRate!, cfg.taxRate) : cfg.taxRate,
+    nextEarnings: cap ? ciq(TICK, F.nextEarnings!, cfg.nextEarnings) : cfg.nextEarnings,
   };
 
   // =========================================================================
@@ -629,9 +639,9 @@ export async function buildFinancialModel(
   await I(40, 'Reaction Sensitivity (move per 1% surprise)', 8, NF.mult);
 
   await section(inputs, 'B42:D42', cap ? 'REAL-TIME DATA (live via Capital IQ)' : 'REAL-TIME DATA (placeholders — wire to a feed)');
-  await I(43, 'Live Price', cap ? ciq(TICK, F.price!) : null, NF.usd2);
-  await I(44, 'Live Consensus Revenue ($M)', cap ? ciq(TICK, F.revCons!) : null, NF.usd);
-  await I(45, 'Live Consensus EPS', cap ? ciq(TICK, F.epsEst!) : null, NF.usd2);
+  await I(43, 'Live Price', cap ? ciq(TICK, F.price!, price) : null, NF.usd2);
+  await I(44, 'Live Consensus Revenue ($M)', cap ? ciq(TICK, F.revCons!, cfg.consensus.revenue.current) : null, NF.usd);
+  await I(45, 'Live Consensus EPS', cap ? ciq(TICK, F.epsEst!, +(cfg.consensus.netIncome.current / shares).toFixed(2)) : null, NF.usd2);
   await I(46, 'Last Updated', cap ? '=TODAY()' : null);
   if (cap) {
     // Highlight the Ticker cell as the single editable driver.
@@ -686,8 +696,10 @@ export async function buildFinancialModel(
   await banner(consensus, 'A1:E1', 'MARKET CONSENSUS');
   await consensus.layout.setColumnWidths([[0, 30], [1, 200], [2, 150], [3, 150], [4, 150]]);
   const cn = cfg.consensus;
-  // In CapIQ mode each figure is a live CIQ formula; otherwise the static number.
-  const cq = (field: CapIqField, fallback: number) => (cap ? ciq(TICK, field) : fallback);
+  // In CapIQ mode each figure is a live CIQ formula guarded by its static
+  // consensus value, so the model still computes if a pull is unavailable;
+  // otherwise the static number.
+  const cq = (field: CapIqField, fallback: number) => (cap ? ciq(TICK, field, fallback) : fallback);
   await consensus.setRange('A3', [
     ['', 'Metric ($M)', 'Prior FY (Actual)', 'Current FY (Consensus)', 'NTM (Consensus)'],
     ['', 'Revenue', cq(F.revPrior!, cn.revenue.prior), cq(F.revCons!, cn.revenue.current), cq(F.revNtm!, cn.revenue.ntm)],
