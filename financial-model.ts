@@ -815,10 +815,10 @@ export async function buildFinancialModel(
 
   await section(valuation, 'B10:C10', 'IMPLIED PRICE (Peer Multiples)');
   const impl: [string, string][] = [
-    ['via EV/EBITDA', '=(PeerEVEBITDA*EbitdaMy-NetDebt)/Shares'],
+    ['via EV/EBITDA', '=(PeerEVEBITDA*EbitdaMy-Bridge)/SharesVal'],
     ['via P/E', '=PeerPE*EpsMy'],
-    ['via EV/Revenue', '=(PeerEVRev*RevMy-NetDebt)/Shares'],
-    ['via P/S', '=PeerPS*RevMy/Shares'],
+    ['via EV/Revenue', '=(PeerEVRev*RevMy-Bridge)/SharesVal'],
+    ['via P/S', '=PeerPS*RevMy/SharesVal'],
     ['Average Implied Price', '=AVERAGE(C11:C14)'],
   ];
   for (let i = 0; i < impl.length; i++) {
@@ -998,7 +998,7 @@ export async function buildFinancialModel(
     await put(scenarios, `D${r}`, scen[i]![2]);
     await put(scenarios, `E${r}`, `=PriorRev*(1+C${r})`);
     await put(scenarios, `F${r}`, `=E${r}*D${r}`);
-    await put(scenarios, `G${r}`, `=(PeerEVEBITDA*F${r}-NetDebt)/Shares`);
+    await put(scenarios, `G${r}`, `=(PeerEVEBITDA*F${r}-Bridge)/SharesVal`);
     await put(scenarios, `H${r}`, `=G${r}/Price-1`);
   }
   await fmt(scenarios, 'C4:D6', { numberFormat: NF.pct });
@@ -1013,11 +1013,11 @@ export async function buildFinancialModel(
   const fvMult = (gExpr: string, mExpr: string, peerExpr: string, ndExpr: string, shExpr: string) =>
     `=(${peerExpr}*(PriorRev*(1+${gExpr})*${mExpr})-${ndExpr})/${shExpr}`;
   const drivers: [string, string, string][] = [
-    ['Revenue Growth', fvMult('RevGrowthMy*0.8', 'EbitdaMarginMy', 'PeerEVEBITDA', 'NetDebt', 'Shares'), fvMult('RevGrowthMy*1.2', 'EbitdaMarginMy', 'PeerEVEBITDA', 'NetDebt', 'Shares')],
-    ['EBITDA Margin', fvMult('RevGrowthMy', 'EbitdaMarginMy*0.8', 'PeerEVEBITDA', 'NetDebt', 'Shares'), fvMult('RevGrowthMy', 'EbitdaMarginMy*1.2', 'PeerEVEBITDA', 'NetDebt', 'Shares')],
-    ['Peer EV/EBITDA', fvMult('RevGrowthMy', 'EbitdaMarginMy', 'PeerEVEBITDA*0.8', 'NetDebt', 'Shares'), fvMult('RevGrowthMy', 'EbitdaMarginMy', 'PeerEVEBITDA*1.2', 'NetDebt', 'Shares')],
-    ['Net Debt', fvMult('RevGrowthMy', 'EbitdaMarginMy', 'PeerEVEBITDA', 'NetDebt*1.2', 'Shares'), fvMult('RevGrowthMy', 'EbitdaMarginMy', 'PeerEVEBITDA', 'NetDebt*0.8', 'Shares')],
-    ['Shares Out', fvMult('RevGrowthMy', 'EbitdaMarginMy', 'PeerEVEBITDA', 'NetDebt', 'Shares*1.2'), fvMult('RevGrowthMy', 'EbitdaMarginMy', 'PeerEVEBITDA', 'NetDebt', 'Shares*0.8')],
+    ['Revenue Growth', fvMult('RevGrowthMy*0.8', 'EbitdaMarginMy', 'PeerEVEBITDA', 'Bridge', 'SharesVal'), fvMult('RevGrowthMy*1.2', 'EbitdaMarginMy', 'PeerEVEBITDA', 'Bridge', 'SharesVal')],
+    ['EBITDA Margin', fvMult('RevGrowthMy', 'EbitdaMarginMy*0.8', 'PeerEVEBITDA', 'Bridge', 'SharesVal'), fvMult('RevGrowthMy', 'EbitdaMarginMy*1.2', 'PeerEVEBITDA', 'Bridge', 'SharesVal')],
+    ['Peer EV/EBITDA', fvMult('RevGrowthMy', 'EbitdaMarginMy', 'PeerEVEBITDA*0.8', 'Bridge', 'SharesVal'), fvMult('RevGrowthMy', 'EbitdaMarginMy', 'PeerEVEBITDA*1.2', 'Bridge', 'SharesVal')],
+    ['EV Bridge', fvMult('RevGrowthMy', 'EbitdaMarginMy', 'PeerEVEBITDA', 'Bridge*1.2', 'SharesVal'), fvMult('RevGrowthMy', 'EbitdaMarginMy', 'PeerEVEBITDA', 'Bridge*0.8', 'SharesVal')],
+    ['Shares (diluted)', fvMult('RevGrowthMy', 'EbitdaMarginMy', 'PeerEVEBITDA', 'Bridge', 'SharesVal*1.2'), fvMult('RevGrowthMy', 'EbitdaMarginMy', 'PeerEVEBITDA', 'Bridge', 'SharesVal*0.8')],
   ];
   for (let i = 0; i < drivers.length; i++) {
     const r = 10 + i;
@@ -1355,7 +1355,7 @@ export async function buildFinancialModel(
     [8, 'FCF Margin (my model)', '=FcfBase/RevMy', NF.pct, 'context', ''],
     [9, 'Gross Margin (FY0 actual)', '=IFERROR(Financials!E17,0.75)', NF.pct, '≥ 70% (software)', '=IF(C9>=0.7,"PASS","WATCH")'],
     [10, 'Rule of 40 (growth + FCF margin)', '=C6+C8', NF.pct, '≥ 40%', '=IF(C10>=0.4,"PASS","WATCH")'],
-    [11, 'Net Revenue Retention (input)', '1.1', NF.pct, '≥120% best / ≥100% ok', '=IF(C11>=1.2,"BEST",IF(C11>=1,"OK","WATCH"))'],
+    [11, 'Net Revenue Retention (input)', '=1.1', NF.pct, '≥120% best / ≥100% ok', '=IF(C11>=1.2,"BEST",IF(C11>=1,"OK","WATCH"))'],
     [12, 'Rule of X (3×growth + FCF margin)', '=3*C6+C8', NF.pct, 'higher = better (Meritech)', '=IF(C12>=1,"STRONG","OK")'],
     [13, 'SaaS Magic Number (ΔRev / SG&A FY0)', '=IFERROR((ConsRev-PriorRev)/Financials!E9,0)', NF.mult, '> 0.75 efficient', '=IF(C13>0.75,"PASS","WATCH")'],
   ];
@@ -1366,8 +1366,7 @@ export async function buildFinancialModel(
     await put(quality, `D${r}`, bench);
     if (flag) await put(quality, `E${r}`, flag);
   }
-  await put(quality, 'C11', 1.1); // NRR as a real number (editable analyst input), not text
-  await fmt(quality, 'C11', { backgroundColor: C.amberBg, fontColor: C.amberFg, bold: true, horizontalAlign: 'center' });
+  await fmt(quality, 'C11', { backgroundColor: C.amberBg, fontColor: C.amberFg, bold: true, horizontalAlign: 'center' }); // NRR editable input (=1.1 -> 110%)
   await fmt(quality, 'B10:E10', { bold: true });
   await fmt(quality, 'D6:D8', { italic: true, fontColor: C.blue });
   await put(quality, 'B16', 'Rule of 40 uses FCF margin (Meritech / Bessemer convention); Rule of X weights growth ~3× FCF margin. NRR (amber) is an analyst input — best-in-class >120%.');
