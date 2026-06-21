@@ -250,13 +250,20 @@ export const CAPIQ_FIELDS: Record<string, CapIqField> = {
  * dependent formula (EV, margins, multiples, the DCF, the football field). A
  * fallback keeps the whole model computing on sensible defaults — live data
  * when CapIQ resolves, the static config value otherwise.
+ *
+ * For a NUMBER fallback the pull is additionally coerced with `+0`. The CapIQ
+ * add-in returns a TEXT sentinel (e.g. "Data Unavailable", "NM") for some
+ * fields rather than an Excel error, and IFERROR does NOT trap text — it would
+ * flow into the cell and blow up the first downstream multiplication as
+ * #VALUE!. `(CIQ(...))+0` forces numeric: a number stays a number, any text
+ * becomes #VALUE! which IFERROR then catches and replaces with the fallback.
  */
 export function ciq(idRef: string, f: CapIqField, fallback?: string | number): string {
   const args = f.period ? `${idRef},"${f.m}",${f.period}` : `${idRef},"${f.m}"`;
   const call = f.scale && f.scale !== 1 ? `CIQ(${args})*${f.scale}` : `CIQ(${args})`;
   if (fallback === undefined) return `=${call}`;
-  const fb = typeof fallback === 'number' ? `${fallback}` : `"${fallback}"`;
-  return `=IFERROR(${call},${fb})`;
+  if (typeof fallback === 'number') return `=IFERROR((${call})+0,${fallback})`;
+  return `=IFERROR(${call},"${fallback}")`;
 }
 
 /** The shipped Tech/SaaS base case. `buildFinancialModel()` uses this by default. */
@@ -515,8 +522,9 @@ export async function buildFinancialModel(
     company: cap ? ciq(TICK, F.companyName!, coName) : coName,
     price: cap ? ciq(TICK, F.price!, price) : price,
     // MarketCap($M)/Price -> shares (M); falls back to direct share count, then
-    // to the static config count if neither pull resolves.
-    shares: cap ? `=IFERROR(IFERROR(CIQ(${TICK},"${F.marketCap!.m}")${MAGX}/Price,CIQ(${TICK},"${F.sharesDirect!.m}")${MAGX}),${shares})` : shares,
+    // to the static config count if neither pull resolves. Each pull is coerced
+    // (+0) so a text sentinel from CapIQ is trapped, not propagated.
+    shares: cap ? `=IFERROR((CIQ(${TICK},"${F.marketCap!.m}")${MAGX}/Price)+0,IFERROR((CIQ(${TICK},"${F.sharesDirect!.m}")${MAGX})+0,${shares}))` : shares,
     netDebt: cap ? ciq(TICK, F.netDebt!, netDebt) : netDebt,
     taxRate: cap ? ciq(TICK, F.taxRate!, cfg.taxRate) : cfg.taxRate,
     nextEarnings: cap ? ciq(TICK, F.nextEarnings!, cfg.nextEarnings) : cfg.nextEarnings,
@@ -627,7 +635,7 @@ export async function buildFinancialModel(
   await section(inputs, 'B28:D28', cap ? 'DCF / WACC  (live build-up; terminal growth = house)' : 'DCF / WACC');
   await I(29, 'Risk-free Rate', cap ? `=IFERROR(CIQ(${TICK},"${F.riskFree!.m}")*${PCT},0.042)` : 0.042, NF.pct);
   await I(30, 'Equity Risk Premium', cap ? `=IFERROR(CIQ(${TICK},"${F.erp!.m}")*${PCT},0.05)` : 0.05, NF.pct);
-  await I(31, 'Beta', cap ? `=IFERROR(CIQ(${TICK},"${F.beta!.m}"),1.1)` : 1.2, NF.num1);
+  await I(31, 'Beta', cap ? `=IFERROR((CIQ(${TICK},"${F.beta!.m}"))+0,1.1)` : 1.2, NF.num1);
   await I(32, 'Pre-tax Cost of Debt', cap ? `=IFERROR(CIQ(${TICK},"${F.costDebt!.m}")*${PCT},0.06)` : 0.06, NF.pct);
   await I(33, 'Weight — Equity', cap ? `=IFERROR((Price*Shares)/(Price*Shares+CIQ(${TICK},"${F.totalDebt!.m}")${MAGX}),0.85)` : 0.85, NF.pct);
   await I(34, 'Weight — Debt', cap ? '=1-WeightEquity' : 0.15, NF.pct);
@@ -667,8 +675,8 @@ export async function buildFinancialModel(
   await I(55, 'Stock-based comp (% of revenue)', cap ? `=IFERROR(CIQ(${TICK},"IQ_STOCK_BASED_COMP",IQ_FY)/PriorRev,0.03)` : 0.03, NF.pct);
   await I(56, 'Terminal EBITDA Margin', 0.3, NF.pct);
   await I(57, 'Deduct SBC in FCF? (1=post-SBC, 0=pre-SBC)', 1, NF.int);
-  await I(58, 'Minority Interest ($M)', cap ? `=IFERROR(CIQ(${TICK},"IQ_MINORITY_INTEREST"),0)` : 0, NF.usd);
-  await I(59, 'Associates / Investments ($M)', cap ? `=IFERROR(CIQ(${TICK},"IQ_INVEST_EQUITY_AFFIL"),0)` : 0, NF.usd);
+  await I(58, 'Minority Interest ($M)', cap ? `=IFERROR((CIQ(${TICK},"IQ_MINORITY_INTEREST"))+0,0)` : 0, NF.usd);
+  await I(59, 'Associates / Investments ($M)', cap ? `=IFERROR((CIQ(${TICK},"IQ_INVEST_EQUITY_AFFIL"))+0,0)` : 0, NF.usd);
   if (cap) {
     const gold2 = '#FFF2CC';
     for (const r of [54, 56, 57]) await fmt(inputs, `D${r}`, { backgroundColor: gold2 }); // house assumptions
@@ -853,7 +861,7 @@ export async function buildFinancialModel(
     ['DCF — Gordon Growth', '=FairValue'],
     ['DCF — Exit Multiple', '=((C29+J7/(1+WACC)^4.5)-NetDebt-Minorities+Associates)/Shares'],
     ['Comps — Avg Implied', '=AvgImplied'],
-    ['Analyst Target (CapIQ)', cap ? `=IFERROR(CIQ(${TICK},"${F.priceTarget!.m}"),"")` : null],
+    ['Analyst Target (CapIQ)', cap ? `=IFERROR((CIQ(${TICK},"${F.priceTarget!.m}"))+0,"")` : null],
   ];
   for (let i = 0; i < fvRows.length; i++) {
     const r = 12 + i;
@@ -1161,9 +1169,9 @@ export async function buildFinancialModel(
     await put(comps, `A${r}`, cap ? `=IFERROR(CIQ(${TICK},"IQ_COMPARABLE_COMPANIES",${i + 1}),"${def}")` : def);
     if (cap) {
       await put(comps, `B${r}`, `=IFERROR(CIQ(${A},"IQ_COMPANY_NAME"),"")`);
-      await put(comps, `C${r}`, `=IFERROR(CIQ(${A},"IQ_LASTSALEPRICE"),"")`);
-      await put(comps, `D${r}`, `=IFERROR(CIQ(${A},"IQ_MARKETCAP"),"")`);
-      await put(comps, `E${r}`, `=IFERROR(CIQ(${A},"IQ_TEV"),IFERROR(D${r}+CIQ(${A},"IQ_NET_DEBT",IQ_LTM),""))`);
+      await put(comps, `C${r}`, `=IFERROR((CIQ(${A},"IQ_LASTSALEPRICE"))+0,"")`);
+      await put(comps, `D${r}`, `=IFERROR((CIQ(${A},"IQ_MARKETCAP"))+0,"")`);
+      await put(comps, `E${r}`, `=IFERROR((CIQ(${A},"IQ_TEV"))+0,IFERROR(D${r}+(CIQ(${A},"IQ_NET_DEBT",IQ_LTM))+0,""))`);
       await put(comps, `F${r}`, `=IFERROR(E${r}/CIQ(${A},"IQ_REVENUE_EST",IQ_NTM),"")`);
       await put(comps, `G${r}`, `=IFERROR(E${r}/CIQ(${A},"IQ_EBITDA_EST",IQ_NTM),"")`);
       await put(comps, `H${r}`, `=IFERROR(D${r}/CIQ(${A},"IQ_NI_EST",IQ_NTM),"")`);
