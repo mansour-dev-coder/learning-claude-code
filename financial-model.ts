@@ -236,6 +236,24 @@ export const CAPIQ_FIELDS: Record<string, CapIqField> = {
   priceTarget: { m: 'IQ_PRICE_TARGET' }, // consensus analyst target price
   high52: { m: 'IQ_HIGH_PRICE_52_WEEKS' },
   low52: { m: 'IQ_LOW_PRICE_52_WEEKS' },
+  // --- EV-bridge enrichments (all IFERROR+0 guarded at the call site) ---------
+  preferred: { m: 'IQ_PREF_EQUITY', scale: CAPIQ_MAG },           // preferred stock ($M)
+  taxAssets: { m: 'IQ_DEF_TAX_ASSET_LT', scale: CAPIQ_MAG },      // non-current deferred tax assets ($M)
+  divsPaid: { m: 'IQ_DIV_PAID_CF', period: 'IQ_FY', scale: CAPIQ_MAG }, // cash dividends ($M)
+  intangAmort: { m: 'IQ_GW_INTAN_AMORT', period: 'IQ_FY', scale: CAPIQ_MAG }, // amort. of acquired intangibles ($M)
+  // --- Historical financials (income statement + cash flow); period set per cell
+  hRev: { m: 'IQ_TOTAL_REV', scale: CAPIQ_MAG },
+  hGrossProfit: { m: 'IQ_GP', scale: CAPIQ_MAG },
+  hSga: { m: 'IQ_SGA_SUPPL', scale: CAPIQ_MAG },                  // SG&A
+  hRnd: { m: 'IQ_RD_EXP', scale: CAPIQ_MAG },                     // R&D
+  hOpInc: { m: 'IQ_OPER_INC', scale: CAPIQ_MAG },
+  hEbitda: { m: 'IQ_EBITDA', scale: CAPIQ_MAG },
+  hDa: { m: 'IQ_DA', scale: CAPIQ_MAG },
+  hSbc: { m: 'IQ_STOCK_BASED_COMP', scale: CAPIQ_MAG },
+  hNi: { m: 'IQ_NI', scale: CAPIQ_MAG },
+  hEps: { m: 'IQ_DILUT_EPS_EXCL' },                               // diluted EPS excl. extra
+  hCfo: { m: 'IQ_CASH_OPER', scale: CAPIQ_MAG },                  // cash from operations
+  hCapex: { m: 'IQ_CAPEX', scale: CAPIQ_MAG },
 };
 
 /**
@@ -509,6 +527,8 @@ export async function buildFinancialModel(
   const charts = await wb.sheets.add('Charts');
   const sectorKpis = await wb.sheets.add('SectorKPIs');
   const comps = await wb.sheets.add('Comps');
+  const financials = await wb.sheets.add('Financials');
+  const quality = await wb.sheets.add('Quality');
 
   // -- company identity (from config; defaults to the Tech/SaaS sample) ------
   const { company: coName, ticker, sector: coSector, price, shares, netDebt } = cfg;
@@ -548,6 +568,8 @@ export async function buildFinancialModel(
     ['BeatThresh', 'Inputs!$D$38'], ['MissThresh', 'Inputs!$D$39'], ['ReactSens', 'Inputs!$D$40'],
     ['CapexPct', 'Inputs!$D$52'], ['DaPct', 'Inputs!$D$53'], ['NwcPct', 'Inputs!$D$54'], ['SbcPct', 'Inputs!$D$55'],
     ['TermMargin', 'Inputs!$D$56'], ['SbcDeduct', 'Inputs!$D$57'], ['Minorities', 'Inputs!$D$58'], ['Associates', 'Inputs!$D$59'],
+    ['Preferred', 'Inputs!$D$62'], ['TaxAssets', 'Inputs!$D$63'], ['DivsInNetDebt', 'Inputs!$D$64'],
+    ['AnnualSBC', 'Inputs!$D$65'], ['Bridge', 'Inputs!$D$66'], ['SharesVal', 'Inputs!$D$67'], ['NRR', 'Quality!$C$11'],
     ['SelectedSector', 'Dashboard!$G$3'],
     ['SectorList', 'SectorKPIs!$C$3:$I$3'], ['KpiNames', 'SectorKPIs!$C$4:$I$8'], ['KpiValues', 'SectorKPIs!$C$11:$I$15'],
     ['PriorRev', 'Consensus!$C$4'], ['PriorEBITDA', 'Consensus!$C$5'], ['PriorNI', 'Consensus!$C$6'],
@@ -684,6 +706,21 @@ export async function buildFinancialModel(
     for (const r of [54, 56, 57]) await fmt(inputs, `D${r}`, { backgroundColor: gold2 }); // house assumptions
   }
 
+  // EV-bridge enrichments + dilution-aware share count (the consistency rule:
+  // if you DON'T expense SBC, you must dilute the share count instead).
+  await section(inputs, 'B61:D61', cap ? 'EV BRIDGE & DILUTION (live)' : 'EV BRIDGE & DILUTION');
+  await I(62, 'Preferred Stock ($M)', cap ? `=IFERROR((CIQ(${TICK},"${F.preferred!.m}"))+0,0)` : 0, NF.usd);
+  await I(63, 'Tax Assets / NOLs ($M)', cap ? `=IFERROR((CIQ(${TICK},"${F.taxAssets!.m}"))+0,0)` : 0, NF.usd);
+  await I(64, 'Dividends in Net Debt ($M)', cap ? `=IFERROR(ABS(CIQ(${TICK},"${F.divsPaid!.m}",IQ_FY))+0,0)` : 0, NF.usd);
+  await I(65, 'Annual SBC ($M)', cap ? `=IFERROR((CIQ(${TICK},"IQ_STOCK_BASED_COMP",IQ_FY))+0,PriorRev*SbcPct)` : '=PriorRev*SbcPct', NF.usd);
+  // Bridge: EV = MktCap + Bridge; Equity = EV - Bridge. One source of truth so
+  // every valuation route (DCF, exit-multiple, sensitivity grid, comps) agrees.
+  await I(66, 'EV→Equity Bridge ($M)  [computed]', '=NetDebt+Minorities+Preferred+DivsInNetDebt-Associates-TaxAssets', NF.usd);
+  // Dilution-aware shares: post-SBC (SbcDeduct=1) -> today's shares; pre-SBC
+  // (=0) -> add ~5yrs of SBC-funded dilution at the current price.
+  await I(67, 'Shares for Valuation (M)  [computed]', '=Shares+IF(SbcDeduct=0,5*AnnualSBC/Price,0)', NF.int);
+  await fmt(inputs, 'D66:D67', { backgroundColor: C.cardBg, italic: true });
+
   // Validation: scenario dropdown
   await inputs.validations.set('D19', listRule(['Base', 'Bull', 'Bear']));
 
@@ -763,7 +800,7 @@ export async function buildFinancialModel(
 
   await section(valuation, 'B3:C3', 'MARKET MULTIPLES (My Model)');
   const mult: [string, string, string][] = [
-    ['Enterprise Value ($M)', '=Price*Shares+NetDebt+Minorities-Associates', NF.usd],
+    ['Enterprise Value ($M)', '=Price*Shares+Bridge', NF.usd],
     ['EV / EBITDA', '=EV/EbitdaMy', NF.mult],
     ['P / E', '=Price/EpsMy', NF.mult],
     ['EV / Revenue', '=EV/RevMy', NF.mult],
@@ -836,8 +873,8 @@ export async function buildFinancialModel(
   await put(valuation, 'B30', 'Terminal Value'); await put(valuation, 'C30', '=G27*(1+TermGrowth)/MAX(WACC-TermGrowth,0.005)');
   await put(valuation, 'B31', 'PV of Terminal Value'); await put(valuation, 'C31', '=C30/(1+WACC)^4.5');
   await put(valuation, 'B32', 'Enterprise Value (DCF)'); await put(valuation, 'C32', '=C29+C31');
-  await put(valuation, 'B33', 'Equity Value (DCF)'); await put(valuation, 'C33', '=C32-NetDebt-Minorities+Associates');
-  await put(valuation, 'B34', 'Fair Value / Share'); await put(valuation, 'C34', '=C33/Shares');
+  await put(valuation, 'B33', 'Equity Value (DCF)'); await put(valuation, 'C33', '=C32-Bridge');
+  await put(valuation, 'B34', 'Fair Value / Share'); await put(valuation, 'C34', '=C33/SharesVal');
   await put(valuation, 'B35', 'Upside vs Price'); await put(valuation, 'C35', '=FairValue/Price-1');
   await fmt(valuation, 'C29:C33', { numberFormat: NF.usd });
   await fmt(valuation, 'C34', { numberFormat: NF.usd2, bold: true, backgroundColor: C.greenBg, fontColor: C.greenFg });
@@ -861,7 +898,7 @@ export async function buildFinancialModel(
   await fmt(valuation, 'I11:K11', { bold: true, backgroundColor: C.lightBlue });
   const fvRows: [string, string | null][] = [
     ['DCF — Gordon Growth', '=FairValue'],
-    ['DCF — Exit Multiple', '=((C29+J7/(1+WACC)^4.5)-NetDebt-Minorities+Associates)/Shares'],
+    ['DCF — Exit Multiple', '=((C29+J7/(1+WACC)^4.5)-Bridge)/SharesVal'],
     ['Comps — Avg Implied', '=AvgImplied'],
     ['Analyst Target (CapIQ)', cap ? `=IFERROR((CIQ(${TICK},"${F.priceTarget!.m}"))+0,"")` : null],
   ];
@@ -931,7 +968,7 @@ export async function buildFinancialModel(
       await put(
         valuation,
         `${cc}${r}`,
-        `=(NPV($B${r},$C$27:$G$27)*(1+$B${r})^0.5+($G$27*(1+${cc}$38)/MAX($B${r}-${cc}$38,0.005))/(1+$B${r})^4.5-NetDebt-Minorities+Associates)/Shares`,
+        `=(NPV($B${r},$C$27:$G$27)*(1+$B${r})^0.5+($G$27*(1+${cc}$38)/MAX($B${r}-${cc}$38,0.005))/(1+$B${r})^4.5-Bridge)/SharesVal`,
       );
     }
   }
@@ -1203,7 +1240,7 @@ export async function buildFinancialModel(
     await put(comps, `B${r}`, implied[i]![1]);
     await put(comps, `C${r}`, implied[i]![2]);
     await put(comps, `D${r}`, implied[i]![3]);
-    const px = implied[i]![0] === 'P/E' ? `=IFERROR(D${r}/Shares,"")` : `=IFERROR((D${r}-NetDebt-Minorities+Associates)/Shares,"")`;
+    const px = implied[i]![0] === 'P/E' ? `=IFERROR(D${r}/SharesVal,"")` : `=IFERROR((D${r}-Bridge)/SharesVal,"")`;
     await put(comps, `E${r}`, px);
     await put(comps, `F${r}`, `=IFERROR(E${r}/Price-1,"")`);
   }
@@ -1221,6 +1258,120 @@ export async function buildFinancialModel(
     ? 'Peers: CapIQ auto comp set (IQ_COMPARABLE_COMPANIES) with a sector-default fallback — edit column A to override.'
     : 'Comps populate in CapIQ mode (--capiq). Tickers shown are the sector-default peer set.');
   await fmt(comps, `A${avgr + 2}`, { italic: true, fontColor: C.blue });
+
+  // =========================================================================
+  // Financials — historical income statement + cash flow (CapIQ actuals) and a
+  // GAAP -> Non-GAAP bridge. Pull HISTORY here; forecasting stays top-down on
+  // MyModel/Valuation (a full line-by-line forward build is a per-name job).
+  // =========================================================================
+  await banner(financials, 'A1:F1', cap ? 'FINANCIALS  —  historical actuals (live via S&P Capital IQ)' : 'FINANCIALS  —  historical actuals (CapIQ mode only)');
+  await financials.layout.setColumnWidths([[0, 24], [1, 260], ...rangeWidths(2, 4, 120)]);
+  const fCols: [string, string][] = [['C', 'IQ_FY-2'], ['D', 'IQ_FY-1'], ['E', 'IQ_FY']];
+  // historical CIQ pull, numeric-coerced + IFERROR-guarded (fallback 0)
+  const h = (m: string, period: string) => `=IFERROR((CIQ(${TICK},"${m}",${period}))+0,0)`;
+  await put(financials, 'C3', 'FY-2'); await put(financials, 'D3', 'FY-1'); await put(financials, 'E3', 'FY0 (latest)');
+  await fmt(financials, 'C3:E3', { bold: true, backgroundColor: C.header, fontColor: C.white, horizontalAlign: 'center' });
+
+  await section(financials, 'B5:E5', 'INCOME STATEMENT ($M)');
+  const isLines: [number, string, string | null][] = [
+    [6, 'Total Revenue', F.hRev!.m], [7, 'Gross Profit', F.hGrossProfit!.m],
+    [8, 'Research & Development', F.hRnd!.m], [9, 'Selling, G&A', F.hSga!.m],
+    [10, 'Operating Income', F.hOpInc!.m], [12, 'EBITDA', F.hEbitda!.m],
+    [13, 'Depreciation & Amort.', F.hDa!.m], [14, 'Stock-based Comp', F.hSbc!.m],
+    [15, 'Net Income (GAAP)', F.hNi!.m],
+  ];
+  for (const [r, label, m] of isLines) {
+    await put(financials, `B${r}`, label);
+    if (cap && m) for (const [cc, per] of fCols) await put(financials, `${cc}${r}`, h(m, per));
+    await fmt(financials, `C${r}:E${r}`, { numberFormat: NF.usd });
+  }
+  // Diluted EPS (no scaling) + derived margins / growth
+  await put(financials, 'B16', 'Diluted EPS (GAAP)');
+  if (cap) for (const [cc, per] of fCols) await put(financials, `${cc}16`, `=IFERROR((CIQ(${TICK},"${F.hEps!.m}",${per}))+0,0)`);
+  await fmt(financials, 'C16:E16', { numberFormat: NF.usd2 });
+  await put(financials, 'B11', '  Operating Margin %');
+  await put(financials, 'B17', '  Gross Margin %');
+  await put(financials, 'B18', '  Revenue Growth % y/y');
+  for (const cc of ['C', 'D', 'E']) {
+    await put(financials, `${cc}11`, `=IFERROR(${cc}10/${cc}6,0)`);
+    await put(financials, `${cc}17`, `=IFERROR(${cc}7/${cc}6,0)`);
+  }
+  await put(financials, 'D18', '=IFERROR(D6/C6-1,0)'); await put(financials, 'E18', '=IFERROR(E6/D6-1,0)');
+  await fmt(financials, 'C11:E11', { numberFormat: NF.pct }); await fmt(financials, 'C17:E18', { numberFormat: NF.pct });
+  await fmt(financials, 'B6:B18', { fontColor: C.ink });
+
+  await section(financials, 'B20:E20', 'CASH FLOW ($M)');
+  await put(financials, 'B21', 'Cash from Operations');
+  await put(financials, 'B22', 'Capex');
+  await put(financials, 'B23', 'Free Cash Flow (CFO − Capex)');
+  await put(financials, 'B24', '  FCF Margin %');
+  for (const [cc, per] of fCols) {
+    if (cap) { await put(financials, `${cc}21`, h(F.hCfo!.m, per)); await put(financials, `${cc}22`, h(F.hCapex!.m, per)); }
+    await put(financials, `${cc}23`, `=${cc}21-ABS(${cc}22)`);
+    await put(financials, `${cc}24`, `=IFERROR(${cc}23/${cc}6,0)`);
+  }
+  await fmt(financials, 'C21:E23', { numberFormat: NF.usd }); await fmt(financials, 'C24:E24', { numberFormat: NF.pct });
+
+  // GAAP -> Non-GAAP bridge (the consistency rule: SBC is added back here for
+  // the Non-GAAP view, but valuation uses SharesVal which dilutes when pre-SBC).
+  await section(financials, 'B26:E26', 'GAAP → NON-GAAP BRIDGE ($M)');
+  await put(financials, 'B27', 'Net Income — GAAP');
+  await put(financials, 'B28', '(+) Stock-based Comp');
+  await put(financials, 'B29', '(+) Amort. of Acquired Intangibles');
+  await put(financials, 'B30', '(+) M&A / One-time (manual)');
+  await put(financials, 'B31', 'Net Income — Non-GAAP');
+  await put(financials, 'B32', 'Non-GAAP Diluted EPS');
+  await put(financials, 'B33', 'GAAP Diluted EPS');
+  for (const [cc, per] of fCols) {
+    await put(financials, `${cc}27`, `=${cc}15`);
+    await put(financials, `${cc}28`, `=${cc}14`);
+    if (cap) await put(financials, `${cc}29`, `=IFERROR((CIQ(${TICK},"${F.intangAmort!.m}",${per}))+0,0)`); else await put(financials, `${cc}29`, 0);
+    await put(financials, `${cc}30`, 0);
+    await put(financials, `${cc}31`, `=${cc}27+${cc}28+${cc}29+${cc}30`);
+    await put(financials, `${cc}32`, `=IFERROR(${cc}31/SharesVal,0)`);
+    await put(financials, `${cc}33`, `=${cc}16`);
+  }
+  await fmt(financials, 'C27:E31', { numberFormat: NF.usd });
+  await fmt(financials, 'C32:E33', { numberFormat: NF.usd2 });
+  await fmt(financials, 'B27:B33', { fontColor: C.ink }); await fmt(financials, 'B31:E31', { bold: true, backgroundColor: C.lightBlue });
+  await put(financials, 'B35', cap
+    ? '▶ Historical actuals pull live from Capital IQ; each is IFERROR-guarded (shows 0 if a mnemonic is unavailable in your CapIQ build — adjust in CAPIQ_FIELDS).'
+    : 'Historical actuals populate in CapIQ mode (--capiq). Forward forecasting stays top-down on MyModel/Valuation.');
+  await fmt(financials, 'B35', { italic: true, fontColor: C.blue });
+
+  // =========================================================================
+  // Quality — SaaS quality & growth scorecard (Rule of 40, Rule of X, NRR,
+  // magic number, margins) with benchmarks. Sourced to Meritech/Bessemer.
+  // =========================================================================
+  await banner(quality, 'A1:F1', 'QUALITY & GROWTH SCORECARD');
+  await quality.layout.setColumnWidths([[0, 24], [1, 300], [2, 110], [3, 150], [4, 120]]);
+  await section(quality, 'B4:E4', 'METRICS vs BENCHMARK');
+  await quality.setRange('B5', [['Metric', 'Value', 'Benchmark', 'Flag']]);
+  await fmt(quality, 'B5:E5', { bold: true, backgroundColor: C.header, fontColor: C.white });
+  // rows: label, formula, numberFormat, benchmark text, flag formula
+  const qRows: [number, string, string, string, string, string][] = [
+    [6, 'Revenue Growth (fwd, ConsRev/PriorRev−1)', '=ConsRev/PriorRev-1', NF.pct, 'context', ''],
+    [7, 'EBITDA Margin (my model)', '=EbitdaMy/RevMy', NF.pct, 'context', ''],
+    [8, 'FCF Margin (my model)', '=FcfBase/RevMy', NF.pct, 'context', ''],
+    [9, 'Gross Margin (FY0 actual)', '=IFERROR(Financials!E17,0.75)', NF.pct, '≥ 70% (software)', '=IF(C9>=0.7,"PASS","WATCH")'],
+    [10, 'Rule of 40 (growth + FCF margin)', '=C6+C8', NF.pct, '≥ 40%', '=IF(C10>=0.4,"PASS","WATCH")'],
+    [11, 'Net Revenue Retention (input)', '1.1', NF.pct, '≥120% best / ≥100% ok', '=IF(C11>=1.2,"BEST",IF(C11>=1,"OK","WATCH"))'],
+    [12, 'Rule of X (3×growth + FCF margin)', '=3*C6+C8', NF.pct, 'higher = better (Meritech)', '=IF(C12>=1,"STRONG","OK")'],
+    [13, 'SaaS Magic Number (ΔRev / SG&A FY0)', '=IFERROR((ConsRev-PriorRev)/Financials!E9,0)', NF.mult, '> 0.75 efficient', '=IF(C13>0.75,"PASS","WATCH")'],
+  ];
+  for (const [r, label, formula, nf, bench, flag] of qRows) {
+    await put(quality, `B${r}`, label);
+    await put(quality, `C${r}`, formula);
+    await fmt(quality, `C${r}`, { numberFormat: nf });
+    await put(quality, `D${r}`, bench);
+    if (flag) await put(quality, `E${r}`, flag);
+  }
+  await put(quality, 'C11', 1.1); // NRR as a real number (editable analyst input), not text
+  await fmt(quality, 'C11', { backgroundColor: C.amberBg, fontColor: C.amberFg, bold: true, horizontalAlign: 'center' });
+  await fmt(quality, 'B10:E10', { bold: true });
+  await fmt(quality, 'D6:D8', { italic: true, fontColor: C.blue });
+  await put(quality, 'B16', 'Rule of 40 uses FCF margin (Meritech / Bessemer convention); Rule of X weights growth ~3× FCF margin. NRR (amber) is an analyst input — best-in-class >120%.');
+  await fmt(quality, 'B16', { italic: true, fontColor: C.blue });
 
   // -- finalize --------------------------------------------------------------
   await wb.calculate();
