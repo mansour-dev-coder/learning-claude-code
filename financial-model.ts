@@ -254,6 +254,12 @@ export const CAPIQ_FIELDS: Record<string, CapIqField> = {
   hEps: { m: 'IQ_DILUT_EPS_EXCL' },                               // diluted EPS excl. extra
   hCfo: { m: 'IQ_CASH_OPER', scale: CAPIQ_MAG },                  // cash from operations
   hCapex: { m: 'IQ_CAPEX', scale: CAPIQ_MAG },
+  // --- DuPont / PP&E roll inputs (IFERROR+0 guarded at call site) -------------
+  totalAssets: { m: 'IQ_TOTAL_ASSETS', period: 'IQ_LTM', scale: CAPIQ_MAG },
+  totalEquity: { m: 'IQ_TOTAL_COMMON_EQUITY', period: 'IQ_LTM', scale: CAPIQ_MAG },
+  ebit: { m: 'IQ_EBIT', period: 'IQ_FY', scale: CAPIQ_MAG },
+  ebt: { m: 'IQ_EBT', period: 'IQ_FY', scale: CAPIQ_MAG },
+  netPPE: { m: 'IQ_NET_PPE', period: 'IQ_LTM', scale: CAPIQ_MAG },
 };
 
 /**
@@ -529,6 +535,7 @@ export async function buildFinancialModel(
   const comps = await wb.sheets.add('Comps');
   const financials = await wb.sheets.add('Financials');
   const quality = await wb.sheets.add('Quality');
+  const capacity = await wb.sheets.add('CapacityBuild');
 
   // -- company identity (from config; defaults to the Tech/SaaS sample) ------
   const { company: coName, ticker, sector: coSector, price, shares, netDebt } = cfg;
@@ -570,6 +577,7 @@ export async function buildFinancialModel(
     ['TermMargin', 'Inputs!$D$56'], ['SbcDeduct', 'Inputs!$D$57'], ['Minorities', 'Inputs!$D$58'], ['Associates', 'Inputs!$D$59'],
     ['Preferred', 'Inputs!$D$62'], ['TaxAssets', 'Inputs!$D$63'], ['DivsInNetDebt', 'Inputs!$D$64'],
     ['AnnualSBC', 'Inputs!$D$65'], ['Bridge', 'Inputs!$D$66'], ['SharesVal', 'Inputs!$D$67'], ['NRR', 'Quality!$C$11'],
+    ['CapBuildRev', 'CapacityBuild!$C$14'],
     ['SelectedSector', 'Dashboard!$G$3'],
     ['SectorList', 'SectorKPIs!$C$3:$I$3'], ['KpiNames', 'SectorKPIs!$C$4:$I$8'], ['KpiValues', 'SectorKPIs!$C$11:$I$15'],
     ['PriorRev', 'Consensus!$C$4'], ['PriorEBITDA', 'Consensus!$C$5'], ['PriorNI', 'Consensus!$C$6'],
@@ -1371,6 +1379,119 @@ export async function buildFinancialModel(
   await fmt(quality, 'D6:D8', { italic: true, fontColor: C.blue });
   await put(quality, 'B16', 'Rule of 40 uses FCF margin (Meritech / Bessemer convention); Rule of X weights growth ~3× FCF margin. NRR (amber) is an analyst input — best-in-class >120%.');
   await fmt(quality, 'B16', { italic: true, fontColor: C.blue });
+
+  // -- DuPont ROE decomposition (from the GS/NBIS model) ---------------------
+  await section(quality, 'B19:E19', 'DUPONT — ROE DECOMPOSITION');
+  await put(quality, 'B20', 'Net Income ($M)'); await put(quality, 'C20', '=NiMy');
+  await put(quality, 'B21', 'Pretax Income ($M)');
+  await put(quality, 'C21', cap ? `=IFERROR((CIQ(${TICK},"${F.ebt!.m}",IQ_FY))+0,NiMy/(1-TaxRate))` : '=NiMy/(1-TaxRate)');
+  await put(quality, 'B22', 'EBIT ($M)');
+  await put(quality, 'C22', cap ? `=IFERROR((CIQ(${TICK},"${F.ebit!.m}",IQ_FY))+0,EbitdaMy-RevMy*DaPct)` : '=EbitdaMy-RevMy*DaPct');
+  await put(quality, 'B23', 'Sales ($M)'); await put(quality, 'C23', '=RevMy');
+  await put(quality, 'B24', 'Total Assets ($M)');
+  await put(quality, 'C24', cap ? `=IFERROR((CIQ(${TICK},"${F.totalAssets!.m}",IQ_LTM))+0,RevMy*1.5)` : '=RevMy*1.5');
+  await put(quality, 'B25', 'Shareholders Equity ($M)');
+  await put(quality, 'C25', cap ? `=IFERROR((CIQ(${TICK},"${F.totalEquity!.m}",IQ_LTM))+0,C24*0.5)` : '=C24*0.5');
+  await fmt(quality, 'C20:C25', { numberFormat: NF.usd });
+  const dupont: [number, string, string][] = [
+    [26, 'Tax Burden (NI / Pretax)', '=IFERROR(C20/C21,0)'],
+    [27, 'Interest Burden (Pretax / EBIT)', '=IFERROR(C21/C22,0)'],
+    [28, 'EBIT Margin (EBIT / Sales)', '=IFERROR(C22/C23,0)'],
+    [29, 'Asset Turnover (Sales / Assets)', '=IFERROR(C23/C24,0)'],
+    [30, 'Financial Leverage (Assets / Equity)', '=IFERROR(C24/C25,0)'],
+    [31, 'ROE = product of the five', '=C26*C27*C28*C29*C30'],
+    [32, 'ROE cross-check (NI / Equity)', '=IFERROR(C20/C25,0)'],
+  ];
+  for (const [r, label, formula] of dupont) {
+    await put(quality, `B${r}`, label); await put(quality, `C${r}`, formula);
+    await fmt(quality, `C${r}`, { numberFormat: r === 28 || r === 26 || r === 27 || r === 31 || r === 32 ? NF.pct : NF.mult });
+  }
+  await fmt(quality, 'B31:C31', { bold: true, backgroundColor: C.lightBlue });
+
+  // -- Model integrity checks (from the GS/NBIS "Check" rows) ----------------
+  await section(quality, 'B35:E35', 'MODEL INTEGRITY CHECKS');
+  await quality.setRange('B36', [['Check', 'Value', 'Status']]);
+  await fmt(quality, 'B36:D36', { bold: true, backgroundColor: C.header, fontColor: C.white });
+  const checks: [number, string, string, string][] = [
+    [37, 'Terminal value as % of DCF EV (want < 85%)', '=IFERROR(Valuation!C31/Valuation!C32,0)', '=IF(C37<0.85,"OK","REVIEW")'],
+    [38, 'Football-field dispersion (max/min − 1, want < 100%)', '=IFERROR(MAX(Valuation!J12:J14)/MIN(Valuation!J12:J14)-1,0)', '=IF(C38<1,"OK","REVIEW")'],
+    [39, 'Implied perpetuity g (want 0–4%)', '=Valuation!J9', '=IF(AND(C39>=0,C39<=0.04),"OK","REVIEW")'],
+    [40, 'EBITDA margin sane (0–100%)', '=EbitdaMy/RevMy', '=IF(AND(C40>0,C40<1),"OK","REVIEW")'],
+    [41, 'DuPont ROE ties (product = NI/Equity)', '=ABS(C31-C32)', '=IF(C41<0.001,"OK","REVIEW")'],
+    [42, 'Capacity build vs DCF revenue (Y1 gap)', '=IFERROR(CapBuildRev/Valuation!C25-1,0)', '=IF(ABS(C42)<0.5,"OK","REVIEW")'],
+  ];
+  for (const [r, label, value, status] of checks) {
+    await put(quality, `B${r}`, label); await put(quality, `C${r}`, value); await put(quality, `D${r}`, status);
+    await fmt(quality, `C${r}`, { numberFormat: NF.pct });
+    await quality.conditionalFormats.add([`D${r}`], asRules([
+      { type: 'formula', formula: `=$D$${r}="REVIEW"`, style: { backgroundColor: C.redBg, fontColor: C.redFg, bold: true } },
+      { type: 'formula', formula: `=$D$${r}="OK"`, style: { backgroundColor: C.greenBg, fontColor: C.greenFg, bold: true } },
+    ]));
+  }
+
+  // =========================================================================
+  // CapacityBuild — generic units × utilization × price revenue engine, the
+  // signature technique from the GS/NBIS GPU model. Optional cross-check vs the
+  // top-down DCF revenue; generalizes to any capacity business (DCs, semis,
+  // telecom, hotels, airlines, energy). Inputs (amber) are user-editable.
+  // =========================================================================
+  await banner(capacity, 'A1:H1', 'CAPACITY-DRIVEN REVENUE BUILD  (Units × Utilization × Price)');
+  await capacity.layout.setColumnWidths([[0, 24], [1, 280], ...rangeWidths(2, 6, 110)]);
+  await section(capacity, 'B4:G4', 'BUILD  —  edit amber cells (units, adds, ramp, utilization, price)');
+  await put(capacity, 'B5', 'Year'); for (let y = 0; y < 5; y++) await put(capacity, `${col(2 + y)}5`, y + 1);
+  await fmt(capacity, 'B5:G5', { bold: true, backgroundColor: C.lightBlue, horizontalAlign: 'center' });
+  const capRows: [number, string][] = [
+    [6, 'Units (BoP)'], [7, '(+) Units Added'], [8, 'Units (EoP)'], [9, 'Online Ramp Factor (new adds)'],
+    [10, 'Avg Units Online'], [11, 'Utilization %'], [12, 'Effective Units'], [13, 'Price ($k / unit / yr)'],
+    [14, 'Revenue ($M)'], [15, '% growth y/y'], [16, 'vs DCF Revenue (gap)'],
+  ];
+  for (const [r, label] of capRows) await put(capacity, `B${r}`, label);
+  for (let y = 0; y < 5; y++) {
+    const c = col(2 + y); const p = y === 0 ? null : col(1 + y);
+    await put(capacity, `${c}6`, y === 0 ? 50000 : `=${p}8`);          // BoP: input Y1, then prior EoP
+    await put(capacity, `${c}7`, 15000);                                // Units added (input)
+    await put(capacity, `${c}8`, `=${c}6+${c}7`);                       // EoP
+    await put(capacity, `${c}9`, 0.5);                                  // ramp (input)
+    await put(capacity, `${c}10`, `=${c}6+${c}7*${c}9`);               // avg online
+    await put(capacity, `${c}11`, 0.85);                               // utilization (input)
+    await put(capacity, `${c}12`, `=${c}10*${c}11`);                  // effective units
+    await put(capacity, `${c}13`, y === 0 ? 20 : `=${p}13*1.05`);     // price ($k/unit/yr), +5%/yr
+    await put(capacity, `${c}14`, `=${c}12*${c}13/1000`);            // revenue ($M)
+    await put(capacity, `${c}15`, y === 0 ? '' : `=IFERROR(${c}14/${p}14-1,0)`);
+    await put(capacity, `${c}16`, `=IFERROR(${c}14/Valuation!${c}25-1,0)`);
+  }
+  await fmt(capacity, 'C6:G8', { numberFormat: NF.int });
+  await fmt(capacity, 'C10:G10', { numberFormat: NF.int }); await fmt(capacity, 'C12:G12', { numberFormat: NF.int });
+  await fmt(capacity, 'C9:G9', { numberFormat: NF.num1 }); await fmt(capacity, 'C11:G11', { numberFormat: NF.pct });
+  await fmt(capacity, 'C13:G13', { numberFormat: NF.usd }); await fmt(capacity, 'C14:G14', { numberFormat: NF.usd });
+  await fmt(capacity, 'C15:G16', { numberFormat: NF.pct });
+  await fmt(capacity, 'B14:G14', { bold: true, backgroundColor: C.lightBlue });
+  // tint editable input cells amber
+  for (const r of [6, 7, 9, 11, 13]) await fmt(capacity, `C${r}:G${r}`, { backgroundColor: C.amberBg });
+  await put(capacity, 'B18', 'Revenue = Effective Units × Price. Effective Units = (BoP + Added×Ramp) × Utilization — the ramp factor captures that capacity added mid-year is not online all year (GS/NBIS method). Row 16 cross-checks this bottoms-up build against the top-down DCF revenue.');
+  await fmt(capacity, 'B18', { italic: true, fontColor: C.blue });
+
+  // -- Capex / PP&E roll on the Valuation tab (capex builds PP&E; D&A depreciates)
+  await section(valuation, 'B45:H45', 'CAPEX / PP&E ROLL  (capex builds PP&E; D&A depreciates it)');
+  await put(valuation, 'B46', 'Year'); for (let y = 0; y < 5; y++) await put(valuation, `${col(2 + y)}46`, y + 1);
+  await fmt(valuation, 'B46:G46', { bold: true, backgroundColor: C.lightBlue, horizontalAlign: 'center' });
+  const ppeRows: [number, string][] = [
+    [47, 'PP&E (BoP)'], [48, '(+) Capex'], [49, '(−) D&A'], [50, 'PP&E (EoP)'],
+    [51, 'Capex / D&A (x)'], [52, 'D&A as % of avg PP&E'],
+  ];
+  for (const [r, label] of ppeRows) await put(valuation, `B${r}`, label);
+  for (let y = 0; y < 5; y++) {
+    const c = col(2 + y); const p = y === 0 ? null : col(1 + y);
+    await put(valuation, `${c}47`, y === 0 ? (cap ? `=IFERROR((CIQ(${TICK},"${F.netPPE!.m}",IQ_LTM))+0,RevMy*0.6)` : '=RevMy*0.6') : `=${p}50`);
+    await put(valuation, `${c}48`, `=${c}25*CapexPct`);   // capex = revenue × capex% (matches the DCF)
+    await put(valuation, `${c}49`, `=${c}25*DaPct`);      // D&A = revenue × D&A%
+    await put(valuation, `${c}50`, `=${c}47+${c}48-${c}49`);
+    await put(valuation, `${c}51`, `=IFERROR(${c}48/${c}49,0)`);
+    await put(valuation, `${c}52`, `=IFERROR(${c}49/((${c}47+${c}50)/2),0)`);
+  }
+  await fmt(valuation, 'C47:G50', { numberFormat: NF.usd });
+  await fmt(valuation, 'C51:G51', { numberFormat: NF.mult }); await fmt(valuation, 'C52:G52', { numberFormat: NF.pct });
+  await fmt(valuation, 'B47:B52', { bold: true });
 
   // -- finalize --------------------------------------------------------------
   await wb.calculate();
