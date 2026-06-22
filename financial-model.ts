@@ -646,15 +646,22 @@ export async function buildFinancialModel(
   // to the ticker (still user-overridable — type a number to replace). Peer
   // multiples & FCF conversion stay manual judgment calls.
   await section(inputs, 'B13:D13', cap ? 'MY ASSUMPTIONS  (seeded from consensus — edit to express your view)' : 'MY ASSUMPTIONS');
-  await I(14, 'Revenue Growth (Year 1)', cap ? '=ConsRev/PriorRev-1' : a.revGrowth, NF.pct);
+  // FORWARD growth (NTM ÷ current consensus), capped to a sane band. The old
+  // ConsRev/PriorRev−1 used the current-vs-prior ACTUAL move — i.e. growth that
+  // already happened — as the forward rate, which explodes hyper-growth names
+  // (NBIS: 530→3,444 → 550% → $1tn revenue by yr-4). NTM/current is the true
+  // forward rate (NBIS ≈ 54%); capped [−50%, +100%] so no ticker can blow up.
+  await I(14, 'Revenue Growth (Year 1, fwd)', cap ? '=MAX(MIN(Consensus!E4/ConsRev-1,1),-0.5)' : a.revGrowth, NF.pct);
   // Self-consistent fade: spread the gap between Year-1 growth and terminal over
   // the 4 remaining years so growth LANDS on terminal by Year 5 (was a flat house %).
   await I(15, 'Growth Fade (per year)  [=(Yr1 g − terminal)/4]', `=MAX((RevGrowthMy*ScenarioMult-TermGrowth)/4,0)`, NF.pct);
-  await I(16, 'EBITDA Margin', cap ? '=ConsEBITDA/ConsRev' : a.ebitdaMargin, NF.pct);
+  await I(16, 'EBITDA Margin', cap ? '=MAX(MIN(ConsEBITDA/ConsRev,0.9),-0.5)' : a.ebitdaMargin, NF.pct);
   await I(17, 'Net Margin', cap ? '=ConsNI/ConsRev' : a.niMargin, NF.pct);
   // FCF conversion derived from history: actual FCF / EBITDA (Financials FY0),
   // manual-overridable; falls back to the house assumption if actuals absent.
-  await I(18, 'FCF Conversion (FCF / EBITDA)', cap ? `=IFERROR(Financials!E23/Financials!E12,${a.fcfConv})` : a.fcfConv, NF.pct);
+  // Only meaningful when EBITDA is positive (FCF/EBITDA with both negative gave
+  // NBIS a nonsense 1,899%); otherwise fall back to the house assumption. Capped.
+  await I(18, 'FCF Conversion (FCF / EBITDA)', cap ? `=IF(Financials!E12>0,MAX(MIN(Financials!E23/Financials!E12,1.5),0),${a.fcfConv})` : a.fcfConv, NF.pct);
   await I(19, 'Scenario', 'Base');
   await I(20, 'Scenario Growth Multiplier', '=IF(ScenarioName="Bull",1.25,IF(ScenarioName="Bear",0.7,1))', NF.mult);
 
@@ -710,15 +717,17 @@ export async function buildFinancialModel(
 
   // Advanced DCF / FCF assumptions (proper unlevered FCF, margin ramp, SBC, EV bridge).
   await section(inputs, 'B51:D51', 'ADVANCED DCF / FCF');
-  await I(52, 'Capex (% of revenue)', cap ? `=IFERROR(ABS(CIQ(${TICK},"IQ_CAPEX",IQ_FY))/PriorRev,0.05)` : 0.05, NF.pct);
-  await I(53, 'D&A (% of revenue)', cap ? `=IFERROR(CIQ(${TICK},"IQ_DA",IQ_FY)/PriorRev,0.05)` : 0.05, NF.pct);
+  // Benchmark vs CURRENT consensus revenue (not the tiny prior-FY actual) and
+  // cap, so capex/D&A intensity can't explode (NBIS capex was 767% of PriorRev).
+  await I(52, 'Capex (% of revenue)', cap ? `=MIN(IFERROR(ABS(CIQ(${TICK},"IQ_CAPEX",IQ_FY))/ConsRev,0.05),1)` : 0.05, NF.pct);
+  await I(53, 'D&A (% of revenue)', cap ? `=MIN(IFERROR(CIQ(${TICK},"IQ_DA",IQ_FY)/ConsRev,0.05),0.5)` : 0.05, NF.pct);
   // NWC intensity derived from history: actual ΔNWC / ΔRevenue (FY0 vs FY-1),
   // manual-overridable; falls back to 5% if actuals absent.
-  await I(54, 'Change in NWC (% of ΔRevenue)', cap ? `=IFERROR(ABS(CIQ(${TICK},"IQ_CHANGE_NET_WORKING_CAPITAL",IQ_FY))/(Financials!E6-Financials!D6),0.05)` : 0.05, NF.pct);
-  await I(55, 'Stock-based comp (% of revenue)', cap ? `=IFERROR(CIQ(${TICK},"IQ_STOCK_BASED_COMP",IQ_FY)/PriorRev,0.03)` : 0.03, NF.pct);
+  await I(54, 'Change in NWC (% of ΔRevenue)', cap ? `=MAX(MIN(IFERROR(ABS(CIQ(${TICK},"IQ_CHANGE_NET_WORKING_CAPITAL",IQ_FY))/(Financials!E6-Financials!D6),0.05),0.3),-0.3)` : 0.05, NF.pct);
+  await I(55, 'Stock-based comp (% of revenue)', cap ? `=MIN(IFERROR(CIQ(${TICK},"IQ_STOCK_BASED_COMP",IQ_FY)/ConsRev,0.03),0.3)` : 0.03, NF.pct);
   // Terminal EBITDA margin grounded in the actual FY0 EBITDA margin (max of the
   // current model margin and the historical margin); falls back to 30%.
-  await I(56, 'Terminal EBITDA Margin', cap ? `=IFERROR(MAX(EbitdaMarginMy,Financials!E12/Financials!E6),0.3)` : 0.3, NF.pct);
+  await I(56, 'Terminal EBITDA Margin', cap ? `=MAX(MIN(IFERROR(MAX(EbitdaMarginMy,Financials!E12/Financials!E6),0.3),0.6),0.05)` : 0.3, NF.pct);
   await I(57, 'Deduct SBC in FCF? (1=post-SBC, 0=pre-SBC)', 1, NF.int);
   await I(58, 'Minority Interest ($M)', cap ? `=IFERROR((CIQ(${TICK},"IQ_MINORITY_INTEREST"))+0,0)` : 0, NF.usd);
   await I(59, 'Associates / Investments ($M)', cap ? `=IFERROR((CIQ(${TICK},"IQ_INVEST_EQUITY_AFFIL"))+0,0)` : 0, NF.usd);
@@ -1452,6 +1461,11 @@ export async function buildFinancialModel(
     [40, 'EBITDA margin sane (0–100%)', '=EbitdaMy/RevMy', '=IF(AND(C40>0,C40<1),"OK","REVIEW")'],
     [41, 'DuPont ROE ties (product = NI/Equity)', '=ABS(C31-C32)', '=IF(C41<0.001,"OK","REVIEW")'],
     [42, 'Capacity build vs DCF revenue (Y1 gap)', '=IFERROR(CapBuildRev/Valuation!C25-1,0)', '=IF(ABS(C42)<0.5,"OK","REVIEW")'],
+    // DCF reliability envelope: the top-down 5-yr DCF is unreliable for hyper-
+    // growth / pre-profit / capex-heavy names (e.g. NBIS), whose value sits in a
+    // terminal beyond the explicit window. When flagged, trust the multiples/comps
+    // (the valuation-range median is robust to the DCF outlier).
+    [43, 'DCF reliability envelope (else use multiples): growth<75%, EBITDA>0, capex<60%', '=RevGrowthMy', '=IF(AND(RevGrowthMy<0.75,EbitdaMarginMy>0,CapexPct<0.6),"OK","REVIEW")'],
   ];
   for (const [r, label, value, status] of checks) {
     await put(quality, `B${r}`, label); await put(quality, `C${r}`, value); await put(quality, `D${r}`, status);
