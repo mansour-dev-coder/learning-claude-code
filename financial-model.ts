@@ -1399,7 +1399,7 @@ export async function buildFinancialModel(
     [28, 'EBIT Margin (EBIT / Sales)', '=IFERROR(C22/C23,0)'],
     [29, 'Asset Turnover (Sales / Assets)', '=IFERROR(C23/C24,0)'],
     [30, 'Financial Leverage (Assets / Equity)', '=IFERROR(C24/C25,0)'],
-    [31, 'ROE = product of the five', '=C26*C27*C28*C29*C30'],
+    [31, 'ROE = product of the five', '=IFERROR(C26*C27*C28*C29*C30,0)'],
     [32, 'ROE cross-check (NI / Equity)', '=IFERROR(C20/C25,0)'],
   ];
   for (const [r, label, formula] of dupont) {
