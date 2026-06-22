@@ -260,6 +260,8 @@ export const CAPIQ_FIELDS: Record<string, CapIqField> = {
   ebit: { m: 'IQ_EBIT', period: 'IQ_FY', scale: CAPIQ_MAG },
   ebt: { m: 'IQ_EBT', period: 'IQ_FY', scale: CAPIQ_MAG },
   netPPE: { m: 'IQ_NET_PPE', period: 'IQ_LTM', scale: CAPIQ_MAG },
+  ltGrowth: { m: 'IQ_EST_LTG', scale: PCT },                      // consensus long-term growth (%, EPS) — terminal-g reference
+  changeNWC: { m: 'IQ_CHANGE_NET_WORKING_CAPITAL', period: 'IQ_FY', scale: CAPIQ_MAG }, // ΔNWC actual ($M)
 };
 
 /**
@@ -583,7 +585,7 @@ export async function buildFinancialModel(
     ['PriorRev', 'Consensus!$C$4'], ['PriorEBITDA', 'Consensus!$C$5'], ['PriorNI', 'Consensus!$C$6'],
     ['ConsRev', 'Consensus!$D$4'], ['ConsEBITDA', 'Consensus!$D$5'], ['ConsNI', 'Consensus!$D$6'], ['ConsEPS', 'Consensus!$D$7'],
     ['RevMy', 'MyModel!$C$4'], ['EbitdaMy', 'MyModel!$C$5'], ['NiMy', 'MyModel!$C$6'], ['EpsMy', 'MyModel!$C$7'], ['FcfBase', 'MyModel!$C$8'],
-    ['EV', 'Valuation!$C$4'], ['AvgImplied', 'Valuation!$C$15'], ['WACC', 'Valuation!$C$20'], ['FairValue', 'Valuation!$C$34'],
+    ['EV', 'Valuation!$C$4'], ['AvgImplied', 'Valuation!$C$15'], ['WACC', 'Valuation!$C$20'], ['FairValue', 'Valuation!$C$43'],
   ];
   for (const [n, ref] of names) await wb.names.add(n, ref);
 
@@ -645,10 +647,14 @@ export async function buildFinancialModel(
   // multiples & FCF conversion stay manual judgment calls.
   await section(inputs, 'B13:D13', cap ? 'MY ASSUMPTIONS  (seeded from consensus — edit to express your view)' : 'MY ASSUMPTIONS');
   await I(14, 'Revenue Growth (Year 1)', cap ? '=ConsRev/PriorRev-1' : a.revGrowth, NF.pct);
-  await I(15, 'Growth Fade (per year)', a.growthFade, NF.pct);
+  // Self-consistent fade: spread the gap between Year-1 growth and terminal over
+  // the 4 remaining years so growth LANDS on terminal by Year 5 (was a flat house %).
+  await I(15, 'Growth Fade (per year)  [=(Yr1 g − terminal)/4]', `=MAX((RevGrowthMy*ScenarioMult-TermGrowth)/4,0)`, NF.pct);
   await I(16, 'EBITDA Margin', cap ? '=ConsEBITDA/ConsRev' : a.ebitdaMargin, NF.pct);
   await I(17, 'Net Margin', cap ? '=ConsNI/ConsRev' : a.niMargin, NF.pct);
-  await I(18, 'FCF Conversion', a.fcfConv, NF.pct);
+  // FCF conversion derived from history: actual FCF / EBITDA (Financials FY0),
+  // manual-overridable; falls back to the house assumption if actuals absent.
+  await I(18, 'FCF Conversion (FCF / EBITDA)', cap ? `=IFERROR(Financials!E23/Financials!E12,${a.fcfConv})` : a.fcfConv, NF.pct);
   await I(19, 'Scenario', 'Base');
   await I(20, 'Scenario Growth Multiplier', '=IF(ScenarioName="Bull",1.25,IF(ScenarioName="Bear",0.7,1))', NF.mult);
 
@@ -671,7 +677,10 @@ export async function buildFinancialModel(
   await I(32, 'Pre-tax Cost of Debt', cap ? `=IFERROR(CIQ(${TICK},"${F.costDebt!.m}")*${PCT},0.06)` : 0.06, NF.pct);
   await I(33, 'Weight — Equity', cap ? `=IFERROR((Price*Shares)/(Price*Shares+CIQ(${TICK},"${F.totalDebt!.m}")${MAGX}),0.85)` : 0.85, NF.pct);
   await I(34, 'Weight — Debt', cap ? '=1-WeightEquity' : 0.15, NF.pct);
-  await I(35, 'Terminal Growth  (house)', 0.03, NF.pct);
+  // Terminal growth anchored to CapIQ consensus long-term growth (IQ_EST_LTG),
+  // but CAPPED at the risk-free rate so a perpetuity g can't exceed the economy's
+  // long-run nominal growth. Falls back to the 3% house number.
+  await I(35, 'Terminal Growth  (CapIQ LT g, capped at Rf)', cap ? `=IFERROR(MIN(CIQ(${TICK},"IQ_EST_LTG")*0.01,RiskFree),0.03)` : 0.03, NF.pct);
 
   await section(inputs, 'B37:D37', 'BEAT / MISS RULES (signal settings)');
   await I(38, 'Beat Threshold (surprise %)', 0.02, NF.pct);
@@ -703,9 +712,13 @@ export async function buildFinancialModel(
   await section(inputs, 'B51:D51', 'ADVANCED DCF / FCF');
   await I(52, 'Capex (% of revenue)', cap ? `=IFERROR(ABS(CIQ(${TICK},"IQ_CAPEX",IQ_FY))/PriorRev,0.05)` : 0.05, NF.pct);
   await I(53, 'D&A (% of revenue)', cap ? `=IFERROR(CIQ(${TICK},"IQ_DA",IQ_FY)/PriorRev,0.05)` : 0.05, NF.pct);
-  await I(54, 'Change in NWC (% of ΔRevenue)', 0.05, NF.pct);
+  // NWC intensity derived from history: actual ΔNWC / ΔRevenue (FY0 vs FY-1),
+  // manual-overridable; falls back to 5% if actuals absent.
+  await I(54, 'Change in NWC (% of ΔRevenue)', cap ? `=IFERROR(ABS(CIQ(${TICK},"IQ_CHANGE_NET_WORKING_CAPITAL",IQ_FY))/(Financials!E6-Financials!D6),0.05)` : 0.05, NF.pct);
   await I(55, 'Stock-based comp (% of revenue)', cap ? `=IFERROR(CIQ(${TICK},"IQ_STOCK_BASED_COMP",IQ_FY)/PriorRev,0.03)` : 0.03, NF.pct);
-  await I(56, 'Terminal EBITDA Margin', 0.3, NF.pct);
+  // Terminal EBITDA margin grounded in the actual FY0 EBITDA margin (max of the
+  // current model margin and the historical margin); falls back to 30%.
+  await I(56, 'Terminal EBITDA Margin', cap ? `=IFERROR(MAX(EbitdaMarginMy,Financials!E12/Financials!E6),0.3)` : 0.3, NF.pct);
   await I(57, 'Deduct SBC in FCF? (1=post-SBC, 0=pre-SBC)', 1, NF.int);
   await I(58, 'Minority Interest ($M)', cap ? `=IFERROR((CIQ(${TICK},"IQ_MINORITY_INTEREST"))+0,0)` : 0, NF.usd);
   await I(59, 'Associates / Investments ($M)', cap ? `=IFERROR((CIQ(${TICK},"IQ_INVEST_EQUITY_AFFIL"))+0,0)` : 0, NF.usd);
@@ -786,7 +799,7 @@ export async function buildFinancialModel(
     ['EBITDA', '=RevMy*EbitdaMarginMy', 'Revenue × EBITDA margin'],
     ['Net Income', '=RevMy*NiMarginMy', 'Revenue × net margin'],
     ['EPS ($)', '=NiMy/Shares', 'Net income ÷ shares'],
-    ['FCF (Year 0, $M)', '=EbitdaMy*(1-TaxRate)*FcfConv', 'EBITDA × (1-tax) × FCF conversion'],
+    ['FCF (Year 0, $M)', '=(EbitdaMy-RevMy*DaPct)*(1-TaxRate)+RevMy*DaPct-RevMy*CapexPct-RevMy*RevGrowthMy*NwcPct-IF(SbcDeduct=1,RevMy*SbcPct,0)', 'Unlevered FCF: NOPAT + D&A − capex − ΔNWC − SBC (same definition as the DCF build)'],
   ];
   for (let i = 0; i < my.length; i++) {
     const r = 4 + i;
@@ -860,44 +873,63 @@ export async function buildFinancialModel(
     const c = col(2 + (y - 1));
     await put(valuation, `${c}26`, `=${c}25*(EbitdaMarginMy+(TermMargin-EbitdaMarginMy)*${(y - 1) / 4})`);
   }
-  // Unlevered FCF = EBITDA - Capex - cash tax on EBIT - ΔNWC - (SBC if post-SBC basis).
-  await put(valuation, 'B27', 'Unlevered FCF ($M)');
+  // Explicit unlevered-FCF waterfall — each bridge item is now its own line:
+  // EBITDA → (−)D&A → EBIT → (−)cash taxes → NOPAT → (+)D&A → (−)ΔNWC =
+  // Cash from Operations → (−)capex → (−)SBC = Unlevered FCF. (Same economics as
+  // the old one-line formula, but ΔNWC and capex are visible bridge items.)
   for (let y = 1; y <= 5; y++) {
     const c = col(2 + (y - 1));
     const prevRev = y === 1 ? 'RevMy' : `${col(1 + (y - 1))}25`;
-    await put(
-      valuation,
-      `${c}27`,
-      `=${c}26-${c}25*CapexPct-MAX(${c}26-${c}25*DaPct,0)*TaxRate-(${c}25-${prevRev})*NwcPct-IF(SbcDeduct=1,${c}25*SbcPct,0)`,
-    );
+    await put(valuation, `${c}27`, `=${c}25*DaPct`);                       // (−) D&A
+    await put(valuation, `${c}28`, `=${c}26-${c}27`);                      // EBIT
+    await put(valuation, `${c}29`, `=MAX(${c}28,0)*TaxRate`);              // (−) cash taxes (effective rate)
+    await put(valuation, `${c}30`, `=${c}28-${c}29`);                      // NOPAT
+    await put(valuation, `${c}31`, `=${c}27`);                             // (+) D&A add-back
+    await put(valuation, `${c}32`, `=(${c}25-${prevRev})*NwcPct`);         // (−) Change in NWC
+    await put(valuation, `${c}33`, `=${c}30+${c}31-${c}32`);               // = Cash from Operations
+    await put(valuation, `${c}34`, `=${c}25*CapexPct`);                    // (−) Capex
+    await put(valuation, `${c}35`, `=IF(SbcDeduct=1,${c}25*SbcPct,0)`);    // (−) SBC (post-SBC)
+    await put(valuation, `${c}36`, `=${c}33-${c}34-${c}35`);               // = Unlevered FCF
   }
+  await put(valuation, 'B27', '(−) D&A');
+  await put(valuation, 'B28', 'EBIT');
+  await put(valuation, 'B29', '(−) Cash Taxes (effective)');
+  await put(valuation, 'B30', 'NOPAT');
+  await put(valuation, 'B31', '(+) D&A');
+  await put(valuation, 'B32', '(−) Change in NWC');
+  await put(valuation, 'B33', 'Cash from Operations');
+  await put(valuation, 'B34', '(−) Capex');
+  await put(valuation, 'B35', '(−) SBC (post-SBC basis)');
+  await put(valuation, 'B36', 'Unlevered FCF');
   await fmt(valuation, 'C24:G24', { numberFormat: NF.pct });
-  await fmt(valuation, 'C25:G27', { numberFormat: NF.usd });
+  await fmt(valuation, 'C25:G36', { numberFormat: NF.usd });
   await fmt(valuation, 'B23:G23', { bold: true, backgroundColor: C.lightBlue, horizontalAlign: 'center' });
-  await fmt(valuation, 'B24:B27', { bold: true });
+  await fmt(valuation, 'B24:B36', { bold: true });
+  await fmt(valuation, 'B33:G33', { bold: true, backgroundColor: C.cardBg });
+  await fmt(valuation, 'B36:G36', { bold: true, backgroundColor: C.lightBlue });
 
   // Mid-year convention: explicit FCF uplifted by (1+WACC)^0.5; terminal at yr 4.5.
-  await put(valuation, 'B29', 'PV of explicit FCF (mid-yr)'); await put(valuation, 'C29', '=NPV(WACC,C27:G27)*(1+WACC)^0.5');
-  await put(valuation, 'B30', 'Terminal Value'); await put(valuation, 'C30', '=G27*(1+TermGrowth)/MAX(WACC-TermGrowth,0.005)');
-  await put(valuation, 'B31', 'PV of Terminal Value'); await put(valuation, 'C31', '=C30/(1+WACC)^4.5');
-  await put(valuation, 'B32', 'Enterprise Value (DCF)'); await put(valuation, 'C32', '=C29+C31');
-  await put(valuation, 'B33', 'Equity Value (DCF)'); await put(valuation, 'C33', '=C32-Bridge');
-  await put(valuation, 'B34', 'Fair Value / Share'); await put(valuation, 'C34', '=C33/SharesVal');
-  await put(valuation, 'B35', 'Upside vs Price'); await put(valuation, 'C35', '=FairValue/Price-1');
-  await fmt(valuation, 'C29:C33', { numberFormat: NF.usd });
-  await fmt(valuation, 'C34', { numberFormat: NF.usd2, bold: true, backgroundColor: C.greenBg, fontColor: C.greenFg });
-  await fmt(valuation, 'C35', { numberFormat: NF.pct, bold: true });
-  await fmt(valuation, 'B32:B34', { bold: true });
+  await put(valuation, 'B38', 'PV of explicit FCF (mid-yr)'); await put(valuation, 'C38', '=NPV(WACC,C36:G36)*(1+WACC)^0.5');
+  await put(valuation, 'B39', 'Terminal Value'); await put(valuation, 'C39', '=G36*(1+TermGrowth)/MAX(WACC-TermGrowth,0.005)');
+  await put(valuation, 'B40', 'PV of Terminal Value'); await put(valuation, 'C40', '=C39/(1+WACC)^4.5');
+  await put(valuation, 'B41', 'Enterprise Value (DCF)'); await put(valuation, 'C41', '=C38+C40');
+  await put(valuation, 'B42', 'Equity Value (DCF)'); await put(valuation, 'C42', '=C41-Bridge');
+  await put(valuation, 'B43', 'Fair Value / Share'); await put(valuation, 'C43', '=C42/SharesVal');
+  await put(valuation, 'B44', 'Upside vs Price'); await put(valuation, 'C44', '=FairValue/Price-1');
+  await fmt(valuation, 'C38:C42', { numberFormat: NF.usd });
+  await fmt(valuation, 'C43', { numberFormat: NF.usd2, bold: true, backgroundColor: C.greenBg, fontColor: C.greenFg });
+  await fmt(valuation, 'C44', { numberFormat: NF.pct, bold: true });
+  await fmt(valuation, 'B41:B43', { bold: true });
 
   // -- DCF cross-check (exit multiple) + valuation football field (cols I–K) --
   await valuation.layout.setColumnWidths([[8, 210], [9, 110], [10, 95]]);
   await section(valuation, 'I3:K3', 'DCF CROSS-CHECK & VALUATION SUMMARY');
   await put(valuation, 'I5', 'Terminal Value ($M)'); await put(valuation, 'J5', 'Value');
   await fmt(valuation, 'I5:J5', { bold: true, backgroundColor: C.lightBlue });
-  await put(valuation, 'I6', 'Gordon Growth'); await put(valuation, 'J6', '=C30');
+  await put(valuation, 'I6', 'Gordon Growth'); await put(valuation, 'J6', '=C39');
   await put(valuation, 'I7', 'Exit Multiple (EV/EBITDA)'); await put(valuation, 'J7', '=G26*PeerEVEBITDA');
-  await put(valuation, 'I8', 'Implied exit multiple (Gordon)'); await put(valuation, 'J8', '=C30/G26');
-  await put(valuation, 'I9', 'Implied perpetuity g (Exit)'); await put(valuation, 'J9', '=(WACC*J7-G27)/(J7+G27)');
+  await put(valuation, 'I8', 'Implied exit multiple (Gordon)'); await put(valuation, 'J8', '=C39/G26');
+  await put(valuation, 'I9', 'Implied perpetuity g (Exit)'); await put(valuation, 'J9', '=(WACC*J7-G36)/(J7+G36)');
   await fmt(valuation, 'J6:J7', { numberFormat: NF.usd });
   await fmt(valuation, 'J8', { numberFormat: NF.mult });
   await fmt(valuation, 'J9', { numberFormat: NF.pct });
@@ -906,7 +938,7 @@ export async function buildFinancialModel(
   await fmt(valuation, 'I11:K11', { bold: true, backgroundColor: C.lightBlue });
   const fvRows: [string, string | null][] = [
     ['DCF — Gordon Growth', '=FairValue'],
-    ['DCF — Exit Multiple', '=((C29+J7/(1+WACC)^4.5)-Bridge)/SharesVal'],
+    ['DCF — Exit Multiple', '=((C38+J7/(1+WACC)^4.5)-Bridge)/SharesVal'],
     ['Comps — Avg Implied', '=AvgImplied'],
     ['Analyst Target (CapIQ)', cap ? `=IFERROR((CIQ(${TICK},"${F.priceTarget!.m}"))+0,"")` : null],
   ];
@@ -950,7 +982,7 @@ export async function buildFinancialModel(
     ['EV / Revenue', '=EV/ConsRev', '=EV/Consensus!E4', NF.mult],
     ['EV / EBITDA', '=EV/ConsEBITDA', '=EV/Consensus!E5', NF.mult],
     ['P / E', '=Price*Shares/ConsNI', '=Price*Shares/Consensus!E6', NF.mult],
-    ['FCF Yield (UFCF/EV)', '=C27/EV', '=G27/EV', NF.pct],
+    ['FCF Yield (UFCF/EV)', '=C36/EV', '=G36/EV', NF.pct],
   ];
   for (let i = 0; i < fwd.length; i++) {
     const r = 28 + i;
@@ -960,15 +992,16 @@ export async function buildFinancialModel(
     await fmt(valuation, `J${r}:K${r}`, { numberFormat: fwd[i]![3], horizontalAlign: 'center' });
   }
 
-  // Sensitivity: Fair Value / Share over WACC (rows) × Terminal Growth (cols)
-  await section(valuation, 'B37:H37', 'SENSITIVITY — Fair Value / Share  (WACC × Terminal Growth)');
-  await put(valuation, 'B38', 'WACC ↓ / g →');
+  // Sensitivity: Fair Value / Share over WACC (rows) × Terminal Growth (cols).
+  // Moved to row 47+ to clear the taller explicit FCF waterfall above.
+  await section(valuation, 'B47:H47', 'SENSITIVITY — Fair Value / Share  (WACC × Terminal Growth)');
+  await put(valuation, 'B48', 'WACC ↓ / g →');
   for (let cI = 0; cI < 5; cI++) {
     const delta = (cI - 2) * 0.005;
-    await put(valuation, `${col(2 + cI)}38`, `=TermGrowth+${delta}`);
+    await put(valuation, `${col(2 + cI)}48`, `=TermGrowth+${delta}`);
   }
   for (let rI = 0; rI < 5; rI++) {
-    const r = 39 + rI;
+    const r = 49 + rI;
     const wdelta = (rI - 2) * 0.005;
     await put(valuation, `B${r}`, `=WACC+${wdelta}`);
     for (let cI = 0; cI < 5; cI++) {
@@ -976,14 +1009,14 @@ export async function buildFinancialModel(
       await put(
         valuation,
         `${cc}${r}`,
-        `=(NPV($B${r},$C$27:$G$27)*(1+$B${r})^0.5+($G$27*(1+${cc}$38)/MAX($B${r}-${cc}$38,0.005))/(1+$B${r})^4.5-Bridge)/SharesVal`,
+        `=(NPV($B${r},$C$36:$G$36)*(1+$B${r})^0.5+($G$36*(1+${cc}$48)/MAX($B${r}-${cc}$48,0.005))/(1+$B${r})^4.5-Bridge)/SharesVal`,
       );
     }
   }
-  await fmt(valuation, 'B38:G38', { numberFormat: NF.pct, bold: true, backgroundColor: C.lightBlue, horizontalAlign: 'center' });
-  await fmt(valuation, 'B39:B43', { numberFormat: NF.pct, bold: true, backgroundColor: C.lightBlue });
-  await fmt(valuation, 'C39:G43', { numberFormat: NF.usd2, horizontalAlign: 'center' });
-  await valuation.conditionalFormats.add(['C39:G43'], asRules([
+  await fmt(valuation, 'B48:G48', { numberFormat: NF.pct, bold: true, backgroundColor: C.lightBlue, horizontalAlign: 'center' });
+  await fmt(valuation, 'B49:B53', { numberFormat: NF.pct, bold: true, backgroundColor: C.lightBlue });
+  await fmt(valuation, 'C49:G53', { numberFormat: NF.usd2, horizontalAlign: 'center' });
+  await valuation.conditionalFormats.add(['C49:G53'], asRules([
     { type: 'colorScale', colorScale: { minPoint: { type: 'min', color: C.redBg }, midPoint: { type: 'percentile', value: 50, color: C.white }, maxPoint: { type: 'max', color: C.greenBg } } },
   ]));
 
@@ -1413,7 +1446,7 @@ export async function buildFinancialModel(
   await quality.setRange('B36', [['Check', 'Value', 'Status']]);
   await fmt(quality, 'B36:D36', { bold: true, backgroundColor: C.header, fontColor: C.white });
   const checks: [number, string, string, string][] = [
-    [37, 'Terminal value as % of DCF EV (want < 85%)', '=IFERROR(Valuation!C31/Valuation!C32,0)', '=IF(C37<0.85,"OK","REVIEW")'],
+    [37, 'Terminal value as % of DCF EV (want < 85%)', '=IFERROR(Valuation!C40/Valuation!C41,0)', '=IF(C37<0.85,"OK","REVIEW")'],
     [38, 'Football-field dispersion (max/min − 1, want < 100%)', '=IFERROR(MAX(Valuation!J12:J14)/MIN(Valuation!J12:J14)-1,0)', '=IF(C38<1,"OK","REVIEW")'],
     [39, 'Implied perpetuity g (want 0–4%)', '=Valuation!J9', '=IF(AND(C39>=0,C39<=0.04),"OK","REVIEW")'],
     [40, 'EBITDA margin sane (0–100%)', '=EbitdaMy/RevMy', '=IF(AND(C40>0,C40<1),"OK","REVIEW")'],
@@ -1472,26 +1505,26 @@ export async function buildFinancialModel(
   await fmt(capacity, 'B18', { italic: true, fontColor: C.blue });
 
   // -- Capex / PP&E roll on the Valuation tab (capex builds PP&E; D&A depreciates)
-  await section(valuation, 'B45:H45', 'CAPEX / PP&E ROLL  (capex builds PP&E; D&A depreciates it)');
-  await put(valuation, 'B46', 'Year'); for (let y = 0; y < 5; y++) await put(valuation, `${col(2 + y)}46`, y + 1);
-  await fmt(valuation, 'B46:G46', { bold: true, backgroundColor: C.lightBlue, horizontalAlign: 'center' });
+  await section(valuation, 'B58:H58', 'CAPEX / PP&E ROLL  (capex builds PP&E; D&A depreciates it)');
+  await put(valuation, 'B59', 'Year'); for (let y = 0; y < 5; y++) await put(valuation, `${col(2 + y)}59`, y + 1);
+  await fmt(valuation, 'B59:G59', { bold: true, backgroundColor: C.lightBlue, horizontalAlign: 'center' });
   const ppeRows: [number, string][] = [
-    [47, 'PP&E (BoP)'], [48, '(+) Capex'], [49, '(−) D&A'], [50, 'PP&E (EoP)'],
-    [51, 'Capex / D&A (x)'], [52, 'D&A as % of avg PP&E'],
+    [60, 'PP&E (BoP)'], [61, '(+) Capex'], [62, '(−) D&A'], [63, 'PP&E (EoP)'],
+    [64, 'Capex / D&A (x)'], [65, 'D&A as % of avg PP&E'],
   ];
   for (const [r, label] of ppeRows) await put(valuation, `B${r}`, label);
   for (let y = 0; y < 5; y++) {
     const c = col(2 + y); const p = y === 0 ? null : col(1 + y);
-    await put(valuation, `${c}47`, y === 0 ? (cap ? `=IFERROR((CIQ(${TICK},"${F.netPPE!.m}",IQ_LTM))+0,RevMy*0.6)` : '=RevMy*0.6') : `=${p}50`);
-    await put(valuation, `${c}48`, `=${c}25*CapexPct`);   // capex = revenue × capex% (matches the DCF)
-    await put(valuation, `${c}49`, `=${c}25*DaPct`);      // D&A = revenue × D&A%
-    await put(valuation, `${c}50`, `=${c}47+${c}48-${c}49`);
-    await put(valuation, `${c}51`, `=IFERROR(${c}48/${c}49,0)`);
-    await put(valuation, `${c}52`, `=IFERROR(${c}49/((${c}47+${c}50)/2),0)`);
+    await put(valuation, `${c}60`, y === 0 ? (cap ? `=IFERROR((CIQ(${TICK},"${F.netPPE!.m}",IQ_LTM))+0,RevMy*0.6)` : '=RevMy*0.6') : `=${p}63`);
+    await put(valuation, `${c}61`, `=${c}25*CapexPct`);   // capex = revenue × capex% (matches the DCF)
+    await put(valuation, `${c}62`, `=${c}25*DaPct`);      // D&A = revenue × D&A%
+    await put(valuation, `${c}63`, `=${c}60+${c}61-${c}62`);
+    await put(valuation, `${c}64`, `=IFERROR(${c}61/${c}62,0)`);
+    await put(valuation, `${c}65`, `=IFERROR(${c}62/((${c}60+${c}63)/2),0)`);
   }
-  await fmt(valuation, 'C47:G50', { numberFormat: NF.usd });
-  await fmt(valuation, 'C51:G51', { numberFormat: NF.mult }); await fmt(valuation, 'C52:G52', { numberFormat: NF.pct });
-  await fmt(valuation, 'B47:B52', { bold: true });
+  await fmt(valuation, 'C60:G63', { numberFormat: NF.usd });
+  await fmt(valuation, 'C64:G64', { numberFormat: NF.mult }); await fmt(valuation, 'C65:G65', { numberFormat: NF.pct });
+  await fmt(valuation, 'B60:B65', { bold: true });
 
   // -- finalize --------------------------------------------------------------
   await wb.calculate();
