@@ -566,7 +566,7 @@ export async function buildFinancialModel(
   // written below resolves immediately — names must exist before referenced.
   // =========================================================================
   const names: [string, string][] = [
-    ['Ticker', 'Inputs!$D$5'],
+    ['Ticker', 'Inputs!$D$5'], ['FYEnd', 'Inputs!$D$12'],
     ['Price', 'Inputs!$D$6'], ['Shares', 'Inputs!$D$7'], ['NetDebt', 'Inputs!$D$8'],
     ['TaxRate', 'Inputs!$D$9'], ['RevGrowthMy', 'Inputs!$D$14'], ['GrowthFade', 'Inputs!$D$15'],
     ['EbitdaMarginMy', 'Inputs!$D$16'], ['NiMarginMy', 'Inputs!$D$17'], ['FcfConv', 'Inputs!$D$18'],
@@ -641,6 +641,12 @@ export async function buildFinancialModel(
   await I(10, 'Next Earnings Date', src.nextEarnings);
   await fmt(inputs, 'D10', { numberFormat: NF.date });
   await I(11, 'Selected Sector (from Dashboard)', '=SelectedSector');
+  // Forecast anchor: the company's last-actual fiscal year-end DATE. Drives the
+  // dynamic period headers (e.g. "Dec-2026") so projection columns reflect the
+  // company's real reporting calendar & month-end — not generic 1..5.
+  await I(12, 'Fiscal Year-End (last actual)', cap
+    ? `=IFERROR(CIQ(${TICK},"IQ_PERIODDATE",IQ_FY),DATE(YEAR(TODAY())-1,12,31))`
+    : '=DATE(YEAR(TODAY())-1,12,31)', 'mmm-yyyy');
 
   // In CapIQ mode, seed the operating assumptions from consensus so they adapt
   // to the ticker (still user-overridable — type a number to replace). Peer
@@ -867,14 +873,21 @@ export async function buildFinancialModel(
   await fmt(valuation, 'B20:C20', { bold: true, backgroundColor: C.lightBlue });
 
   await section(valuation, 'B22:H22', 'DCF — 5-YEAR PROJECTION');
-  await put(valuation, 'B23', 'Year');
-  for (let y = 1; y <= 5; y++) { await put(valuation, `${col(2 + (y - 1))}23`, y); }
-  // growth fades from RevGrowthMy*ScenarioMult toward TermGrowth
+  await put(valuation, 'B23', 'Period (FY-end)');
+  // Dynamic fiscal-period headers (e.g. Dec-2026): FY-end month/day from FYEnd,
+  // year = last-actual FY + k. Year 1 = the consensus forecast year (RevMy).
+  for (let y = 1; y <= 5; y++) {
+    await put(valuation, `${col(2 + (y - 1))}23`, `=IFERROR(DATE(YEAR(FYEnd)+${y},MONTH(FYEnd),DAY(FYEnd)),FYEnd)`);
+  }
+  await fmt(valuation, 'C23:G23', { numberFormat: 'mmm-yyyy' });
+  // Year 1 = consensus base (RevMy); Years 2-5 grow at the forward rate, fading
+  // toward terminal. Year-1 growth is the realized move to consensus (display).
   await put(valuation, 'B24', 'Rev Growth');
-  await put(valuation, 'C24', '=MAX(RevGrowthMy*ScenarioMult,TermGrowth)');
-  for (let y = 2; y <= 5; y++) await put(valuation, `${col(2 + (y - 1))}24`, `=MAX(${col(1 + (y - 1))}24-GrowthFade,TermGrowth)`);
+  await put(valuation, 'C24', '=ConsRev/PriorRev-1');
+  await put(valuation, 'D24', '=MAX(RevGrowthMy*ScenarioMult,TermGrowth)');
+  for (let y = 3; y <= 5; y++) await put(valuation, `${col(2 + (y - 1))}24`, `=MAX(${col(1 + (y - 1))}24-GrowthFade,TermGrowth)`);
   await put(valuation, 'B25', 'Revenue ($M)');
-  await put(valuation, 'C25', '=RevMy*(1+C24)');
+  await put(valuation, 'C25', '=RevMy');
   for (let y = 2; y <= 5; y++) await put(valuation, `${col(2 + (y - 1))}25`, `=${col(1 + (y - 1))}25*(1+${col(2 + (y - 1))}24)`);
   // EBITDA with margin ramp from current margin toward the terminal margin.
   await put(valuation, 'B26', 'EBITDA ($M)');
@@ -888,7 +901,7 @@ export async function buildFinancialModel(
   // the old one-line formula, but ΔNWC and capex are visible bridge items.)
   for (let y = 1; y <= 5; y++) {
     const c = col(2 + (y - 1));
-    const prevRev = y === 1 ? 'RevMy' : `${col(1 + (y - 1))}25`;
+    const prevRev = y === 1 ? 'PriorRev' : `${col(1 + (y - 1))}25`;
     await put(valuation, `${c}27`, `=${c}25*DaPct`);                       // (−) D&A
     await put(valuation, `${c}28`, `=${c}26-${c}27`);                      // EBIT
     await put(valuation, `${c}29`, `=MAX(${c}28,0)*TaxRate`);              // (−) cash taxes (effective rate)
@@ -1485,7 +1498,9 @@ export async function buildFinancialModel(
   await banner(capacity, 'A1:H1', 'CAPACITY-DRIVEN REVENUE BUILD  (Units × Utilization × Price)');
   await capacity.layout.setColumnWidths([[0, 24], [1, 280], ...rangeWidths(2, 6, 110)]);
   await section(capacity, 'B4:G4', 'BUILD  —  edit amber cells (units, adds, ramp, utilization, price)');
-  await put(capacity, 'B5', 'Year'); for (let y = 0; y < 5; y++) await put(capacity, `${col(2 + y)}5`, y + 1);
+  await put(capacity, 'B5', 'Period (FY-end)');
+  for (let y = 0; y < 5; y++) await put(capacity, `${col(2 + y)}5`, `=IFERROR(DATE(YEAR(FYEnd)+${y + 1},MONTH(FYEnd),DAY(FYEnd)),FYEnd)`);
+  await fmt(capacity, 'C5:G5', { numberFormat: 'mmm-yyyy' });
   await fmt(capacity, 'B5:G5', { bold: true, backgroundColor: C.lightBlue, horizontalAlign: 'center' });
   const capRows: [number, string][] = [
     [6, 'Units (BoP)'], [7, '(+) Units Added'], [8, 'Units (EoP)'], [9, 'Online Ramp Factor (new adds)'],
@@ -1520,7 +1535,9 @@ export async function buildFinancialModel(
 
   // -- Capex / PP&E roll on the Valuation tab (capex builds PP&E; D&A depreciates)
   await section(valuation, 'B58:H58', 'CAPEX / PP&E ROLL  (capex builds PP&E; D&A depreciates it)');
-  await put(valuation, 'B59', 'Year'); for (let y = 0; y < 5; y++) await put(valuation, `${col(2 + y)}59`, y + 1);
+  await put(valuation, 'B59', 'Period (FY-end)');
+  for (let y = 0; y < 5; y++) await put(valuation, `${col(2 + y)}59`, `=IFERROR(DATE(YEAR(FYEnd)+${y + 1},MONTH(FYEnd),DAY(FYEnd)),FYEnd)`);
+  await fmt(valuation, 'C59:G59', { numberFormat: 'mmm-yyyy' });
   await fmt(valuation, 'B59:G59', { bold: true, backgroundColor: C.lightBlue, horizontalAlign: 'center' });
   const ppeRows: [number, string][] = [
     [60, 'PP&E (BoP)'], [61, '(+) Capex'], [62, '(−) D&A'], [63, 'PP&E (EoP)'],
