@@ -652,12 +652,13 @@ export async function buildFinancialModel(
   // to the ticker (still user-overridable — type a number to replace). Peer
   // multiples & FCF conversion stay manual judgment calls.
   await section(inputs, 'B13:D13', cap ? 'MY ASSUMPTIONS  (seeded from consensus — edit to express your view)' : 'MY ASSUMPTIONS');
-  // FORWARD growth (NTM ÷ current consensus), capped to a sane band. The old
-  // ConsRev/PriorRev−1 used the current-vs-prior ACTUAL move — i.e. growth that
-  // already happened — as the forward rate, which explodes hyper-growth names
-  // (NBIS: 530→3,444 → 550% → $1tn revenue by yr-4). NTM/current is the true
-  // forward rate (NBIS ≈ 54%); capped [−50%, +100%] so no ticker can blow up.
-  await I(14, 'Revenue Growth (Year 1, fwd)', cap ? '=MAX(MIN(Consensus!E4/ConsRev-1,1),-0.5)' : a.revGrowth, NF.pct);
+  // FORWARD run-rate growth (NTM ÷ current consensus), capped to a sane band.
+  // This drives Years 2–5 of the DCF and the fade to terminal — NOT Year 1.
+  // Year 1 is pinned to the consensus current-FY level (RevMy = ConsRev), so the
+  // potentially-huge prior→consensus step (e.g. NBIS 530→3,444) is shown as the
+  // real consensus number, while only the EXTRAPOLATION uses this capped run-rate
+  // (NBIS ≈ 54%) — capped [−50%, +100%] so the 5-yr path can't blow up.
+  await I(14, 'Revenue Growth (fwd run-rate, Yr2+)', cap ? '=MAX(MIN(Consensus!E4/ConsRev-1,1),-0.5)' : a.revGrowth, NF.pct);
   // Self-consistent fade: spread the gap between Year-1 growth and terminal over
   // the 4 remaining years so growth LANDS on terminal by Year 5 (was a flat house %).
   await I(15, 'Growth Fade (per year)  [=(Yr1 g − terminal)/4]', `=MAX((RevGrowthMy*ScenarioMult-TermGrowth)/4,0)`, NF.pct);
@@ -810,7 +811,7 @@ export async function buildFinancialModel(
   await myModel.setRange('A3', [['', 'Metric ($M)', 'My Projection', 'Formula / Driver']]);
   await fmt(myModel, 'B3:D3', { bold: true, backgroundColor: C.header, fontColor: C.white });
   const my: [string, string, string][] = [
-    ['Revenue', '=PriorRev*(1+RevGrowthMy*ScenarioMult)', 'Prior Rev × (1 + growth × scenario)'],
+    ['Revenue', '=PriorRev*(1+(ConsRev/PriorRev-1)*ScenarioMult)', 'Prior actual → consensus current-FY (Base = consensus exactly; scenario flexes the step)'],
     ['EBITDA', '=RevMy*EbitdaMarginMy', 'Revenue × EBITDA margin'],
     ['Net Income', '=RevMy*NiMarginMy', 'Revenue × net margin'],
     ['EPS ($)', '=NiMy/Shares', 'Net income ÷ shares'],
@@ -883,7 +884,7 @@ export async function buildFinancialModel(
   // Year 1 = consensus base (RevMy); Years 2-5 grow at the forward rate, fading
   // toward terminal. Year-1 growth is the realized move to consensus (display).
   await put(valuation, 'B24', 'Rev Growth');
-  await put(valuation, 'C24', '=ConsRev/PriorRev-1');
+  await put(valuation, 'C24', '=RevMy/PriorRev-1');
   await put(valuation, 'D24', '=MAX(RevGrowthMy*ScenarioMult,TermGrowth)');
   for (let y = 3; y <= 5; y++) await put(valuation, `${col(2 + (y - 1))}24`, `=MAX(${col(1 + (y - 1))}24-GrowthFade,TermGrowth)`);
   await put(valuation, 'B25', 'Revenue ($M)');
