@@ -586,6 +586,10 @@ export async function buildFinancialModel(
     ['ConsRev', 'Consensus!$D$4'], ['ConsEBITDA', 'Consensus!$D$5'], ['ConsNI', 'Consensus!$D$6'], ['ConsEPS', 'Consensus!$D$7'],
     ['RevMy', 'MyModel!$C$4'], ['EbitdaMy', 'MyModel!$C$5'], ['NiMy', 'MyModel!$C$6'], ['EpsMy', 'MyModel!$C$7'], ['FcfBase', 'MyModel!$C$8'],
     ['EV', 'Valuation!$C$4'], ['AvgImplied', 'Valuation!$C$15'], ['WACC', 'Valuation!$C$20'], ['FairValue', 'Valuation!$C$43'],
+    // Comps "Average Implied" row = 12 + peer count (mr=5+N, ir=mr+2, avgr=ir+5).
+    // Defined here (not at the Comps build) so the Valuation football can
+    // reference it — names resolve at serialization regardless of build order.
+    ['CompsImplied', `Comps!$E$${12 + (DEFAULT_PEERS[cfg.sector] ?? DEFAULT_PEERS['Other']!).length}`],
   ];
   for (const [n, ref] of names) await wb.names.add(n, ref);
 
@@ -962,7 +966,7 @@ export async function buildFinancialModel(
   const fvRows: [string, string | null][] = [
     ['DCF — Gordon Growth', '=FairValue'],
     ['DCF — Exit Multiple', '=((C38+J7/(1+WACC)^4.5)-Bridge)/SharesVal'],
-    ['Comps — Avg Implied', '=AvgImplied'],
+    ['Comps — Avg Implied', '=IF(CompsImplied="",AvgImplied,CompsImplied)'],
     ['Analyst Target (CapIQ)', cap ? `=IFERROR((CIQ(${TICK},"${F.priceTarget!.m}"))+0,"")` : null],
   ];
   for (let i = 0; i < fvRows.length; i++) {
@@ -1309,7 +1313,15 @@ export async function buildFinancialModel(
     await put(comps, `F${r}`, `=IFERROR(E${r}/Price-1,"")`);
   }
   const avgr = ir + 2 + implied.length;
+  // Write ALL SIX columns contiguously (matching the implied rows above). A gap
+  // in the row — writing only A/E/F — makes the SDK collapse later cells leftward
+  // (the avg-price formula lands in column B), leaving E (the CompsImplied named
+  // range) empty. Dashes fill the N/A columns so every cell is present and E
+  // anchors at E. D = avg implied $M, E = avg implied price, F = vs current price.
   await put(comps, `A${avgr}`, 'Average Implied');
+  await put(comps, `B${avgr}`, '—');
+  await put(comps, `C${avgr}`, '—');
+  await put(comps, `D${avgr}`, `=IFERROR(AVERAGE(D${ir + 2}:D${ir + 1 + implied.length}),"")`);
   await put(comps, `E${avgr}`, `=IFERROR(AVERAGE(E${ir + 2}:E${ir + 1 + implied.length}),"")`);
   await put(comps, `F${avgr}`, `=IFERROR(E${avgr}/Price-1,"")`);
   await fmt(comps, `A${avgr}:F${avgr}`, { bold: true, backgroundColor: C.greenBg, fontColor: C.greenFg });
@@ -1317,7 +1329,7 @@ export async function buildFinancialModel(
   await fmt(comps, `C${ir + 2}:D${avgr}`, { numberFormat: NF.usd });
   await fmt(comps, `E${ir + 2}:E${avgr}`, { numberFormat: NF.usd2 });
   await fmt(comps, `F${ir + 2}:F${avgr}`, { numberFormat: NF.pct });
-  await wb.names.add('CompsImplied', `Comps!$E$${avgr}`);
+  // CompsImplied (Comps!$E$avgr) is defined up-front in the names block.
   await put(comps, `A${avgr + 2}`, cap
     ? 'Peers: CapIQ auto comp set (IQ_COMPARABLE_COMPANIES) with a sector-default fallback — edit column A to override.'
     : 'Comps populate in CapIQ mode (--capiq). Tickers shown are the sector-default peer set.');
