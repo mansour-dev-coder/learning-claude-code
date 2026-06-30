@@ -22,9 +22,10 @@ definition.
 
 ## Running it
 
-No build step, no server, no install. It's a single self-contained file that
-loads React from a CDN, so it runs anywhere with a browser and an internet
-connection — **iPhone, iPad, and desktop alike**.
+No build step, no server, no install. React is **vendored locally** (in
+`vendor/`) and the app is pre-compiled to plain JavaScript, so it runs anywhere
+with a browser — no CDN, no internet dependency, no in-browser transpiling.
+Works on **iPhone, iPad, and desktop alike**.
 
 - **Desktop:** double-click `index.html`, or open it in any modern browser.
 - **iPhone / iPad:** host the folder somewhere (e.g. GitHub Pages) and open the
@@ -36,5 +37,5 @@ best quiz scores persist across visits on that device.
 
 ## Files
 
-- `index.html` — the entire game: layout, styling, content, and logic in one
-  React component tree.
+- `index.html` — the entire game: layout, styling, content, and logic.
+- `vendor/` — React and ReactDOM (production UMD builds), served locally.
