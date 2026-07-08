@@ -795,14 +795,23 @@
        Same phase data/controls; real-time rocket, particle exhaust,
        camera follow with Max-Q shake, stage separation, orbit deploy.
        ================================================================= */
+    const LAUNCH_CLOCK = [0, 10, 75, 180, 240, 540]; // seconds at each phase, for the mission clock
+
     function Launch3D() {
       const [idx, setIdx] = useState(0);
       const canvasRef = useRef(null);
       const phaseRef = useRef(0);
       const p = LAUNCH_PHASES[idx];
-      const alt = useCountUp(p.alt, 900);
-      const spd = useCountUp(p.spd, 900);
+      const alt = useCountUp(p.alt, 1100);
+      const spd = useCountUp(p.spd, 1100);
+      const clock = useCountUp(LAUNCH_CLOCK[idx], 1100);
       useEffect(() => { phaseRef.current = idx; }, [idx]);
+
+      const RULER_MAX = 300;
+      const rulerPct = Math.min(100, (alt / RULER_MAX) * 100);
+      const mm = String(Math.floor(clock / 60)).padStart(2, "0");
+      const ss = String(Math.floor(clock % 60)).padStart(2, "0");
+      const horizonOpacity = [0.55, 0.45, 0.28, 0.08, 0, 0][idx];
 
       useEffect(() => {
         const T = window.THREE;
@@ -812,73 +821,131 @@
         renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
         const H = 340;
         const scene = new T.Scene();
-        scene.background = new T.Color(0x02040a);
-        scene.fog = new T.Fog(0x02040a, 30, 110);
+        scene.background = new T.Color(0x0d1b30);
+        scene.fog = new T.Fog(0x0d1b30, 30, 110);
         const cam = new T.PerspectiveCamera(55, 2, 0.1, 300);
 
-        // sky stars
-        const sN = 400, sG = new T.BufferGeometry(), sP = new Float32Array(sN * 3);
-        for (let i = 0; i < sN; i++) { sP[i*3] = (Math.random()-0.5)*160; sP[i*3+1] = 10 + Math.random()*120; sP[i*3+2] = -30 - Math.random()*60; }
+        // sky stars (fade in with altitude)
+        const sN = 420, sG = new T.BufferGeometry(), sP = new Float32Array(sN * 3);
+        for (let i = 0; i < sN; i++) { sP[i*3] = (Math.random()-0.5)*160; sP[i*3+1] = 6 + Math.random()*130; sP[i*3+2] = -30 - Math.random()*60; }
         sG.setAttribute("position", new T.BufferAttribute(sP, 3));
-        scene.add(new T.Points(sG, new T.PointsMaterial({ color: 0xffffff, size: 0.18, transparent: true, opacity: 0.7 })));
+        const starsMat = new T.PointsMaterial({ color: 0xffffff, size: 0.18, transparent: true, opacity: 0.15 });
+        scene.add(new T.Points(sG, starsMat));
 
-        // ground + pad
-        scene.add(new T.GridHelper(160, 80, 0x1e2a3c, 0x121e2e));
+        // ground + pad (grid fades as the rocket climbs)
+        const grid = new T.GridHelper(160, 80, 0x27394f, 0x16243a);
+        grid.material.transparent = true;
+        scene.add(grid);
         const pad = new T.Mesh(new T.BoxGeometry(3.4, 0.3, 3.4), new T.MeshPhongMaterial({ color: 0x1a2c3e }));
+        pad.material.transparent = true;
         pad.position.y = 0.15;
         scene.add(pad);
         const tower = new T.Mesh(new T.BoxGeometry(0.25, 6.5, 0.25), new T.MeshPhongMaterial({ color: 0x223448 }));
+        tower.material.transparent = true;
         tower.position.set(-1.5, 3.25, 0);
         scene.add(tower);
 
+        // --- metallic panel-lined body texture (procedural, no assets) ---
+        const makeBodyTex = () => {
+          const c = document.createElement("canvas"); c.width = 256; c.height = 256;
+          const x = c.getContext("2d");
+          const gr = x.createLinearGradient(0, 0, 256, 0);
+          gr.addColorStop(0, "#75899f"); gr.addColorStop(0.25, "#e6edf5");
+          gr.addColorStop(0.5, "#aebdd0"); gr.addColorStop(0.75, "#e6edf5"); gr.addColorStop(1, "#75899f");
+          x.fillStyle = gr; x.fillRect(0, 0, 256, 256);
+          x.strokeStyle = "rgba(38,54,74,.85)"; x.lineWidth = 3;
+          [42, 106, 170, 234].forEach(y => { x.beginPath(); x.moveTo(0, y); x.lineTo(256, y); x.stroke(); });
+          x.strokeStyle = "rgba(38,54,74,.5)"; x.lineWidth = 1.5;
+          [64, 128, 192].forEach(vx => { x.beginPath(); x.moveTo(vx, 0); x.lineTo(vx, 256); x.stroke(); });
+          x.fillStyle = "rgba(60,80,105,.45)"; x.fillRect(120, 118, 18, 30);
+          x.strokeStyle = "rgba(255,255,255,.3)"; x.strokeRect(120, 118, 18, 30);
+          const t = new T.CanvasTexture(c);
+          t.wrapS = T.RepeatWrapping; t.repeat.set(2, 1);
+          return t;
+        };
+        const bodyTex = makeBodyTex();
+        const bodyMat = new T.MeshStandardMaterial({ map: bodyTex, metalness: 0.45, roughness: 0.42 });
+        const finMat = new T.MeshStandardMaterial({ color: 0x8fa3ba, metalness: 0.5, roughness: 0.45 });
+        const noseMat = new T.MeshStandardMaterial({ color: 0x4af0e0, metalness: 0.5, roughness: 0.3, emissive: 0x0c4a44, emissiveIntensity: 0.55 });
+
         // rocket
-        const mat = (c) => new T.MeshPhongMaterial({ color: c, shininess: 40 });
         const rocket = new T.Group();
-        const stage1 = new T.Mesh(new T.CylinderGeometry(0.5, 0.5, 3.4, 20), mat(0xdfe8f2));
+        const stage1 = new T.Mesh(new T.CylinderGeometry(0.5, 0.5, 3.4, 24), bodyMat);
         stage1.position.y = 2.0; rocket.add(stage1);
         const fins = new T.Group();
         for (let i = 0; i < 3; i++) {
-          const f = new T.Mesh(new T.BoxGeometry(0.08, 0.9, 0.55), mat(0x9fb2c8));
+          const f = new T.Mesh(new T.BoxGeometry(0.08, 0.9, 0.55), finMat);
           const a = (i / 3) * Math.PI * 2;
           f.position.set(Math.cos(a) * 0.55, 0.75, Math.sin(a) * 0.55);
           f.rotation.y = -a;
           fins.add(f);
         }
         rocket.add(fins);
-        const inter = new T.Mesh(new T.CylinderGeometry(0.5, 0.5, 0.3, 20), mat(0xff7a45));
+        const inter = new T.Mesh(new T.CylinderGeometry(0.5, 0.5, 0.3, 24), new T.MeshStandardMaterial({ color: 0xff7a45, metalness: 0.4, roughness: 0.5 }));
         inter.position.y = 3.85; rocket.add(inter);
-        const stage2 = new T.Mesh(new T.CylinderGeometry(0.44, 0.5, 1.6, 20), mat(0xc9d6e6));
+        const stage2 = new T.Mesh(new T.CylinderGeometry(0.44, 0.5, 1.6, 24), bodyMat);
         stage2.position.y = 4.8; rocket.add(stage2);
-        const nose = new T.Mesh(new T.ConeGeometry(0.44, 1.2, 20), mat(0x4af0e0));
+        const nose = new T.Mesh(new T.ConeGeometry(0.44, 1.2, 24), noseMat);
         nose.position.y = 6.2; rocket.add(nose);
         const sat = new T.Mesh(new T.BoxGeometry(0.4, 0.3, 0.4), new T.MeshBasicMaterial({ color: 0x4af0e0 }));
-        sat.visible = false; rocket.add(sat);
-        sat.position.y = 5.9;
+        sat.visible = false; sat.position.y = 5.9; rocket.add(sat);
         scene.add(rocket);
 
-        // dropped first stage (clone shown falling after separation)
+        // dropped first stage (tumbles away after separation, with a dying exhaust wisp)
         const dropped = new T.Group();
         dropped.add(stage1.clone(), fins.clone());
+        const dropMat = new T.MeshStandardMaterial({ map: bodyTex, metalness: 0.45, roughness: 0.42, emissive: 0x2a3648, emissiveIntensity: 0.85 });
+        dropped.traverse(o => { if (o.isMesh) o.material = dropMat; });
+        const wisp = new T.Mesh(
+          new T.ConeGeometry(0.28, 1.6, 12, 1, true),
+          new T.MeshBasicMaterial({ color: 0xffb070, transparent: true, opacity: 0.5, side: T.DoubleSide, depthWrite: false })
+        );
+        wisp.position.y = -0.6; wisp.rotation.x = Math.PI;
+        dropped.add(wisp);
         dropped.visible = false;
         scene.add(dropped);
+        let dropAV = { x: 0, z: 0 }, wispLife = 0;
 
-        // exhaust particles
+        // fairing halves (real half-cone shells that tumble away in 3D)
+        const halfGeo = new T.ConeGeometry(0.46, 1.25, 14, 1, true, 0, Math.PI);
+        const fairings = [0, 1].map(i => {
+          const m = new T.Mesh(halfGeo, new T.MeshStandardMaterial({
+            color: 0x4af0e0, metalness: 0.5, roughness: 0.3, emissive: 0x0c4a44, emissiveIntensity: 0.5,
+            side: T.DoubleSide, transparent: true, opacity: 1
+          }));
+          m.visible = false;
+          m.userData = { vel: new T.Vector3(), av: new T.Vector3(), life: 0 };
+          scene.add(m);
+          return m;
+        });
+
+        // separation-thruster burst (radial particle puff at the interstage)
+        const bN = 40, bG = new T.BufferGeometry();
+        const bP = new Float32Array(bN * 3), bV = [], bR = [];
+        for (let i = 0; i < bN; i++) { bP[i*3+1] = -999; bV.push(new T.Vector3()); bR.push(new T.Vector3()); }
+        bG.setAttribute("position", new T.BufferAttribute(bP, 3));
+        const burstMat = new T.PointsMaterial({ color: 0xcfe8ff, size: 0.19, transparent: true, opacity: 0 });
+        scene.add(new T.Points(bG, burstMat));
+        let burstLife = 0;
+
+        // main exhaust particles
         const PN = 320;
         const pg = new T.BufferGeometry();
         const pp = new Float32Array(PN * 3);
         const spdArr = new Float32Array(PN);
         for (let i = 0; i < PN; i++) { pp[i*3+1] = -999; spdArr[i] = 0.5 + Math.random(); }
         pg.setAttribute("position", new T.BufferAttribute(pp, 3));
-        const exhaust = new T.Points(pg, new T.PointsMaterial({ color: 0xffa050, size: 0.2, transparent: true, opacity: 0.9 }));
-        scene.add(exhaust);
+        const exVy = new Float32Array(PN);
+        const exMat = new T.PointsMaterial({ color: 0xffa050, size: 0.24, transparent: true, opacity: 0.9 });
+        scene.add(new T.Points(pg, exMat));
 
-        scene.add(new T.AmbientLight(0x8899bb, 0.6));
+        scene.add(new T.AmbientLight(0x9aabc4, 0.75));
         const sun = new T.DirectionalLight(0xffffff, 1.0);
         sun.position.set(5, 9, 6);
         scene.add(sun);
-        // flickering engine glow
         const engineLight = new T.PointLight(0xff8844, 0, 9);
         scene.add(engineLight);
+        let igniteFlash = 0;
 
         // HDR bloom (fallback to plain render if the passes didn't load)
         const useBloom = !!(T.EffectComposer && T.RenderPass && T.UnrealBloomPass);
@@ -886,13 +953,17 @@
         if (useBloom) {
           composer = new T.EffectComposer(renderer);
           composer.addPass(new T.RenderPass(scene, cam));
-          composer.addPass(new T.UnrealBloomPass(new T.Vector2(640, H), 1.0, 0.6, 0.6));
+          composer.addPass(new T.UnrealBloomPass(new T.Vector2(640, H), 0.9, 0.55, 0.7));
         }
 
         const ALT = [0, 1.6, 6, 26, 42, 70];       // world-space target altitude per phase
         const TILT = [0, 0.14, 0.42, 0.82, 1.05, 1.28];
-        let y = 0, x = 0, tilt = 0, dropT = 0, raf;
-        const clock = new T.Clock();
+        const SKY = [0x0d1b30, 0x0a1626, 0x061020, 0x030a16, 0x02060e, 0x01030a].map(h => new T.Color(h));
+        const STAR_O = [0.15, 0.25, 0.5, 0.75, 0.88, 0.95];
+        let y = 0, x = 0, tilt = 0, dropT = 0, raf, prevPh = 0;
+        let lastX = 0, lastY = 0, vehVX = 0, vehVY = 0;
+        const dropRel = new T.Vector3();
+        const clock3 = new T.Clock();
 
         const onSize = () => {
           const w = canvas.parentElement ? canvas.parentElement.clientWidth : 640;
@@ -905,62 +976,150 @@
         window.addEventListener("resize", onSize);
 
         const tick = () => {
-          const dt = Math.min(clock.getDelta(), 0.05);
+          const dt = Math.min(clock3.getDelta(), 0.05);
           const ph = phaseRef.current;
+
+          // --- phase-transition events ---
+          if (ph !== prevPh) {
+            if (ph >= 3 && prevPh < 3) {
+              // stage separation: booster detaches with a thruster puff and tumbles
+              dropped.visible = true;
+              dropped.position.copy(rocket.position);
+              dropped.rotation.copy(rocket.rotation);
+              dropAV = { x: 0.25 + Math.random() * 0.2, z: -(0.55 + Math.random() * 0.3) };
+              dropRel.set(0, 0, 0);
+              dropT = 0; wispLife = 1.7; igniteFlash = 1;
+              for (let i = 0; i < bN; i++) {
+                bR[i].set(0, 0, 0);
+                const a = Math.random() * Math.PI * 2, up = (Math.random() - 0.3) * 1.6;
+                bV[i].set(Math.cos(a) * (1.6 + Math.random()), up, Math.sin(a) * (1.6 + Math.random()));
+              }
+              burstLife = 0.6;
+            }
+            if (ph >= 4 && prevPh < 4) {
+              // fairing jettison: two shells peel outward and tumble away
+              nose.visible = false;
+              const nosePos = new T.Vector3(0, 6.2, 0).applyEuler(rocket.rotation).add(rocket.position);
+              fairings.forEach((m, i) => {
+                const dir = i === 0 ? 1 : -1;
+                m.visible = true;
+                m.material.opacity = 1;
+                m.scale.set(1, 1, 1);
+                m.position.copy(nosePos);
+                m.rotation.copy(rocket.rotation);
+                m.rotation.y = i === 0 ? 0 : Math.PI;
+                m.userData.rel = new T.Vector3(0, 0, 0);
+                m.userData.vel.set(dir * (1.4 + Math.random() * 0.5), 0.5, dir * 0.55);
+                m.userData.av.set((Math.random() - 0.5) * 2.6, dir * 1.7, dir * (1.9 + Math.random()));
+                m.userData.life = 2.8;
+              });
+            }
+            if (ph < 3) { dropped.visible = false; fairings.forEach(m => m.visible = false); }
+            if (ph < 4) { fairings.forEach(m => m.visible = false); nose.visible = true; }
+            prevPh = ph;
+          }
+
+          // --- rocket kinematics ---
           y += (ALT[ph] - y) * Math.min(1, dt * 1.3);
           x += ((ph >= 1 ? y * 0.42 : 0) - x) * Math.min(1, dt * 1.1);
+          vehVX = (x - lastX) / Math.max(dt, 1e-4); vehVY = (y - lastY) / Math.max(dt, 1e-4);
+          lastX = x; lastY = y;
           tilt += (TILT[ph] - tilt) * Math.min(1, dt * 1.6);
           rocket.position.set(x, y, 0);
           rocket.rotation.z = -tilt;
-
-          // stage separation
           stage1.visible = ph < 3; fins.visible = ph < 3; inter.visible = ph < 3;
-          if (ph >= 3 && !dropped.visible && ph < 5) {
-            dropped.visible = true;
-            dropped.position.copy(rocket.position);
-            dropped.rotation.copy(rocket.rotation);
-            dropT = 0;
-          }
-          if (dropped.visible) {
-            dropT += dt;
-            dropped.position.y -= dt * (2 + 8 * dropT * 0.4);
-            dropped.rotation.z -= dt * 0.7;
-            if (dropped.position.y < -6) dropped.visible = false;
-          }
-          nose.visible = ph < 4;
           sat.visible = ph >= 5;
 
-          // exhaust spray from the nozzle
+          // --- altitude atmosphere: sky darkens, stars emerge, ground fades ---
+          scene.background.lerp(SKY[ph], Math.min(1, dt * 1.6));
+          scene.fog.color.copy(scene.background);
+          starsMat.opacity += (STAR_O[ph] - starsMat.opacity) * Math.min(1, dt * 2);
+          grid.material.opacity = Math.max(0, 1 - y / 26);
+          pad.material.opacity = grid.material.opacity;
+          tower.material.opacity = grid.material.opacity;
+
+          // --- dropped booster: tumble, drift back, dying wisp ---
+          if (dropped.visible) {
+            dropT += dt;
+            dropRel.x -= dt * (0.35 + dropT * 0.5);
+            dropRel.y -= dt * (0.35 + dropT * 1.9);
+            dropped.position.set(x + dropRel.x, y + dropRel.y, 0);
+            dropped.rotation.z += dropAV.z * dt;
+            dropped.rotation.x += dropAV.x * dt;
+            if (wispLife > 0) {
+              wispLife -= dt;
+              wisp.material.opacity = Math.max(0, wispLife / 1.7) * 0.5;
+              wisp.scale.y = 0.5 + wispLife;
+            }
+            if (dropRel.y < -13) dropped.visible = false;
+          }
+
+          // --- separation burst ---
+          if (burstLife > 0) {
+            burstLife -= dt;
+            burstMat.opacity = Math.max(0, burstLife / 0.6) * 0.95;
+            const bBase = new T.Vector3(0, 1.7, 0).applyEuler(rocket.rotation).add(rocket.position);
+            bBase.x += dropRel.x * 0.5; bBase.y += dropRel.y * 0.5;
+            for (let i = 0; i < bN; i++) {
+              bR[i].addScaledVector(bV[i], dt);
+              bP[i*3] = bBase.x + bR[i].x; bP[i*3+1] = bBase.y + bR[i].y; bP[i*3+2] = bBase.z + bR[i].z;
+            }
+            bG.attributes.position.needsUpdate = true;
+          } else { burstMat.opacity = 0; }
+
+          // --- fairing halves: peel, tumble, shrink, fade ---
+          fairings.forEach(m => {
+            if (!m.visible) return;
+            const u = m.userData;
+            u.life -= dt;
+            if (u.life <= 0) { m.visible = false; return; }
+            u.vel.y -= dt * 2.6;
+            u.rel.addScaledVector(u.vel, dt);
+            const nw = new T.Vector3(0, 6.2, 0).applyEuler(rocket.rotation).add(rocket.position);
+            m.position.copy(nw).add(u.rel);
+            m.rotation.x += u.av.x * dt;
+            m.rotation.y += u.av.y * dt;
+            m.rotation.z += u.av.z * dt;
+            m.scale.multiplyScalar(Math.max(0.2, 1 - dt * 0.12));
+            m.material.opacity = Math.min(1, u.life / 1.3);
+          });
+
+          // --- main exhaust ---
           const thrust = ph < 3 ? 1 : ph < 5 ? 0.55 : 0;
+          exMat.color.setHex(ph >= 3 ? 0xf5c842 : 0xffa050);
           const arr = pg.attributes.position.array;
-          const nozzle = new T.Vector3(0, 0.2, 0).applyEuler(rocket.rotation).add(rocket.position);
+          const nozzle = new T.Vector3(0, ph < 3 ? 0.2 : 4.0, 0).applyEuler(rocket.rotation).add(rocket.position);
+          let emit = thrust > 0 ? Math.ceil(thrust * 5) : 0;
           for (let i = 0; i < PN; i++) {
-            let py = arr[i*3+1];
-            if (thrust > 0 && (py < -500 || Math.random() < 0.10 * thrust)) {
+            const alive = arr[i*3+1] > -500;
+            if (!alive && emit > 0) {
               arr[i*3]   = nozzle.x + (Math.random() - 0.5) * 0.25;
               arr[i*3+1] = nozzle.y;
               arr[i*3+2] = (Math.random() - 0.5) * 0.25;
-            } else if (py > -500) {
-              arr[i*3+1] -= dt * (5 + spdArr[i] * 6);
-              arr[i*3]   += (Math.random() - 0.5) * dt * 1.4;
-              if (arr[i*3+1] < -2) arr[i*3+1] = -999;
+              exVy[i] = vehVY * 0.6;
+              emit--;
+            } else if (alive) {
+              exVy[i] -= dt * 40;
+              arr[i*3+1] += (exVy[i] - (5 + spdArr[i] * 6)) * dt;
+              arr[i*3]   += (Math.random() - 0.5) * dt * 1.6;
+              if (cam.position.y - arr[i*3+1] > 17 || nozzle.y - arr[i*3+1] > 10) arr[i*3+1] = -999;
             }
-            if (thrust === 0 && py > -500 && Math.random() < 0.1) arr[i*3+1] = -999;
           }
           pg.attributes.position.needsUpdate = true;
 
-          // engine glow follows the nozzle, flickering with thrust
+          // engine glow + ignition flash at staging
+          igniteFlash = Math.max(0, igniteFlash - dt * 2.2);
           engineLight.position.copy(nozzle);
-          engineLight.intensity = thrust > 0 ? thrust * (2.2 + Math.random() * 1.2) : 0;
+          engineLight.intensity = (thrust > 0 ? thrust * (2.2 + Math.random() * 1.2) : 0) + igniteFlash * 7;
 
-          // camera: chase with shake at Max-Q
+          // camera: chase, rocket held left-of-centre so the HUD never overlaps
           const shake = ph === 2 ? 0.12 : 0;
           cam.position.set(
             x + 6.5 + (Math.random() - 0.5) * shake,
             y + 3.5 + (Math.random() - 0.5) * shake,
             10.5
           );
-          cam.lookAt(x, y + 2.2, 0);
+          cam.lookAt(x + 1.6, y + (ph >= 3 ? 4.6 : 2.2), 0);
           if (composer) composer.render(); else renderer.render(scene, cam);
           raf = requestAnimationFrame(tick);
         };
@@ -974,15 +1133,28 @@
 
       return (
         <div className="gfx">
-          <div className="ls-readout">
-            <div className="ls-phase"><span className="ls-time">{p.t}</span> {p.name}</div>
-            <div className="ls-meters">
-              <span>ALT <b>{Math.round(alt).toLocaleString()}</b> km</span>
-              <span>VEL <b>{spd.toFixed(1)}</b> km/s</span>
-            </div>
-          </div>
           <div className="l3d-wrap">
             <canvas ref={canvasRef} className="l3d-canvas" aria-label="3D launch sequence" />
+            <div className="l3d-horizon" style={{ opacity: horizonOpacity }} aria-hidden="true" />
+            {/* altitude ruler */}
+            <div className="l3d-ruler" aria-hidden="true">
+              <div className="lr-track">
+                {[0, 100, 200, 300].map(v => (
+                  <span key={v} className="lr-tick" style={{ bottom: (v / RULER_MAX * 100) + "%" }}>{v}</span>
+                ))}
+                <span className="lr-karman" style={{ bottom: (100 / RULER_MAX * 100) + "%" }}>SPACE</span>
+                <span className="lr-marker" style={{ bottom: rulerPct + "%" }}>▶</span>
+              </div>
+            </div>
+            {/* mission-control telemetry HUD */}
+            <div className="l3d-hud">
+              <div className="hud-clock">T+{mm}:{ss}</div>
+              <div className="hud-phase">{p.name.toUpperCase()}</div>
+              <div className="hud-metric"><span>VEL</span><b>{spd.toFixed(2)}</b><i>km/s</i></div>
+              <div className="hud-bar"><div style={{ width: Math.min(100, spd / 7.8 * 100) + "%" }} /></div>
+              <div className="hud-metric"><span>ALT</span><b>{Math.round(alt)}</b><i>km</i></div>
+              <div className="hud-bar"><div style={{ width: rulerPct + "%" }} /></div>
+            </div>
             {p.warn && <div className="l3d-warn">⚠ MAX-Q</div>}
           </div>
           <p className="ls-desc">{p.desc}</p>
