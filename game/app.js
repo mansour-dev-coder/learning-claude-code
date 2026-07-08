@@ -440,40 +440,29 @@ function Space3D() {
         sg.setAttribute("position", new T.BufferAttribute(sp, 3));
         const stars = new T.Points(sg, new T.PointsMaterial({ color: 0xffffff, size: 0.07, transparent: true, opacity: 0.8 }));
         scene.add(stars);
-        // --- Earth with procedural canvas texture (no image assets) ---
-        const cv = document.createElement("canvas");
-        cv.width = 512;
-        cv.height = 256;
-        const g = cv.getContext("2d");
-        const grad = g.createLinearGradient(0, 0, 0, 256);
-        grad.addColorStop(0, "#153f63");
-        grad.addColorStop(0.5, "#1c5e92");
-        grad.addColorStop(1, "#0e3054");
-        g.fillStyle = grad;
-        g.fillRect(0, 0, 512, 256);
-        let seed = 42;
-        const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
-        g.fillStyle = "#2f8f5b";
-        for (let i = 0; i < 95; i++) {
-            const x = rnd() * 512, y = 34 + rnd() * 188, r = 6 + rnd() * 26;
-            g.beginPath();
-            g.ellipse(x, y, r, r * 0.55, rnd() * 3, 0, 7);
-            g.fill();
-        }
-        g.fillStyle = "rgba(240,248,255,.9)";
-        g.fillRect(0, 0, 512, 13);
-        g.fillRect(0, 243, 512, 13);
-        g.fillStyle = "rgba(255,255,255,.16)";
-        for (let i = 0; i < 55; i++) {
-            const x = rnd() * 512, y = rnd() * 256, r = 10 + rnd() * 32;
-            g.beginPath();
-            g.ellipse(x, y, r, r * 0.3, rnd() * 3, 0, 7);
-            g.fill();
-        }
-        const tex = new T.CanvasTexture(cv);
+        // --- Photoreal Earth: NASA-derived maps (day, normal, specular,
+        //     night-side city lights) plus a separate rotating cloud layer ---
+        const loader = new T.TextureLoader();
+        const dayMap = loader.load("vendor/tex/earth_atmos_2048.jpg");
+        const normalMap = loader.load("vendor/tex/earth_normal_2048.jpg");
+        const specMap = loader.load("vendor/tex/earth_specular_2048.jpg");
+        const lightsMap = loader.load("vendor/tex/earth_lights_2048.png");
+        const cloudsMap = loader.load("vendor/tex/earth_clouds_1024.png");
         const group = new T.Group();
-        const earth = new T.Mesh(new T.SphereGeometry(1.6, 48, 48), new T.MeshPhongMaterial({ map: tex, specular: 0x223c55, shininess: 9 }));
+        const earth = new T.Mesh(new T.SphereGeometry(1.6, 64, 64), new T.MeshPhongMaterial({
+            map: dayMap,
+            normalMap: normalMap,
+            normalScale: new T.Vector2(0.85, 0.85),
+            specularMap: specMap,
+            specular: new T.Color(0x2a3a4a),
+            shininess: 18,
+            emissive: new T.Color(0xffdd99),
+            emissiveMap: lightsMap,
+            emissiveIntensity: 0.55
+        }));
         group.add(earth);
+        const clouds = new T.Mesh(new T.SphereGeometry(1.63, 64, 64), new T.MeshLambertMaterial({ map: cloudsMap, transparent: true, opacity: 0.85, depthWrite: false }));
+        group.add(clouds);
         // atmosphere: fresnel-style glow shader on a back-side shell
         const atmo = new T.Mesh(new T.SphereGeometry(1.74, 48, 48), new T.ShaderMaterial({
             transparent: true, side: T.BackSide, depthWrite: false,
@@ -498,6 +487,16 @@ function Space3D() {
         const sun = new T.DirectionalLight(0xffffff, 1.15);
         sun.position.set(-4, 2.5, 3);
         scene.add(sun);
+        // HDR bloom post-processing (falls back to a plain render if absent)
+        scene.background = new T.Color(0x07090f);
+        const useBloom = !!(T.EffectComposer && T.RenderPass && T.UnrealBloomPass);
+        let composer = null, bloomPass = null;
+        if (useBloom) {
+            composer = new T.EffectComposer(renderer);
+            composer.addPass(new T.RenderPass(scene, cam));
+            bloomPass = new T.UnrealBloomPass(new T.Vector2(window.innerWidth, window.innerHeight), 0.85, 0.7, 0.72);
+            composer.addPass(bloomPass);
+        }
         let mx = 0, my = 0;
         const onMove = (e) => {
             const px = e.touches ? e.touches[0].clientX : e.clientX;
@@ -509,6 +508,8 @@ function Space3D() {
         const onSize = () => {
             const w = window.innerWidth, h = window.innerHeight;
             renderer.setSize(w, h, false);
+            if (composer)
+                composer.setSize(w, h);
             cam.aspect = w / h;
             cam.updateProjectionMatrix();
         };
@@ -521,6 +522,7 @@ function Space3D() {
             const t = clock.getElapsedTime();
             if (!reduced) {
                 earth.rotation.y = t * 0.05;
+                clouds.rotation.y = t * 0.066;
                 stars.rotation.y = t * 0.004;
                 sats.forEach(s => {
                     const a = s.phase + t * s.speed;
@@ -533,7 +535,10 @@ function Space3D() {
             cam.position.x += (mx * 0.55 - cam.position.x) * 0.04;
             cam.position.y += (-my * 0.45 - cam.position.y) * 0.04;
             cam.lookAt(1.2, -0.35, 0);
-            renderer.render(scene, cam);
+            if (composer)
+                composer.render();
+            else
+                renderer.render(scene, cam);
             raf = requestAnimationFrame(tick);
         };
         tick();
@@ -815,6 +820,17 @@ function Launch3D() {
         const sun = new T.DirectionalLight(0xffffff, 1.0);
         sun.position.set(5, 9, 6);
         scene.add(sun);
+        // flickering engine glow
+        const engineLight = new T.PointLight(0xff8844, 0, 9);
+        scene.add(engineLight);
+        // HDR bloom (fallback to plain render if the passes didn't load)
+        const useBloom = !!(T.EffectComposer && T.RenderPass && T.UnrealBloomPass);
+        let composer = null;
+        if (useBloom) {
+            composer = new T.EffectComposer(renderer);
+            composer.addPass(new T.RenderPass(scene, cam));
+            composer.addPass(new T.UnrealBloomPass(new T.Vector2(640, H), 1.0, 0.6, 0.6));
+        }
         const ALT = [0, 1.6, 6, 26, 42, 70]; // world-space target altitude per phase
         const TILT = [0, 0.14, 0.42, 0.82, 1.05, 1.28];
         let y = 0, x = 0, tilt = 0, dropT = 0, raf;
@@ -822,6 +838,8 @@ function Launch3D() {
         const onSize = () => {
             const w = canvas.parentElement ? canvas.parentElement.clientWidth : 640;
             renderer.setSize(w, H, false);
+            if (composer)
+                composer.setSize(w, H);
             cam.aspect = w / H;
             cam.updateProjectionMatrix();
         };
@@ -875,11 +893,17 @@ function Launch3D() {
                     arr[i * 3 + 1] = -999;
             }
             pg.attributes.position.needsUpdate = true;
+            // engine glow follows the nozzle, flickering with thrust
+            engineLight.position.copy(nozzle);
+            engineLight.intensity = thrust > 0 ? thrust * (2.2 + Math.random() * 1.2) : 0;
             // camera: chase with shake at Max-Q
             const shake = ph === 2 ? 0.12 : 0;
             cam.position.set(x + 6.5 + (Math.random() - 0.5) * shake, y + 3.5 + (Math.random() - 0.5) * shake, 10.5);
             cam.lookAt(x, y + 2.2, 0);
-            renderer.render(scene, cam);
+            if (composer)
+                composer.render();
+            else
+                renderer.render(scene, cam);
             raf = requestAnimationFrame(tick);
         };
         tick();
