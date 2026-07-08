@@ -1,8 +1,21 @@
 # Orbit Academy 🚀
 
-An interactive, space-themed learning game about the rocket industry. Work
-through five modules — each with three lessons and a five-question quiz — and
-score **80% or higher** to unlock the next module.
+A gamified, space-themed learning game about the rocket industry with real-time
+3D visuals (WebGL / three.js). Progress through five missions — each with three
+lessons and a five-question quiz — earning XP, ranks and badges. Score **80% or
+higher** to unlock the next mission.
+
+## Game systems
+
+- **XP & ranks** — correct answers and mission clears earn XP; climb from
+  Cadet to Flight Director. Progress shows live in the header HUD.
+- **Badges & stars** — one badge per mission, plus 1-3 star ratings per quiz.
+- **3D space scene** — a real-time Earth with atmosphere glow, star field and
+  orbiting satellites rendered behind the whole game (with pointer parallax).
+- **3D launch sequence** — Mission 2 features a WebGL launch: particle exhaust,
+  camera shake at Max-Q, stage separation and orbit deploy.
+- **Sound effects** — synthesised WebAudio feedback (mutable, persisted).
+- Devices without WebGL automatically fall back to the 2D SVG/CSS versions.
 
 ## What you'll learn
 
@@ -37,5 +50,8 @@ best quiz scores persist across visits on that device.
 
 ## Files
 
-- `index.html` — the entire game: layout, styling, content, and logic.
-- `vendor/` — React and ReactDOM (production UMD builds), served locally.
+- `index.html` — markup, styling, and script loading.
+- `app.js` — the compiled game (built from `src/app.jsx`).
+- `src/app.jsx` — the source. Edit this, then run `node build.mjs`.
+- `build.mjs` — compiles the JSX source to plain JS (needs `typescript`).
+- `vendor/` — React, ReactDOM and three.js, served locally (no CDN).
