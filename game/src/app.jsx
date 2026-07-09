@@ -1316,11 +1316,12 @@
        4) Delta-v budget + staging animation (Module 2)
        ================================================================= */
     const DV_MASS = {
-      idle:  { prop: 90, str: 6, pay: 4, label: "At lift-off, ~90% of the rocket is propellant." },
-      burn1: { prop: 34, str: 6, pay: 4, label: "First stage burning — propellant pouring out." },
-      sep:   { prop: 34, str: 2, pay: 4, label: "First stage empty — dropped to shed dead weight." },
-      burn2: { prop: 6,  str: 2, pay: 4, label: "Second stage burning in vacuum toward orbital speed." },
-      orbit: { prop: 2,  str: 2, pay: 4, label: "Orbit reached — only the payload remains, now circling Earth." }
+      // Shares of TOTAL REMAINING mass (always sum to ~100).
+      idle:  { prop: 90, str: 6,  pay: 4,  label: "Lift-off: 90% propellant, 6% structure — you are just 4% payload." },
+      burn1: { prop: 60, str: 24, pay: 16, label: "Propellant burns away — so the payload's share of what's LEFT grows." },
+      sep:   { prop: 73, str: 7,  pay: 20, label: "Dead stage-1 structure thrown overboard — structure's share steps down, payload's jumps." },
+      burn2: { prop: 8,  str: 25, pay: 67, label: "Second stage burns down — the payload is now the biggest slice of what remains." },
+      orbit: { prop: 0,  str: 5,  pay: 95, label: "Orbit: you launched as 4% payload — and arrived as ~95%. Everything else was burned or thrown away." }
     };
 
     function DeltaVBudget() {
@@ -1353,68 +1354,109 @@
       const tank1 = { x: 52, y: 150, w: 36, h: 92 };
       const tank2 = { x: 57, y: 78, w: 26, h: 56 };
       const f1h = tank1.h * fuel1, f2h = tank2.h * fuel2;
+      const segText = (v) => v >= 14 ? <span>{v}%</span> : null;
 
       return (
         <div className="gfx">
-          {/* mass breakdown bar */}
+          {/* mass-share breakdown: propellant collapses, structure drops in
+              steps at staging, payload's share climbs from 4% to ~95% */}
           <div className="dv-barwrap">
+            <div className="dv-axis">SHARE OF REMAINING MASS</div>
             <div className="dv-bar">
-              <div className="dv-seg" style={{ width: mass.prop + "%", background: "var(--cyan)" }} />
-              <div className="dv-seg" style={{ width: mass.str + "%", background: "var(--orange)" }} />
-              <div className="dv-seg" style={{ width: mass.pay + "%", background: "var(--green)" }} />
+              <div className="dv-seg" style={{ width: mass.prop + "%", background: "var(--cyan)" }}>{segText(mass.prop)}</div>
+              <div className="dv-seg" style={{ width: mass.str + "%", background: "var(--orange)" }}>{segText(mass.str)}</div>
+              <div className="dv-seg" style={{ width: mass.pay + "%", background: "var(--green)", boxShadow: mass.pay >= 50 ? "0 0 14px rgba(82,224,124,.55)" : "none" }}>{segText(mass.pay)}</div>
             </div>
             <div className="dv-legend">
-              <span><i style={{ background: "var(--cyan)" }} />Propellant 90%</span>
-              <span><i style={{ background: "var(--orange)" }} />Structure & engines 6%</span>
-              <span><i style={{ background: "var(--green)" }} />Payload 4%</span>
+              <span><i style={{ background: "var(--cyan)" }} />Propellant <b>{mass.prop}%</b></span>
+              <span><i style={{ background: "var(--orange)" }} />Structure <b>{mass.str}%</b></span>
+              <span><i style={{ background: "var(--green)" }} />Payload <b>{mass.pay}%</b></span>
             </div>
             <p className="dv-status">{mass.label}</p>
           </div>
 
-          <svg className="dv-svg" viewBox="0 0 150 300" role="img" aria-label="Staging animation">
+          <svg className="dv-svg" viewBox="0 0 200 300" role="img" aria-label="Staging animation">
             <SvgFx p="dv" />
-            {/* orbit arc on deploy */}
-            {deployed && <g className="ls-fade" transform="rotate(-14 108 56)">
-              <ellipse cx="108" cy="56" rx="36" ry="17" fill="none" stroke="#4AF0E0" strokeWidth="4" opacity="0.14" />
-              <ellipse cx="108" cy="56" rx="36" ry="17" fill="none" stroke="#4AF0E0" strokeWidth="1.2" strokeDasharray="3 3" opacity="0.9" />
-            </g>}
 
-            {/* falling first stage */}
-            {stage1Gone && (
-              <g className="dv-fall">
-                <rect x="-18" y="-46" width="36" height="92" rx="3" fill="url(#dvMetal)" stroke="#52E07C" strokeWidth="1.2" strokeOpacity="0.7" />
-                <path d="M-18,30 L-30,46 L-18,46 Z" fill="url(#dvMetal)" stroke="#52E07C" strokeWidth="1" strokeOpacity="0.7" />
-                <path d="M18,30 L30,46 L18,46 Z" fill="url(#dvMetal)" stroke="#52E07C" strokeWidth="1" strokeOpacity="0.7" />
+            {/* ---- ascent: rocket staging (fades out once the payload deploys) ---- */}
+            <g style={{ opacity: deployed ? 0 : 1, transition: "opacity .4s ease" }} transform="translate(25,0)">
+              {/* falling first stage */}
+              {stage1Gone && (
+                <g className="dv-fall">
+                  <rect x="-18" y="-46" width="36" height="92" rx="3" fill="url(#dvMetal)" stroke="#52E07C" strokeWidth="1.2" strokeOpacity="0.7" />
+                  <path d="M-18,30 L-30,46 L-18,46 Z" fill="url(#dvMetal)" stroke="#52E07C" strokeWidth="1" strokeOpacity="0.7" />
+                  <path d="M18,30 L30,46 L18,46 Z" fill="url(#dvMetal)" stroke="#52E07C" strokeWidth="1" strokeOpacity="0.7" />
+                </g>
+              )}
+
+              {/* exhaust */}
+              {phase === "burn1" && <path className="ls-flame" d="M58,242 L70,290 L82,242 Z" fill="url(#dvFlame)" />}
+              {phase === "burn2" && <path className="ls-flame" d="M64,134 L70,168 L76,134 Z" fill="url(#dvFlame)" />}
+
+              {/* rocket: payload + second stage (+ first stage until gone) */}
+              <g>
+                {/* payload */}
+                <path d="M70,40 L78,62 L62,62 Z" fill="url(#dvNose)" stroke="#52E07C" strokeWidth="1.4" strokeOpacity="0.8" />
+                {/* second stage tank */}
+                <rect x={tank2.x} y={tank2.y} width={tank2.w} height={tank2.h} rx="2" fill="url(#dvMetal)" stroke="#F5C842" strokeWidth="1.2" strokeOpacity="0.7" />
+                <rect x={tank2.x} y={tank2.y + (tank2.h - f2h)} width={tank2.w} height={f2h} rx="2" fill="url(#dvFuelG)" opacity="0.85" style={{ transition: "height 2.4s linear, y 2.4s linear" }} />
+                <line x1={tank2.x + 3} y1="96" x2={tank2.x + tank2.w - 3} y2="96" stroke="#42546a" strokeWidth="0.8" />
+                <line x1={tank2.x + 3} y1="114" x2={tank2.x + tank2.w - 3} y2="114" stroke="#42546a" strokeWidth="0.8" />
+                {/* interstage */}
+                <rect x="55" y="134" width="30" height="14" fill="url(#dvBand)" stroke="#FF7A45" strokeWidth="1" strokeOpacity="0.7" />
+                {/* first stage tank */}
+                {!stage1Gone && <>
+                  <rect x={tank1.x} y={tank1.y} width={tank1.w} height={tank1.h} rx="3" fill="url(#dvMetal)" stroke="#52E07C" strokeWidth="1.2" strokeOpacity="0.7" />
+                  <rect x={tank1.x} y={tank1.y + (tank1.h - f1h)} width={tank1.w} height={f1h} rx="3" fill="url(#dvFuelC)" opacity="0.85" style={{ transition: "height 2.6s linear, y 2.6s linear" }} />
+                  <line x1={tank1.x + 3} y1="173" x2={tank1.x + tank1.w - 3} y2="173" stroke="#42546a" strokeWidth="0.8" />
+                  <line x1={tank1.x + 3} y1="196" x2={tank1.x + tank1.w - 3} y2="196" stroke="#42546a" strokeWidth="0.8" />
+                  <line x1={tank1.x + 3} y1="219" x2={tank1.x + tank1.w - 3} y2="219" stroke="#42546a" strokeWidth="0.8" />
+                  <path d="M52,222 L40,242 L52,242 Z" fill="url(#dvMetal)" stroke="#52E07C" strokeWidth="1" strokeOpacity="0.7" />
+                  <path d="M88,222 L100,242 L88,242 Z" fill="url(#dvMetal)" stroke="#52E07C" strokeWidth="1" strokeOpacity="0.7" />
+                  <path d="M58,242 L62,250 L78,250 L82,242 Z" fill="url(#dvBell)" stroke="#FF7A45" strokeWidth="1" strokeOpacity="0.8" />
+                </>}
+              </g>
+            </g>
+
+            {/* ---- orbit scene: the payload circling a real Earth ---- */}
+            {deployed && (
+              <g className="ls-fade" style={{ animationDelay: "0.45s" }}>
+                {/* faint stars */}
+                {[[22, 40], [176, 28], [40, 96], [168, 120], [24, 210], [182, 250], [96, 18]].map(([sx, sy], i) => (
+                  <circle key={i} cx={sx} cy={sy} r={i % 3 === 0 ? 1.1 : 0.7} fill="#ffffff" opacity="0.55" />
+                ))}
+                {/* orbit path around Earth (drawn first so Earth occludes the far side) */}
+                <g transform="rotate(-18 100 178)">
+                  <ellipse cx="100" cy="178" rx="82" ry="34" fill="none" stroke="#4AF0E0" strokeWidth="4.5" opacity="0.13" />
+                  <ellipse cx="100" cy="178" rx="82" ry="34" fill="none" stroke="#4AF0E0" strokeWidth="1.2" strokeDasharray="4 4" opacity="0.85" />
+                  <path id="dvOrbitPath" d="M100,144 a82,34 0 1,1 0,68 a82,34 0 1,1 0,-68" fill="none" stroke="none" />
+                </g>
+                {/* Earth */}
+                <circle cx="100" cy="178" r="45" fill="none" stroke="#7fd4ff" strokeWidth="4" opacity="0.14" />
+                <circle cx="100" cy="178" r="42.5" fill="none" stroke="#9fe0ff" strokeWidth="1" opacity="0.3" />
+                <circle cx="100" cy="178" r="41" fill="url(#dvOcean)" />
+                <path d="M76,168 q10,-12 24,-7 q14,5 10,17 q-4,11 -17,10 q-15,2 -19,-9 q-3,-7 2,-11 Z" fill="#3aa66b" opacity="0.9" />
+                <path d="M108,190 q10,-5 17,3 q7,10 -2,18 q-10,8 -17,0 q-7,-8 -5,-14 q2,-5 7,-7 Z" fill="#379f65" opacity="0.85" />
+                <path d="M85,200 q8,-3 13,3 q4,7 -3,11 q-11,5 -15,-3 q-2,-6 5,-11 Z" fill="#2f8f5b" opacity="0.8" />
+                <ellipse cx="102" cy="152" rx="14" ry="3.4" fill="#eaf5ff" opacity="0.5" />
+                <ellipse cx="92" cy="207" rx="10" ry="2.6" fill="#eaf5ff" opacity="0.35" />
+                <circle cx="100" cy="178" r="41" fill="url(#dvNight)" style={{ pointerEvents: "none" }} />
+                {/* the payload — now a real satellite riding the orbit */}
+                <g>
+                  <circle r="10" fill="#4AF0E0" opacity="0.18" />
+                  <rect x="-4.5" y="-3.5" width="9" height="7" rx="1" fill="url(#dvMetal)" stroke="#4AF0E0" strokeWidth="0.9" />
+                  <line x1="-4.5" y1="0" x2="-6.5" y2="0" stroke="#8fa3ba" strokeWidth="1" />
+                  <line x1="4.5" y1="0" x2="6.5" y2="0" stroke="#8fa3ba" strokeWidth="1" />
+                  <rect x="-14.5" y="-2.6" width="8" height="5.2" rx="0.6" fill="url(#dvFuelC)" opacity="0.9" stroke="#178278" strokeWidth="0.5" />
+                  <rect x="6.5" y="-2.6" width="8" height="5.2" rx="0.6" fill="url(#dvFuelC)" opacity="0.9" stroke="#178278" strokeWidth="0.5" />
+                  <circle cx="-1.2" cy="-1.2" r="1.1" fill="#ffffff" opacity="0.6" />
+                  <animateMotion dur="9s" repeatCount="indefinite" rotate="auto">
+                    <mpath href="#dvOrbitPath" />
+                  </animateMotion>
+                </g>
+                <text x="100" y="262" textAnchor="middle" fill="#8A99B0" fontFamily="ui-monospace, Menlo, monospace" fontSize="8" letterSpacing="2">PAYLOAD IN ORBIT</text>
               </g>
             )}
-
-            {/* exhaust */}
-            {phase === "burn1" && <path className="ls-flame" d="M58,242 L70,290 L82,242 Z" fill="url(#dvFlame)" />}
-            {phase === "burn2" && <path className="ls-flame" d="M64,134 L70,168 L76,134 Z" fill="url(#dvFlame)" />}
-
-            {/* rocket: payload + second stage (+ first stage until gone) */}
-            <g style={{ transition: "transform 1s", transform: deployed ? "translateY(-14px)" : "none", transformBox: "fill-box" }}>
-              {/* payload */}
-              <path d="M70,40 L78,62 L62,62 Z" fill="url(#dvNose)" stroke="#52E07C" strokeWidth="1.4" strokeOpacity="0.8" />
-              {/* second stage tank */}
-              <rect x={tank2.x} y={tank2.y} width={tank2.w} height={tank2.h} rx="2" fill="url(#dvMetal)" stroke="#F5C842" strokeWidth="1.2" strokeOpacity="0.7" />
-              <rect x={tank2.x} y={tank2.y + (tank2.h - f2h)} width={tank2.w} height={f2h} rx="2" fill="url(#dvFuelG)" opacity="0.85" style={{ transition: "height 2.4s linear, y 2.4s linear" }} />
-              <line x1={tank2.x + 3} y1="96" x2={tank2.x + tank2.w - 3} y2="96" stroke="#42546a" strokeWidth="0.8" />
-              <line x1={tank2.x + 3} y1="114" x2={tank2.x + tank2.w - 3} y2="114" stroke="#42546a" strokeWidth="0.8" />
-              {/* interstage */}
-              <rect x="55" y="134" width="30" height="14" fill="url(#dvBand)" stroke="#FF7A45" strokeWidth="1" strokeOpacity="0.7" />
-              {/* first stage tank */}
-              {!stage1Gone && <>
-                <rect x={tank1.x} y={tank1.y} width={tank1.w} height={tank1.h} rx="3" fill="url(#dvMetal)" stroke="#52E07C" strokeWidth="1.2" strokeOpacity="0.7" />
-                <rect x={tank1.x} y={tank1.y + (tank1.h - f1h)} width={tank1.w} height={f1h} rx="3" fill="url(#dvFuelC)" opacity="0.85" style={{ transition: "height 2.6s linear, y 2.6s linear" }} />
-                <line x1={tank1.x + 3} y1="173" x2={tank1.x + tank1.w - 3} y2="173" stroke="#42546a" strokeWidth="0.8" />
-                <line x1={tank1.x + 3} y1="196" x2={tank1.x + tank1.w - 3} y2="196" stroke="#42546a" strokeWidth="0.8" />
-                <line x1={tank1.x + 3} y1="219" x2={tank1.x + tank1.w - 3} y2="219" stroke="#42546a" strokeWidth="0.8" />
-                <path d="M52,222 L40,242 L52,242 Z" fill="url(#dvMetal)" stroke="#52E07C" strokeWidth="1" strokeOpacity="0.7" />
-                <path d="M88,222 L100,242 L88,242 Z" fill="url(#dvMetal)" stroke="#52E07C" strokeWidth="1" strokeOpacity="0.7" />
-                <path d="M58,242 L62,250 L78,250 L82,242 Z" fill="url(#dvBell)" stroke="#FF7A45" strokeWidth="1" strokeOpacity="0.8" />
-              </>}
-            </g>
           </svg>
 
           <div className="dv-speed">VELOCITY <b>{spd.toFixed(1)}</b> km/s {spd >= 7.7 && <span className="dv-orbit">✓ orbit</span>}</div>

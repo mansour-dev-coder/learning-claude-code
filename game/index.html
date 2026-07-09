@@ -361,12 +361,21 @@
       content: ""; position: absolute; inset: 0; border-radius: 7px; pointer-events: none;
       background: linear-gradient(180deg, rgba(255,255,255,.17), transparent 46%);
     }
-    .dv-seg { height: 100%; transition: width 1.4s ease; }
+    .dv-seg { height: 100%; transition: width 1.4s ease, box-shadow .8s ease; position: relative; overflow: hidden; }
+    .dv-seg span {
+      position: absolute; inset: 0; display: grid; place-items: center;
+      font-family: var(--mono); font-size: 11px; font-weight: 700; color: #06121a;
+    }
+    .dv-axis {
+      font-family: var(--mono); font-size: 9px; letter-spacing: 2px;
+      color: var(--muted); margin-bottom: 5px;
+    }
     .dv-legend { display: flex; gap: 16px; flex-wrap: wrap; margin: 10px 0 4px; font-size: 12px; color: var(--muted); }
     .dv-legend span { display: flex; align-items: center; gap: 6px; }
+    .dv-legend b { color: var(--text); font-family: var(--mono); font-size: 12px; min-width: 34px; }
     .dv-legend i { width: 11px; height: 11px; border-radius: 3px; display: inline-block; }
     .dv-status { font-size: 13.5px; color: #C9D4E4; margin: 4px 0 0; min-height: 20px; }
-    .dv-svg { width: 100%; max-width: 200px; height: auto; display: block; margin: 6px auto 0; }
+    .dv-svg { width: 100%; max-width: 250px; height: auto; display: block; margin: 6px auto 0; }
     .dv-fall { animation: dvFall 2s ease-in forwards; }
     @keyframes dvFall { from { transform: translate(70px,196px) rotate(0); opacity: 1; } to { transform: translate(34px,330px) rotate(120deg); opacity: 0; } }
     .dv-speed { text-align: center; font-family: var(--mono); font-size: 13px; color: var(--muted); margin-top: 6px; }
