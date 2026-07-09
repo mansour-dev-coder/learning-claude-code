@@ -1319,7 +1319,7 @@
       // Shares of TOTAL REMAINING mass (always sum to ~100).
       idle:  { prop: 90, str: 6,  pay: 4,  label: "Lift-off: 90% propellant, 6% structure — you are just 4% payload." },
       burn1: { prop: 60, str: 24, pay: 16, label: "Propellant burns away — so the payload's share of what's LEFT grows." },
-      sep:   { prop: 73, str: 7,  pay: 20, label: "Dead stage-1 structure thrown overboard — structure's share steps down, payload's jumps." },
+      sep:   { prop: 73, str: 7,  pay: 20, label: "Propellant's share rises here — not because fuel came back, but because the empty stage was just thrown away." },
       burn2: { prop: 8,  str: 25, pay: 67, label: "Second stage burns down — the payload is now the biggest slice of what remains." },
       orbit: { prop: 0,  str: 5,  pay: 95, label: "Orbit: you launched as 4% payload — and arrived as ~95%. Everything else was burned or thrown away." }
     };
@@ -1362,9 +1362,12 @@
               steps at staging, payload's share climbs from 4% to ~95% */}
           <div className="dv-barwrap">
             <div className="dv-axis">SHARE OF REMAINING MASS</div>
+            {phase === "sep" && (
+              <div className="dv-eject" style={{ left: (mass.prop + mass.str / 2) + "%" }}>STAGE 1 EJECTED ▼</div>
+            )}
             <div className="dv-bar">
               <div className="dv-seg" style={{ width: mass.prop + "%", background: "var(--cyan)" }}>{segText(mass.prop)}</div>
-              <div className="dv-seg" style={{ width: mass.str + "%", background: "var(--orange)" }}>{segText(mass.str)}</div>
+              <div className="dv-seg" style={{ width: mass.str + "%", background: "var(--orange)", boxShadow: phase === "sep" ? "0 0 14px rgba(255,122,69,.9)" : "none" }}>{segText(mass.str)}</div>
               <div className="dv-seg" style={{ width: mass.pay + "%", background: "var(--green)", boxShadow: mass.pay >= 50 ? "0 0 14px rgba(82,224,124,.55)" : "none" }}>{segText(mass.pay)}</div>
             </div>
             <div className="dv-legend">
