@@ -590,6 +590,49 @@
     }
 
     /* =================================================================
+       Shared SVG visual language: metallic gradients, glows, flames.
+       Every 2D graphic draws from this so the whole game reads as one
+       consistently-shaded, professional system. Ids are prefixed because
+       SVG ids are document-global.
+       ================================================================= */
+    function SvgFx({ p }) {
+      return (
+        <defs>
+          <linearGradient id={p + "Metal"} x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stopColor="#4e5e73" /><stop offset="0.18" stopColor="#93a7be" />
+            <stop offset="0.45" stopColor="#e9eff7" /><stop offset="0.62" stopColor="#c3d0e0" />
+            <stop offset="1" stopColor="#485a70" />
+          </linearGradient>
+          <linearGradient id={p + "Nose"} x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stopColor="#137a6f" /><stop offset="0.45" stopColor="#8df7ea" /><stop offset="1" stopColor="#0d5a52" />
+          </linearGradient>
+          <linearGradient id={p + "Band"} x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stopColor="#9a3f1c" /><stop offset="0.45" stopColor="#ffab7e" /><stop offset="1" stopColor="#8c3a1a" />
+          </linearGradient>
+          <linearGradient id={p + "Bell"} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="#3d5169" /><stop offset="0.5" stopColor="#182636" /><stop offset="1" stopColor="#0b141f" />
+          </linearGradient>
+          <linearGradient id={p + "Flame"} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="#fff4c8" /><stop offset="0.35" stopColor="#ffc069" /><stop offset="1" stopColor="#ff7a45" stopOpacity="0.12" />
+          </linearGradient>
+          <linearGradient id={p + "FuelC"} x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stopColor="#1e9c90" /><stop offset="0.5" stopColor="#6ff2e4" /><stop offset="1" stopColor="#178278" />
+          </linearGradient>
+          <linearGradient id={p + "FuelG"} x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stopColor="#b08a1e" /><stop offset="0.5" stopColor="#ffe08a" /><stop offset="1" stopColor="#9c7a17" />
+          </linearGradient>
+          <radialGradient id={p + "Ocean"} cx="0.38" cy="0.36" r="0.68">
+            <stop offset="0" stopColor="#5da2e0" /><stop offset="0.5" stopColor="#2a6aad" />
+            <stop offset="0.82" stopColor="#16457f" /><stop offset="1" stopColor="#0a2c55" />
+          </radialGradient>
+          <linearGradient id={p + "Night"} x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0.45" stopColor="#020814" stopOpacity="0" /><stop offset="1" stopColor="#020814" stopOpacity="0.6" />
+          </linearGradient>
+        </defs>
+      );
+    }
+
+    /* =================================================================
        1) Interactive rocket diagram (Module 1)
        ================================================================= */
     const ROCKET_PARTS = [
@@ -619,14 +662,18 @@
           cursor: "pointer",
           transition: "opacity .25s ease, filter .25s ease",
           opacity: sel && !isSel ? 0.32 : 1,
-          filter: isSel ? `drop-shadow(0 0 7px ${color})` : "none"
+          filter: isSel ? `drop-shadow(0 0 10px ${color})` : "none"
         };
       };
       const shape = (id, color) => ({
-        fill: sel === id ? color : "#0E1726",
-        fillOpacity: sel === id ? 0.85 : 0.55,
-        stroke: color, strokeWidth: 1.5
+        fill: "url(#rkMetal)",
+        stroke: color,
+        strokeWidth: sel === id ? 2.4 : 1.2,
+        strokeOpacity: sel === id ? 1 : 0.7
       });
+      const seam = (x1, x2, ys) => ys.map(yy => (
+        <line key={yy} x1={x1} y1={yy} x2={x2} y2={yy} stroke="#42546a" strokeWidth="0.9" style={{ pointerEvents: "none" }} />
+      ));
       const label = (id, color, y, text) => (
         <g style={{ pointerEvents: "none", opacity: sel && sel !== id ? 0.3 : 1, transition: "opacity .25s" }}>
           <line x1="112" y1={y} x2="122" y2={y} stroke={color} strokeWidth="1" strokeDasharray="2 2" />
@@ -636,31 +683,34 @@
       return (
         <div className="gfx rk-wrap">
           <svg className="rk-svg" viewBox="0 0 240 400" role="img" aria-label="Interactive rocket diagram">
+            <SvgFx p="rk" />
             {/* Payload fairing (nose + collar) */}
             <g style={styleFor("fairing", "#4AF0E0")} onClick={() => setSel("fairing")}>
-              <path d="M150,14 C172,58 176,84 176,96 L124,96 C124,84 128,58 150,14 Z" {...shape("fairing", "#4AF0E0")} />
-              <rect x="124" y="96" width="52" height="24" {...shape("fairing", "#4AF0E0")} />
+              <path d="M150,14 C172,58 176,84 176,96 L124,96 C124,84 128,58 150,14 Z" {...shape("fairing", "#4AF0E0")} fill="url(#rkNose)" />
+              <rect x="124" y="96" width="52" height="24" {...shape("fairing", "#4AF0E0")} fill="url(#rkNose)" />
             </g>
             {/* Second stage */}
             <g style={styleFor("second", "#F5C842")} onClick={() => setSel("second")}>
               <rect x="124" y="120" width="52" height="70" rx="2" {...shape("second", "#F5C842")} />
+              {seam(126, 174, [140, 160, 180])}
             </g>
             {/* Interstage */}
             <g style={styleFor("interstage", "#FF7A45")} onClick={() => setSel("interstage")}>
-              <rect x="127" y="190" width="46" height="22" {...shape("interstage", "#FF7A45")} />
+              <rect x="127" y="190" width="46" height="22" {...shape("interstage", "#FF7A45")} fill="url(#rkBand)" />
             </g>
             {/* First stage + fins */}
             <g style={styleFor("first", "#52E07C")} onClick={() => setSel("first")}>
               <rect x="124" y="212" width="52" height="144" rx="2" {...shape("first", "#52E07C")} />
+              {seam(126, 174, [236, 260, 284, 308, 332])}
               <path d="M124,330 L104,356 L124,356 Z" {...shape("first", "#52E07C")} />
               <path d="M176,330 L196,356 L176,356 Z" {...shape("first", "#52E07C")} />
             </g>
             {/* Engine cluster */}
             <g style={styleFor("engines", "#FF7A45")} onClick={() => setSel("engines")}>
               <rect x="126" y="354" width="48" height="8" {...shape("engines", "#FF7A45")} />
-              <path d="M132,360 L130,386 L144,386 L142,360 Z" {...shape("engines", "#FF7A45")} />
-              <path d="M145,360 L143,388 L157,388 L155,360 Z" {...shape("engines", "#FF7A45")} />
-              <path d="M158,360 L156,386 L170,386 L168,360 Z" {...shape("engines", "#FF7A45")} />
+              <path d="M132,360 L130,386 L144,386 L142,360 Z" {...shape("engines", "#FF7A45")} fill="url(#rkBell)" />
+              <path d="M145,360 L143,388 L157,388 L155,360 Z" {...shape("engines", "#FF7A45")} fill="url(#rkBell)" />
+              <path d="M158,360 L156,386 L170,386 L168,360 Z" {...shape("engines", "#FF7A45")} fill="url(#rkBell)" />
             </g>
             {/* Labels with leader lines */}
             {label("fairing", "#4AF0E0", 60, "Payload Fairing")}
@@ -718,6 +768,7 @@
                 <stop offset="0" stopColor="#2E6FB0" /><stop offset="1" stopColor="#0E3A66" />
               </radialGradient>
             </defs>
+            <SvgFx p="lf" />
             <rect x="0" y="0" width="300" height="320" fill="url(#sky)" />
             {/* ground / pad */}
             <rect x="0" y="296" width="300" height="24" fill="#10202E" />
@@ -743,8 +794,8 @@
             {/* falling first stage — only at the separation moment */}
             {idx === 3 && (
               <g className="ls-fall">
-                <rect x="-7" y="-26" width="14" height="26" rx="2" fill="#0E1726" stroke="#52E07C" strokeWidth="1.5" />
-                <path d="M-7,-6 L-15,2 L-7,2 Z" fill="#0E1726" stroke="#52E07C" strokeWidth="1.2" />
+                <rect x="-7" y="-26" width="14" height="26" rx="2" fill="url(#lfMetal)" stroke="#52E07C" strokeWidth="1.2" strokeOpacity="0.7" />
+                <path d="M-7,-6 L-15,2 L-7,2 Z" fill="url(#lfMetal)" stroke="#52E07C" strokeWidth="1" strokeOpacity="0.7" />
               </g>
             )}
             {/* drifting fairing halves — only at jettison moment */}
@@ -758,18 +809,18 @@
             <g style={{ transform: `translate(${tx}px, ${ty}px) rotate(${p.tilt}deg)`, transformBox: "fill-box", transition: "transform 1.1s cubic-bezier(.45,.05,.35,1)" }}>
               {/* exhaust */}
               {flame > 0 && (
-                <path className="ls-flame" d={`M-6,0 L0,${22 + 26 * flame} L6,0 Z`} fill={flame > 0.7 ? "#FF7A45" : "#F5C842"} opacity={flame} />
+                <path className="ls-flame" d={`M-6,0 L0,${22 + 26 * flame} L6,0 Z`} fill="url(#lfFlame)" opacity={flame} />
               )}
               {/* first stage (hidden once separated) */}
-              {idx < 3 && <rect x="-7" y="-32" width="14" height="26" rx="2" fill="#0E1726" stroke="#52E07C" strokeWidth="1.5" />}
+              {idx < 3 && <rect x="-7" y="-32" width="14" height="26" rx="2" fill="url(#lfMetal)" stroke="#52E07C" strokeWidth="1.2" strokeOpacity="0.7" />}
               {/* second stage */}
-              <rect x="-6" y="-58" width="12" height={idx < 3 ? 26 : 52} rx="2" fill="#0E1726" stroke="#F5C842" strokeWidth="1.5" />
+              <rect x="-6" y="-58" width="12" height={idx < 3 ? 26 : 52} rx="2" fill="url(#lfMetal)" stroke="#F5C842" strokeWidth="1.2" strokeOpacity="0.7" />
               {/* nose / fairing (gone after jettison; satellite shows instead) */}
               {idx < 4
-                ? <path d="M0,-80 L7,-58 L-7,-58 Z" fill="#0E1726" stroke="#4AF0E0" strokeWidth="1.5" />
+                ? <path d="M0,-80 L7,-58 L-7,-58 Z" fill="url(#lfNose)" stroke="#4AF0E0" strokeWidth="1.2" strokeOpacity="0.8" />
                 : idx < 5 && <rect x="-4" y="-66" width="8" height="8" rx="1" fill="#4AF0E0" />}
               {/* nozzle */}
-              <path d="M-7,-6 L-5,2 L5,2 L7,-6 Z" fill="#1A2C3E" stroke="#FF7A45" strokeWidth="1" />
+              <path d="M-7,-6 L-5,2 L5,2 L7,-6 Z" fill="url(#lfBell)" stroke="#FF7A45" strokeWidth="1" strokeOpacity="0.8" />
             </g>
             {/* Max-Q warning */}
             {p.warn && (
@@ -1189,18 +1240,19 @@
       return (
         <div className="gfx ov-wrap">
           <svg className="ov-svg" viewBox="0 0 300 300" role="img" aria-label="Orbit visualiser">
-            <defs>
-              <radialGradient id="ovEarth" cx="0.42" cy="0.4" r="0.62">
-                <stop offset="0" stopColor="#3D7FBE" /><stop offset="0.7" stopColor="#1B4E84" /><stop offset="1" stopColor="#0A2C50" />
-              </radialGradient>
-            </defs>
+            <SvgFx p="ov" />
             {/* Earth */}
+            <circle cx={C} cy={C} r="27.5" fill="none" stroke="#7fd4ff" strokeWidth="2.6" opacity="0.18" />
+            <circle cx={C} cy={C} r="25.4" fill="none" stroke="#9fe0ff" strokeWidth="1" opacity="0.3" />
             <g className="ov-earth">
-              <circle cx={C} cy={C} r="24" fill="url(#ovEarth)" stroke="#2E6FB0" strokeWidth="0.6" />
-              <ellipse cx="144" cy="143" rx="7" ry="4" fill="#3AA66B" opacity="0.85" />
-              <ellipse cx="158" cy="152" rx="5" ry="6" fill="#3AA66B" opacity="0.8" />
-              <ellipse cx="150" cy="161" rx="4" ry="2.5" fill="#3AA66B" opacity="0.7" />
+              <circle cx={C} cy={C} r="24" fill="url(#ovOcean)" />
+              <path d="M137,141 q6,-7 14,-4 q8,3 6,10 q-2,6 -10,6 q-9,1 -11,-5 q-2,-4 1,-7 Z" fill="#3aa66b" opacity="0.92" />
+              <path d="M155,150 q6,-3 10,2 q4,6 -1,11 q-6,5 -10,0 q-4,-5 -3,-9 q1,-3 4,-4 Z" fill="#379f65" opacity="0.85" />
+              <path d="M142,159 q5,-2 8,2 q2,4 -2,7 q-7,3 -9,-2 q-1,-4 3,-7 Z" fill="#2f8f5b" opacity="0.8" />
+              <ellipse cx="151" cy="131" rx="8" ry="2.1" fill="#eaf5ff" opacity="0.5" />
+              <ellipse cx="146" cy="168" rx="6" ry="1.7" fill="#eaf5ff" opacity="0.35" />
             </g>
+            <circle cx={C} cy={C} r="24" fill="url(#ovNight)" style={{ pointerEvents: "none" }} />
             {ORBITS.map(o => {
               const dim = sel && sel !== o.id;
               const isSel = sel === o.id;
@@ -1209,6 +1261,8 @@
               const d = o.polar ? ellipsePath(o.r * 0.32, o.r) : circlePath(o.r);
               return (
                 <g key={o.id} {...wrap}>
+                  <path d={d} fill="none" stroke={o.color} strokeWidth={isSel ? 7 : 4.5}
+                    opacity={dim ? 0.04 : 0.13} style={{ transition: "opacity .3s" }} />
                   <path id={pathId} d={d} fill="none"
                     stroke={o.color} strokeWidth={isSel ? 2.4 : 1.2}
                     strokeDasharray={o.polar ? "3 3" : "none"}
@@ -1220,9 +1274,11 @@
                   {/* satellite */}
                   <g opacity={dim ? 0.3 : 1} style={{ transition: "opacity .3s" }}>
                     <g>
-                      <circle r="3.4" fill={o.color} />
-                      <rect x="-7" y="-1" width="3.5" height="2" fill={o.color} opacity="0.7" />
-                      <rect x="3.5" y="-1" width="3.5" height="2" fill={o.color} opacity="0.7" />
+                      <circle r="7" fill={o.color} opacity="0.22" />
+                      <circle r="3.6" fill={o.color} />
+                      <circle r="1.4" cx="-1" cy="-1" fill="#ffffff" opacity="0.55" />
+                      <rect x="-8" y="-1.2" width="4" height="2.4" rx="0.5" fill={o.color} opacity="0.75" />
+                      <rect x="4" y="-1.2" width="4" height="2.4" rx="0.5" fill={o.color} opacity="0.75" />
                       <animateMotion key={o.id + (sel || "")} dur={`${durFor(o)}s`} repeatCount="indefinite">
                         <mpath href={"#" + pathId} />
                       </animateMotion>
@@ -1316,38 +1372,47 @@
           </div>
 
           <svg className="dv-svg" viewBox="0 0 150 300" role="img" aria-label="Staging animation">
+            <SvgFx p="dv" />
             {/* orbit arc on deploy */}
-            {deployed && <ellipse className="ls-fade" cx="100" cy="70" rx="46" ry="24" fill="none" stroke="#4AF0E0" strokeWidth="1.2" strokeDasharray="3 3" transform="rotate(-16 100 70)" />}
+            {deployed && <g className="ls-fade" transform="rotate(-14 108 56)">
+              <ellipse cx="108" cy="56" rx="36" ry="17" fill="none" stroke="#4AF0E0" strokeWidth="4" opacity="0.14" />
+              <ellipse cx="108" cy="56" rx="36" ry="17" fill="none" stroke="#4AF0E0" strokeWidth="1.2" strokeDasharray="3 3" opacity="0.9" />
+            </g>}
 
             {/* falling first stage */}
             {stage1Gone && (
               <g className="dv-fall">
-                <rect x="-18" y="-46" width="36" height="92" rx="3" fill="#0E1726" stroke="#52E07C" strokeWidth="1.5" />
-                <path d="M-18,30 L-30,46 L-18,46 Z" fill="#0E1726" stroke="#52E07C" strokeWidth="1.2" />
-                <path d="M18,30 L30,46 L18,46 Z" fill="#0E1726" stroke="#52E07C" strokeWidth="1.2" />
+                <rect x="-18" y="-46" width="36" height="92" rx="3" fill="url(#dvMetal)" stroke="#52E07C" strokeWidth="1.2" strokeOpacity="0.7" />
+                <path d="M-18,30 L-30,46 L-18,46 Z" fill="url(#dvMetal)" stroke="#52E07C" strokeWidth="1" strokeOpacity="0.7" />
+                <path d="M18,30 L30,46 L18,46 Z" fill="url(#dvMetal)" stroke="#52E07C" strokeWidth="1" strokeOpacity="0.7" />
               </g>
             )}
 
             {/* exhaust */}
-            {phase === "burn1" && <path className="ls-flame" d="M58,242 L70,290 L82,242 Z" fill="#FF7A45" />}
-            {phase === "burn2" && <path className="ls-flame" d="M64,134 L70,168 L76,134 Z" fill="#F5C842" />}
+            {phase === "burn1" && <path className="ls-flame" d="M58,242 L70,290 L82,242 Z" fill="url(#dvFlame)" />}
+            {phase === "burn2" && <path className="ls-flame" d="M64,134 L70,168 L76,134 Z" fill="url(#dvFlame)" />}
 
             {/* rocket: payload + second stage (+ first stage until gone) */}
             <g style={{ transition: "transform 1s", transform: deployed ? "translateY(-14px)" : "none", transformBox: "fill-box" }}>
               {/* payload */}
-              <path d="M70,40 L78,62 L62,62 Z" fill={deployed ? "#0E1726" : "#0E1726"} stroke="#52E07C" strokeWidth="1.6" />
+              <path d="M70,40 L78,62 L62,62 Z" fill="url(#dvNose)" stroke="#52E07C" strokeWidth="1.4" strokeOpacity="0.8" />
               {/* second stage tank */}
-              <rect x={tank2.x} y={tank2.y} width={tank2.w} height={tank2.h} rx="2" fill="#0E1726" stroke="#F5C842" strokeWidth="1.6" />
-              <rect x={tank2.x} y={tank2.y + (tank2.h - f2h)} width={tank2.w} height={f2h} rx="2" fill="#F5C842" opacity="0.5" style={{ transition: "height 2.4s linear, y 2.4s linear" }} />
+              <rect x={tank2.x} y={tank2.y} width={tank2.w} height={tank2.h} rx="2" fill="url(#dvMetal)" stroke="#F5C842" strokeWidth="1.2" strokeOpacity="0.7" />
+              <rect x={tank2.x} y={tank2.y + (tank2.h - f2h)} width={tank2.w} height={f2h} rx="2" fill="url(#dvFuelG)" opacity="0.85" style={{ transition: "height 2.4s linear, y 2.4s linear" }} />
+              <line x1={tank2.x + 3} y1="96" x2={tank2.x + tank2.w - 3} y2="96" stroke="#42546a" strokeWidth="0.8" />
+              <line x1={tank2.x + 3} y1="114" x2={tank2.x + tank2.w - 3} y2="114" stroke="#42546a" strokeWidth="0.8" />
               {/* interstage */}
-              <rect x="55" y="134" width="30" height="14" fill="#0E1726" stroke="#FF7A45" strokeWidth="1.3" />
+              <rect x="55" y="134" width="30" height="14" fill="url(#dvBand)" stroke="#FF7A45" strokeWidth="1" strokeOpacity="0.7" />
               {/* first stage tank */}
               {!stage1Gone && <>
-                <rect x={tank1.x} y={tank1.y} width={tank1.w} height={tank1.h} rx="3" fill="#0E1726" stroke="#52E07C" strokeWidth="1.6" />
-                <rect x={tank1.x} y={tank1.y + (tank1.h - f1h)} width={tank1.w} height={f1h} rx="3" fill="#4AF0E0" opacity="0.5" style={{ transition: "height 2.6s linear, y 2.6s linear" }} />
-                <path d="M52,222 L40,242 L52,242 Z" fill="#0E1726" stroke="#52E07C" strokeWidth="1.3" />
-                <path d="M88,222 L100,242 L88,242 Z" fill="#0E1726" stroke="#52E07C" strokeWidth="1.3" />
-                <path d="M58,242 L62,250 L78,250 L82,242 Z" fill="#1A2C3E" stroke="#FF7A45" strokeWidth="1" />
+                <rect x={tank1.x} y={tank1.y} width={tank1.w} height={tank1.h} rx="3" fill="url(#dvMetal)" stroke="#52E07C" strokeWidth="1.2" strokeOpacity="0.7" />
+                <rect x={tank1.x} y={tank1.y + (tank1.h - f1h)} width={tank1.w} height={f1h} rx="3" fill="url(#dvFuelC)" opacity="0.85" style={{ transition: "height 2.6s linear, y 2.6s linear" }} />
+                <line x1={tank1.x + 3} y1="173" x2={tank1.x + tank1.w - 3} y2="173" stroke="#42546a" strokeWidth="0.8" />
+                <line x1={tank1.x + 3} y1="196" x2={tank1.x + tank1.w - 3} y2="196" stroke="#42546a" strokeWidth="0.8" />
+                <line x1={tank1.x + 3} y1="219" x2={tank1.x + tank1.w - 3} y2="219" stroke="#42546a" strokeWidth="0.8" />
+                <path d="M52,222 L40,242 L52,242 Z" fill="url(#dvMetal)" stroke="#52E07C" strokeWidth="1" strokeOpacity="0.7" />
+                <path d="M88,222 L100,242 L88,242 Z" fill="url(#dvMetal)" stroke="#52E07C" strokeWidth="1" strokeOpacity="0.7" />
+                <path d="M58,242 L62,250 L78,250 L82,242 Z" fill="url(#dvBell)" stroke="#FF7A45" strokeWidth="1" strokeOpacity="0.8" />
               </>}
             </g>
           </svg>

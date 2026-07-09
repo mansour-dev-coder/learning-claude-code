@@ -279,6 +279,7 @@
       width: 150px; height: 150px; border-radius: 50%; margin: 8px auto 18px;
       display: grid; place-items: center;
       background: conic-gradient(var(--ring-color) var(--ring-deg), var(--surface-2) 0);
+      filter: drop-shadow(0 0 14px rgba(74,240,224,.22));
     }
     .score-inner {
       width: 122px; height: 122px; border-radius: 50%; background: var(--surface);
@@ -355,7 +356,11 @@
 
     /* 4) Delta-v budget */
     .dv-barwrap { margin-bottom: 8px; }
-    .dv-bar { display: flex; height: 26px; border-radius: 7px; overflow: hidden; background: #0A1018; border: 1px solid var(--line); }
+    .dv-bar { display: flex; height: 26px; border-radius: 7px; overflow: hidden; background: #0A1018; border: 1px solid var(--line); position: relative; }
+    .dv-bar::after {
+      content: ""; position: absolute; inset: 0; border-radius: 7px; pointer-events: none;
+      background: linear-gradient(180deg, rgba(255,255,255,.17), transparent 46%);
+    }
     .dv-seg { height: 100%; transition: width 1.4s ease; }
     .dv-legend { display: flex; gap: 16px; flex-wrap: wrap; margin: 10px 0 4px; font-size: 12px; color: var(--muted); }
     .dv-legend span { display: flex; align-items: center; gap: 6px; }
