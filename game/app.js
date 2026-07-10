@@ -1275,6 +1275,11 @@ function DeltaVBudget() {
     const timers = useRef([]);
     const spd = useCountUp(spdTarget, 2300);
     const mass = DV_MASS[phase];
+    const SHARE_DUR = { idle: 300, burn1: 2450, sep: 500, burn2: 2400, orbit: 900 };
+    const shareDur = SHARE_DUR[phase];
+    const propA = Math.round(useCountUp(mass.prop, shareDur));
+    const strA = Math.round(useCountUp(mass.str, shareDur));
+    const payA = Math.round(useCountUp(mass.pay, shareDur));
     useEffect(() => () => timers.current.forEach(clearTimeout), []);
     const play = () => {
         timers.current.forEach(clearTimeout);
@@ -1302,29 +1307,29 @@ function DeltaVBudget() {
     return (React.createElement("div", { className: "gfx" },
         React.createElement("div", { className: "dv-barwrap" },
             React.createElement("div", { className: "dv-axis" }, "SHARE OF REMAINING MASS"),
-            phase === "sep" && (React.createElement("div", { className: "dv-eject", style: { left: (mass.prop + mass.str / 2) + "%" } }, "STAGE 1 EJECTED \u25BC")),
+            phase === "sep" && (React.createElement("div", { className: "dv-eject", style: { left: (propA + strA / 2) + "%" } }, "STAGE 1 EJECTED \u25BC")),
             React.createElement("div", { className: "dv-bar" },
-                React.createElement("div", { className: "dv-seg", style: { width: mass.prop + "%", background: "var(--cyan)" } }, segText(mass.prop)),
-                React.createElement("div", { className: "dv-seg", style: { width: mass.str + "%", background: "var(--orange)", boxShadow: phase === "sep" ? "0 0 14px rgba(255,122,69,.9)" : "none" } }, segText(mass.str)),
-                React.createElement("div", { className: "dv-seg", style: { width: mass.pay + "%", background: "var(--green)", boxShadow: mass.pay >= 50 ? "0 0 14px rgba(82,224,124,.55)" : "none" } }, segText(mass.pay))),
+                React.createElement("div", { className: "dv-seg", style: { width: propA + "%", background: "var(--cyan)" } }, segText(propA)),
+                React.createElement("div", { className: "dv-seg", style: { width: strA + "%", background: "var(--orange)", boxShadow: phase === "sep" ? "0 0 14px rgba(255,122,69,.9)" : "none" } }, segText(strA)),
+                React.createElement("div", { className: "dv-seg", style: { width: payA + "%", background: "var(--green)", boxShadow: payA >= 50 ? "0 0 14px rgba(82,224,124,.55)" : "none" } }, segText(payA))),
             React.createElement("div", { className: "dv-legend" },
                 React.createElement("span", null,
                     React.createElement("i", { style: { background: "var(--cyan)" } }),
                     "Propellant ",
                     React.createElement("b", null,
-                        mass.prop,
+                        propA,
                         "%")),
                 React.createElement("span", null,
                     React.createElement("i", { style: { background: "var(--orange)" } }),
                     "Structure ",
                     React.createElement("b", null,
-                        mass.str,
+                        strA,
                         "%")),
                 React.createElement("span", null,
                     React.createElement("i", { style: { background: "var(--green)" } }),
                     "Payload ",
                     React.createElement("b", null,
-                        mass.pay,
+                        payA,
                         "%"))),
             React.createElement("p", { className: "dv-status" }, mass.label)),
         React.createElement("svg", { className: "dv-svg", viewBox: "0 0 200 300", role: "img", "aria-label": "Staging animation" },

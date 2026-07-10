@@ -1334,6 +1334,11 @@
       const timers = useRef([]);
       const spd = useCountUp(spdTarget, 2300);
       const mass = DV_MASS[phase];
+      const SHARE_DUR = { idle: 300, burn1: 2450, sep: 500, burn2: 2400, orbit: 900 };
+      const shareDur = SHARE_DUR[phase];
+      const propA = Math.round(useCountUp(mass.prop, shareDur));
+      const strA  = Math.round(useCountUp(mass.str, shareDur));
+      const payA  = Math.round(useCountUp(mass.pay, shareDur));
 
       useEffect(() => () => timers.current.forEach(clearTimeout), []);
 
@@ -1363,17 +1368,17 @@
           <div className="dv-barwrap">
             <div className="dv-axis">SHARE OF REMAINING MASS</div>
             {phase === "sep" && (
-              <div className="dv-eject" style={{ left: (mass.prop + mass.str / 2) + "%" }}>STAGE 1 EJECTED ▼</div>
+              <div className="dv-eject" style={{ left: (propA + strA / 2) + "%" }}>STAGE 1 EJECTED ▼</div>
             )}
             <div className="dv-bar">
-              <div className="dv-seg" style={{ width: mass.prop + "%", background: "var(--cyan)" }}>{segText(mass.prop)}</div>
-              <div className="dv-seg" style={{ width: mass.str + "%", background: "var(--orange)", boxShadow: phase === "sep" ? "0 0 14px rgba(255,122,69,.9)" : "none" }}>{segText(mass.str)}</div>
-              <div className="dv-seg" style={{ width: mass.pay + "%", background: "var(--green)", boxShadow: mass.pay >= 50 ? "0 0 14px rgba(82,224,124,.55)" : "none" }}>{segText(mass.pay)}</div>
+              <div className="dv-seg" style={{ width: propA + "%", background: "var(--cyan)" }}>{segText(propA)}</div>
+              <div className="dv-seg" style={{ width: strA + "%", background: "var(--orange)", boxShadow: phase === "sep" ? "0 0 14px rgba(255,122,69,.9)" : "none" }}>{segText(strA)}</div>
+              <div className="dv-seg" style={{ width: payA + "%", background: "var(--green)", boxShadow: payA >= 50 ? "0 0 14px rgba(82,224,124,.55)" : "none" }}>{segText(payA)}</div>
             </div>
             <div className="dv-legend">
-              <span><i style={{ background: "var(--cyan)" }} />Propellant <b>{mass.prop}%</b></span>
-              <span><i style={{ background: "var(--orange)" }} />Structure <b>{mass.str}%</b></span>
-              <span><i style={{ background: "var(--green)" }} />Payload <b>{mass.pay}%</b></span>
+              <span><i style={{ background: "var(--cyan)" }} />Propellant <b>{propA}%</b></span>
+              <span><i style={{ background: "var(--orange)" }} />Structure <b>{strA}%</b></span>
+              <span><i style={{ background: "var(--green)" }} />Payload <b>{payA}%</b></span>
             </div>
             <p className="dv-status">{mass.label}</p>
           </div>
