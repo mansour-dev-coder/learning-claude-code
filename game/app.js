@@ -9,14 +9,17 @@ const RANKS = [
     { xp: 450, name: "Pilot", icon: "▮▮▮" },
     { xp: 800, name: "Mission Specialist", icon: "◆" },
     { xp: 1150, name: "Commander", icon: "◆◆" },
-    { xp: 1500, name: "Flight Director", icon: "★" }
+    { xp: 1500, name: "Flight Director", icon: "★" },
+    { xp: 1900, name: "Mission Director", icon: "★★" }
 ];
 const MODULE_BADGES = {
     1: { icon: "🚀", name: "Rocket Scientist" },
     2: { icon: "🛰️", name: "Orbit Achiever" },
     3: { icon: "🧭", name: "Orbit Architect" },
     4: { icon: "⚙️", name: "Spectrum Specialist" },
-    5: { icon: "💼", name: "Space Tycoon" }
+    5: { icon: "💼", name: "Space Tycoon" },
+    6: { icon: "🦅", name: "Falcon Flyer" },
+    7: { icon: "🛸", name: "Starship Commander" }
 };
 function rankFor(xp) {
     let idx = 0;
@@ -367,6 +370,124 @@ const MODULES = [
             { q: "What's the key difference between rideshare and a dedicated launch?", options: ["Rideshare is always more reliable", "Rideshare is cheaper but you accept their orbit and schedule; dedicated gives you your exact orbit and schedule", "Dedicated launches are always cheaper per kg", "There is no real difference"], answer: 1, explain: "Rideshare (~$5,500/kg) is the cheap bus on a fixed route; a dedicated launch (~€10,000/kg) is the taxi that takes you exactly where and when you want." },
             { q: "Which competitor is clearly thriving, with a 100% success rate in 2025?", options: ["Astra", "Virgin Orbit", "Orbex", "Rocket Lab"], answer: 3, explain: "Rocket Lab has flown 79 Electron launches at 94.9% success (100% in 2025) and is building the medium-lift Neutron. Astra, Virgin Orbit and Orbex all collapsed." },
             { q: "What is the rocket industry's 'valley of death'?", options: ["A dangerous launch trajectory", "The deadly cycle of delays and a failed first flight scaring off investors so the company can't raise more money", "A region where rockets crash", "The cold storage area for propellant"], answer: 1, explain: "Raise funding → delays → first flight fails → nervous investors → can't raise the next round → collapse. Survivors need deep pockets, fast iteration and government anchor customers." }
+        ]
+    },
+    /* -------------------- MODULE 6 -------------------- */
+    {
+        id: 6, accent: "#FF7A45",
+        title: "SpaceX & Falcon 9",
+        subtitle: "The rocket that made reuse boring — in the best way.",
+        lessons: [
+            {
+                tab: "The company that changed the math",
+                blocks: [
+                    { type: "p", text: `SpaceX was founded in 2002 with a goal most of the industry considered absurd: make reaching space radically cheaper. Its first rocket, the little Falcon 1, failed three times in a row — and by 2008 the company was weeks from bankruptcy.` },
+                    { type: "p", text: `Then the fourth Falcon 1 reached orbit, NASA signed a rescue-sized cargo contract, and the company survived to build something bigger. Every big number you'll see in this mission traces back to surviving that one make-or-break flight.` },
+                    { type: "analogy", text: `Imagine if every airline threw the plane away after a single flight. A ticket from London to New York would cost millions. That was rocketry for 60 years: build a machine the size of a building, use it once, drop it in the ocean. SpaceX's founding bet was that rockets could work like planes.` },
+                    { type: "term", term: "Reusability", plain: `Land the booster, refuel it, fly it again — the way a plane parks at the gate, refuels, and takes off again.`, def: `<b>Reusability</b> means recovering a rocket stage intact and flying it repeatedly, with inspection and refurbishment between flights instead of building a new one each time. It turns the biggest single cost of a launch — the hardware — into something you amortise over dozens of missions.` },
+                    { type: "insight", text: `Remember vertical integration from the Isar mission? SpaceX pioneered it — building engines, structures and software in-house — and paired it with reuse. Together those two ideas cut launch costs by roughly 90% versus old-school rockets.` }
+                ]
+            },
+            {
+                tab: "Falcon 9: the workhorse",
+                blocks: [
+                    { type: "specs", items: [
+                            { k: "Height", v: "70 m (a 20-storey building)" },
+                            { k: "Stages", v: "Two — booster lands, upper stage is expended" },
+                            { k: "First-stage engines", v: "9 × Merlin" },
+                            { k: "Payload to LEO", v: "Up to ~22,800 kg" },
+                            { k: "2025 cadence", v: "165 launches — one every 2.2 days" },
+                            { k: "Total flights", v: "650+ by mid-2026, success rate above 99%" },
+                            { k: "Booster record", v: "36 flights by one booster (B1067, July 2026)" }
+                        ] },
+                    { type: "term", term: "Droneship vs return-to-launch-site", plain: `If you sprint flat-out away from home, you can't jog all the way back — easier if someone parks a ship where you'll come down.`, def: `Heavy, fast missions send the booster too far downrange to fly home, so it lands on a floating <b>droneship</b> at sea. Lighter missions leave enough fuel to reverse course and land back at the launch site.` },
+                    { type: "analogy", text: `A Falcon 9 landing is like balancing a pencil upright on your fingertip — except the pencil is 41 metres tall, falling out of the sky, and gets exactly one chance to light its engine at the right moment.` },
+                    { type: "insight", text: `This is where Mission 5's numbers come from. Rideshare at ~$5,500/kg exists because the most expensive part of the rocket flies 20, 30, even 36 times. The airline analogy stopped being an analogy.` }
+                ]
+            },
+            {
+                tab: "The speed story",
+                blocks: [
+                    { type: "p", text: `Watch any launch stream and two numbers sit in the corner: altitude and speed. Altitude grabs your attention first — but speed is the real plot. Here's the whole story in one picture. Press play and watch what each stage actually does:` },
+                    { type: "velocityTimeline" },
+                    { type: "analogy", text: `Think of a relay between a sprinter and a marathon runner. The booster is the sprinter: brutal power for two and a half minutes, then it hands over — its race is done. The upper stage is the marathon runner: smaller, efficient, and it runs all the way to 28,000 km/h.` },
+                    { type: "term", term: "MECO — Main Engine Cutoff", plain: `The sprinter letting go of the baton.`, def: `<b>MECO</b> is the moment the booster's engines shut down — about 2.5 minutes in, at roughly 6,000–8,000 km/h and ~70 km up. Here's the surprise: that's only about a QUARTER of orbital speed. The upper stage does most of the real work.` },
+                    { type: "insight", text: `The booster quits "early" on purpose. Every extra km/h it gains is speed it must survive coming back through the air. Stay slow, and the trip home is possible at all — that's the secret that makes landing (and reuse) work.` },
+                    { type: "p", text: `So when you read the telemetry: altitude climbs early and then almost stops mattering — but the speed number keeps grinding upward until SECO at ~28,000 km/h. That's ten times faster than a rifle bullet, and it is the only number that decides whether you're in orbit.` }
+                ]
+            }
+        ],
+        quiz: [
+            { q: "What saved SpaceX from bankruptcy in 2008?", options: ["A successful Starship test", "The fourth Falcon 1 reaching orbit, followed by a NASA contract", "Selling the company to NASA", "The first booster landing"], answer: 1, explain: "After three straight failures, the fourth Falcon 1 reached orbit in September 2008 and NASA's cargo contract kept the company alive." },
+            { q: "In the relay analogy, which stage is the 'marathon runner' that reaches ~28,000 km/h?", options: ["The booster (first stage)", "The upper (second) stage", "The payload fairing", "The launch tower"], answer: 1, explain: "The booster sprints for ~2.5 minutes and hands over; the upper stage does the long, patient burn all the way to orbital speed." },
+            { q: "At MECO, the Falcon 9 booster is travelling at roughly what fraction of orbital speed?", options: ["Almost all of it", "About three-quarters", "About a quarter", "It has already passed orbital speed"], answer: 2, explain: "MECO happens at roughly 6,000–8,000 km/h — only about a quarter of the ~28,000 km/h needed for orbit. The upper stage does the rest." },
+            { q: "Why does the booster shut down and separate so 'early'?", options: ["Its fuel tank is still full", "Staying slow keeps the return trip home survivable", "The upper stage engines are more powerful", "Regulations limit booster speed"], answer: 1, explain: "Every extra km/h is speed the booster must survive on the way back through the atmosphere. Quitting early keeps it slow enough to land — which is what makes reuse possible." },
+            { q: "How often did Falcon 9 launch in 2025?", options: ["About once a month", "About once a week", "About once every 2.2 days", "Twice a year"], answer: 2, explain: "165 launches in 2025 — one every 2.2 days, with every payload delivered successfully. Reuse stopped being an experiment and became the default." }
+        ]
+    },
+    /* -------------------- MODULE 7 -------------------- */
+    {
+        id: 7, accent: "#F5C842",
+        title: "Starship",
+        subtitle: "The biggest flying machine ever built — and how it comes home.",
+        lessons: [
+            {
+                tab: "The biggest rocket ever",
+                blocks: [
+                    { type: "specs", items: [
+                            { k: "Full stack", v: "~121 m tall — higher than the Statue of Liberty, torch included" },
+                            { k: "Booster", v: "Super Heavy — 33 Raptor engines" },
+                            { k: "Thrust", v: "Roughly double the Saturn V moon rocket" },
+                            { k: "Payload goal", v: "100+ tonnes to LEO, fully reusable" },
+                            { k: "Material", v: "Stainless steel" },
+                            { k: "Current version", v: "V3, flying since 2026" }
+                        ] },
+                    { type: "term", term: "Why stainless steel?", plain: `It's the cast-iron pan of materials: cheap, tough, and it shrugs at heat that would ruin fancier cookware.`, def: `Steel costs a fraction of aerospace carbon fibre, keeps its strength at re-entry temperatures, and is easy to cut and re-weld — perfect for a program that rebuilds its rocket design every few months.` },
+                    { type: "insight", text: `Falcon 9 reuses its booster but still throws away an upper stage every flight. Starship's whole point is FULL reuse — both stages come home. That's the last step of the airline analogy: nothing gets thrown away at all.` }
+                ]
+            },
+            {
+                tab: "Hot staging & the catch",
+                blocks: [
+                    { type: "term", term: "Hot staging", plain: `A relay runner who starts sprinting before the baton touches their hand.`, def: `The ship lights its engines while still attached to the booster, physically pushing off it. No coasting gap, no wasted seconds — the handover happens at full power.` },
+                    { type: "p", text: `The handover comes at about 5,700 km/h — barely a fifth of orbital speed. Then the booster does something no rocket did before 2024: it turns around and flies home to be caught in mid-air. Press play:` },
+                    { type: "boosterReturn" },
+                    { type: "term", term: "Boostback burn", plain: `You sprinted past your bus stop — so you stop, turn, and jog back.`, def: `After the flip, the booster relights around 13 of its engines to cancel its downrange speed and push its trajectory back toward the launch tower.` },
+                    { type: "p", text: `In October 2024, on only its fifth flight, the tower's "chopstick" arms caught a returning Super Heavy out of the sky. Why catch instead of landing legs? Legs are dead weight carried on every flight — the tower does the catching, so the booster stays light and can be set straight back on the pad.` },
+                    { type: "insight", text: `The booster can come home precisely BECAUSE it stays slow. Speed is what burns you: the ship, coming back from near-orbital speed, needs thousands of heat-shield tiles. The booster, at a fifth of that speed, needs none.` }
+                ]
+            },
+            {
+                tab: "Why 'almost orbit'?",
+                blocks: [
+                    { type: "p", text: `Watch a Starship test and you'll hear something odd: the ship reaches "nearly orbital velocity" — then splashes down in the ocean an hour later. Why go 26,000 km/h and deliberately stop short of orbit?` },
+                    { type: "analogy", text: `It's like swimming the length of the pool while keeping one hand near the rail. Test flights are aimed a hair short of orbital speed ON PURPOSE — so if the engines died at the worst moment, gravity itself guarantees the ship falls back into an empty stretch of ocean instead of becoming a 100-tonne wreck circling Earth out of control.` },
+                    { type: "term", term: "Suborbital by design", plain: `Fast enough to prove everything works; slow enough that coming down is guaranteed.`, def: `A trajectory a fraction below orbital velocity always re-enters on its own — no engine restart required. Once the vehicle proves it can survive re-entry and restart engines in space, flights go fully orbital.` },
+                    { type: "p", text: `The test campaign tells the iteration story: the first full-stack flight in April 2023 tumbled and exploded within minutes. Flight 5 caught the booster in October 2024. A rocky 2025 broke several ships — then the last flights of the year flew clean. The upgraded V3 debuted in 2026, and Flight 13 in July 2026 deployed 20 Starlink satellites and came through re-entry with its heat shield intact (the booster's landing burn failed — one more fix for the list).` },
+                    { type: "insight", text: `Remember the valley of death from the Business mission? Starship is what it looks like when a company has deep enough pockets to blow up prototypes on purpose and treat every explosion as data. Isar's 30-second first flight was the same philosophy at a smaller scale.` }
+                ]
+            },
+            {
+                tab: "Three rockets, one ladder",
+                blocks: [
+                    { type: "p", text: `You've now met three very different rockets. Here they are, to scale:` },
+                    { type: "sizeComparison" },
+                    { type: "parts", items: [
+                            { k: "Spectrum", v: "The taxi — small, dedicated, your exact orbit at ~€10,000/kg. Expendable, up to 1,000 kg to LEO." },
+                            { k: "Falcon 9", v: "The bus network — reliable, constant, ~$5,500/kg rideshare. Booster reused up to 36×, ~22,800 kg to LEO." },
+                            { k: "Starship", v: "The container ship — 100+ tonnes at a time, aiming for full reuse and radically lower cost per kg." }
+                        ] },
+                    { type: "p", text: `And notice the speed pattern you now understand: every booster lets go early — Falcon 9's at ~6,000–8,000 km/h, Super Heavy's at ~5,700 km/h — and every upper stage does the long climb to ~28,000. The sprinter-and-marathoner design isn't a SpaceX trick; it's the physics of staging you learned back in Mission 2.` },
+                    { type: "insight", text: `Three rockets, three businesses, one ladder of speed. If you can read a launch stream's velocity number and know exactly who's doing the work and why — you've closed the gap you came here with.` }
+                ]
+            }
+        ],
+        quiz: [
+            { q: "What is 'hot staging'?", options: ["Launching in hot weather", "The ship lights its engines while still attached, pushing off the booster", "Burning leftover fuel after landing", "Heating the fuel before launch"], answer: 1, explain: "Like a relay runner starting before the baton arrives: the ship ignites while still attached — no coasting gap in the handover." },
+            { q: "Super Heavy hands over at ~5,700 km/h. Why let go at only a fifth of orbital speed?", options: ["Its engines overheat beyond that", "Staying slow makes the return and catch survivable", "The ship is faster at low altitude", "Air traffic rules"], answer: 1, explain: "Speed is what burns you. At a fifth of orbital speed the booster needs no heat shield and can fly home — the ship, going near-orbital, needs thousands of tiles." },
+            { q: "Why does the tower catch the booster instead of it landing on legs?", options: ["Legs are illegal in Texas", "Legs are dead weight on every flight — catching keeps the booster light and speeds up reflight", "The ground is too soft", "It looks better on camera"], answer: 1, explain: "No legs means less mass to carry to the edge of space and back, and a caught booster can go straight back onto the pad." },
+            { q: "Why do Starship test flights deliberately stop just short of orbital velocity?", options: ["The engines can't reach orbital speed", "So gravity guarantees a safe ocean re-entry even if everything fails", "To save fuel for landing", "Orbits require a special licence"], answer: 1, explain: "A hair below orbital speed, the trajectory always comes back down into empty ocean on its own — no risk of an uncontrolled 100-tonne wreck stuck in orbit." },
+            { q: "What makes Starship's reuse goal different from Falcon 9's?", options: ["It reuses only the fairing", "Both stages are designed to come home — full reuse, nothing thrown away", "It is refuelled in flight by Falcon 9", "It has no second stage"], answer: 1, explain: "Falcon 9 lands its booster but expends the upper stage. Starship aims to recover both — the final step of making a rocket work like an airliner." }
         ]
     }
 ];
@@ -1392,6 +1513,267 @@ function DeltaVBudget() {
             React.createElement("button", { className: "btn btn-primary gfx-btn", onClick: play, disabled: running }, running ? "Launching…" : phase === "orbit" ? "↺ Replay staging" : "▶ Play staging"))));
 }
 /* =================================================================
+   5) Velocity timeline (Module 6) — the speed story in one chart.
+   At staging the line splits: booster falls back to zero while the
+   upper stage climbs on toward orbital velocity.
+   ================================================================= */
+const VT_DATA = {
+    f9: {
+        name: "FALCON 9",
+        ship: [[0, 0], [72, 1300], [160, 7600], [300, 15500], [420, 22800], [510, 27500], [540, 27600]],
+        booster: [[160, 7600], [240, 4600], [300, 4000], [360, 4800], [400, 2100], [460, 1200], [500, 0]],
+        events: [
+            { t: 72, label: "MAX-Q" }, { t: 160, label: "MECO — booster lets go" },
+            { t: 400, label: "ENTRY BURN" }, { t: 500, label: "BOOSTER LANDS" }, { t: 512, label: "SECO — orbit" }
+        ],
+        note: "The upper stage reaches orbital velocity — the booster never even got close."
+    },
+    ss: {
+        name: "STARSHIP",
+        ship: [[0, 0], [70, 1500], [160, 5700], [320, 14500], [440, 22800], [525, 26400], [540, 26500]],
+        booster: [[160, 5700], [205, 3900], [250, 1400], [295, 1000], [340, 2200], [400, 2600], [425, 1200], [445, 0]],
+        events: [
+            { t: 70, label: "MAX-Q" }, { t: 160, label: "HOT-STAGE at ~5,700 km/h" },
+            { t: 250, label: "BOOSTBACK BURN" }, { t: 445, label: "TOWER CATCH" }, { t: 528, label: "SECO — a hair short of orbit" }
+        ],
+        note: "Test flights stop deliberately just below the orbital line — so gravity guarantees a safe return."
+    }
+};
+function vtInterp(points, t) {
+    if (t < points[0][0])
+        return null;
+    if (t >= points[points.length - 1][0])
+        return points[points.length - 1][1];
+    for (let i = 1; i < points.length; i++) {
+        if (t <= points[i][0]) {
+            const [t0, v0] = points[i - 1], [t1, v1] = points[i];
+            return v0 + (v1 - v0) * ((t - t0) / (t1 - t0));
+        }
+    }
+    return null;
+}
+function VelocityTimeline() {
+    const [rocket, setRocket] = useState("f9");
+    const [progress, setProgress] = useState(0);
+    const [playing, setPlaying] = useState(false);
+    const rafRef = useRef();
+    const d = VT_DATA[rocket];
+    const T_MAX = 540, V_MAX = 29500;
+    const px = (t) => 40 + (t / T_MAX) * 288;
+    const py = (v) => 176 - (v / V_MAX) * 158;
+    useEffect(() => {
+        if (!playing)
+            return;
+        let last = performance.now();
+        const tick = (now) => {
+            const dt = (now - last) / 1000;
+            last = now;
+            setProgress(p => {
+                const n = Math.min(1, p + dt / 8);
+                if (n >= 1)
+                    setPlaying(false);
+                return n;
+            });
+            rafRef.current = requestAnimationFrame(tick);
+        };
+        rafRef.current = requestAnimationFrame(tick);
+        return () => cancelAnimationFrame(rafRef.current);
+    }, [playing]);
+    const start = (r) => {
+        if (r !== rocket)
+            setRocket(r);
+        setProgress(0);
+        setPlaying(true);
+    };
+    const curT = progress * T_MAX;
+    const slice = (points) => {
+        const out = points.filter(p => p[0] <= curT);
+        if (!out.length)
+            return out;
+        const v = vtInterp(points, curT);
+        if (v !== null && curT < points[points.length - 1][0])
+            out.push([curT, v]);
+        return out;
+    };
+    const shipPts = slice(d.ship);
+    const boosterPts = slice(d.booster);
+    const toStr = (pts) => pts.map(p => px(p[0]).toFixed(1) + "," + py(p[1]).toFixed(1)).join(" ");
+    const shipV = vtInterp(d.ship, curT);
+    const boosterV = curT >= d.booster[0][0] ? vtInterp(d.booster, curT) : null;
+    const boosterDone = curT >= d.booster[d.booster.length - 1][0];
+    const fmt = (v) => v === null ? "—" : Math.round(v).toLocaleString();
+    return (React.createElement("div", { className: "gfx" },
+        React.createElement("div", { className: "vt-toggle" },
+            ["f9", "ss"].map(r => (React.createElement("button", { key: r, className: "tab" + (rocket === r ? " active" : ""), onClick: () => start(r) }, VT_DATA[r].name))),
+            React.createElement("div", { className: "vt-readout" },
+                React.createElement("span", null,
+                    "SHIP ",
+                    React.createElement("b", { style: { color: "var(--cyan)" } }, fmt(shipV)),
+                    " km/h"),
+                React.createElement("span", null,
+                    "BOOSTER ",
+                    React.createElement("b", { style: { color: "var(--green)" } }, boosterDone ? (rocket === "ss" ? "CAUGHT" : "LANDED") : fmt(boosterV)),
+                    !boosterDone && boosterV !== null ? " km/h" : ""))),
+        React.createElement("svg", { className: "vt-svg", viewBox: "0 0 340 196", role: "img", "aria-label": "Velocity over time" },
+            React.createElement(SvgFx, { p: "vt" }),
+            React.createElement("line", { x1: "40", y1: "176", x2: "332", y2: "176", stroke: "#2a3a50", strokeWidth: "1" }),
+            React.createElement("line", { x1: "40", y1: "12", x2: "40", y2: "176", stroke: "#2a3a50", strokeWidth: "1" }),
+            [[10000, "10k"], [20000, "20k"]].map(([v, l]) => (React.createElement("g", { key: v },
+                React.createElement("line", { x1: "40", y1: py(v), x2: "332", y2: py(v), stroke: "#1c2a3e", strokeWidth: "0.7" }),
+                React.createElement("text", { x: "35", y: py(v) + 2.5, textAnchor: "end", fill: "#5c6f8a", fontFamily: "ui-monospace, Menlo, monospace", fontSize: "7" }, l)))),
+            React.createElement("line", { x1: "40", y1: py(28000), x2: "332", y2: py(28000), stroke: "#4AF0E0", strokeWidth: "1", strokeDasharray: "5 4", opacity: "0.55" }),
+            React.createElement("text", { x: "44", y: py(28000) - 4, fill: "#4AF0E0", fontFamily: "ui-monospace, Menlo, monospace", fontSize: "7.5", opacity: "0.9", letterSpacing: "1" }, "ORBITAL VELOCITY ~28,000 KM/H"),
+            React.createElement("text", { x: "332", y: "188", textAnchor: "end", fill: "#5c6f8a", fontFamily: "ui-monospace, Menlo, monospace", fontSize: "7" }, "FLIGHT TIME \u2192 ~9 MIN"),
+            boosterPts.length > 1 && React.createElement("polyline", { points: toStr(boosterPts), fill: "none", stroke: "#52E07C", strokeWidth: "4", opacity: "0.16" }),
+            boosterPts.length > 1 && React.createElement("polyline", { points: toStr(boosterPts), fill: "none", stroke: "#52E07C", strokeWidth: "1.6" }),
+            shipPts.length > 1 && React.createElement("polyline", { points: toStr(shipPts), fill: "none", stroke: "#4AF0E0", strokeWidth: "4", opacity: "0.16" }),
+            shipPts.length > 1 && React.createElement("polyline", { points: toStr(shipPts), fill: "none", stroke: "#4AF0E0", strokeWidth: "1.8" }),
+            shipV !== null && progress > 0 && !boosterDone && boosterV !== null && (React.createElement("circle", { cx: px(curT), cy: py(boosterV), r: "3", fill: "#52E07C", opacity: "0.95" })),
+            shipV !== null && progress > 0 && progress < 1 && (React.createElement("circle", { cx: px(curT), cy: py(shipV), r: "3.4", fill: "#4AF0E0" })),
+            d.events.filter(e => e.t <= curT).map((e, i) => {
+                const onBooster = e.t >= d.booster[0][0] && e.t <= d.booster[d.booster.length - 1][0] && !/SECO|MAX-Q|MECO|HOT-STAGE/.test(e.label);
+                const v = onBooster ? vtInterp(d.booster, e.t) : vtInterp(d.ship, e.t);
+                if (v === null)
+                    return null;
+                return React.createElement("circle", { key: i, cx: px(e.t), cy: py(v), r: "2.6", fill: "#F5C842", stroke: "#07090F", strokeWidth: "0.8" });
+            })),
+        React.createElement("div", { className: "vt-events" }, d.events.map((e, i) => (React.createElement("span", { key: i, className: "vt-chip" + (e.t <= curT ? " lit" : "") }, e.label)))),
+        React.createElement("p", { className: "ls-desc" }, progress >= 1 ? d.note : "Cyan = upper stage (the marathon runner). Green = booster (the sprinter, who quits early and comes home)."),
+        React.createElement("div", { className: "gfx-controls" },
+            React.createElement("button", { className: "btn btn-primary gfx-btn", onClick: () => start(rocket), disabled: playing }, playing ? "Flying…" : progress >= 1 ? "↺ Replay flight" : "▶ Play flight"))));
+}
+/* =================================================================
+   6) Booster return & catch (Module 7)
+   ================================================================= */
+const BR_KEYS = [
+    { p: 0, x: 80, y: 200, rot: 0, v: 0, label: "ON THE PAD — 33 engines ready" },
+    { p: 0.18, x: 148, y: 92, rot: 22, v: 4200, label: "ASCENT — climbing and tilting downrange" },
+    { p: 0.28, x: 190, y: 58, rot: 32, v: 5700, label: "HOT-STAGE — ship lights engines and pulls away at ~5,700 km/h" },
+    { p: 0.36, x: 212, y: 48, rot: 135, v: 4300, label: "FLIP — the booster swings around" },
+    { p: 0.5, x: 196, y: 42, rot: 180, v: 1500, label: "BOOSTBACK BURN — cancelling downrange speed" },
+    { p: 0.66, x: 150, y: 62, rot: 180, v: 2300, label: "COASTING — falling back toward the tower" },
+    { p: 0.8, x: 106, y: 82, rot: 180, v: 2600, label: "ENTRY BURN — braking against thickening air" },
+    { p: 0.92, x: 88, y: 96, rot: 180, v: 900, label: "LANDING BURN — the final brake" },
+    { p: 1, x: 82, y: 103, rot: 180, v: 0, label: "CAUGHT — the chopsticks close around it" }
+];
+function BoosterReturn() {
+    const [progress, setProgress] = useState(0);
+    const [playing, setPlaying] = useState(false);
+    const rafRef = useRef();
+    useEffect(() => {
+        if (!playing)
+            return;
+        let last = performance.now();
+        const tick = (now) => {
+            const dt = (now - last) / 1000;
+            last = now;
+            setProgress(p => {
+                const n = Math.min(1, p + dt / 10);
+                if (n >= 1)
+                    setPlaying(false);
+                return n;
+            });
+            rafRef.current = requestAnimationFrame(tick);
+        };
+        rafRef.current = requestAnimationFrame(tick);
+        return () => cancelAnimationFrame(rafRef.current);
+    }, [playing]);
+    let a = BR_KEYS[0], b = BR_KEYS[BR_KEYS.length - 1];
+    for (let i = 1; i < BR_KEYS.length; i++) {
+        if (progress <= BR_KEYS[i].p) {
+            a = BR_KEYS[i - 1];
+            b = BR_KEYS[i];
+            break;
+        }
+    }
+    const f = b.p === a.p ? 0 : (progress - a.p) / (b.p - a.p);
+    const lerp = (k) => a[k] + (b[k] - a[k]) * f;
+    const bx = lerp("x"), by = lerp("y"), rot = lerp("rot"), v = Math.round(lerp("v"));
+    const label = f > 0.5 ? b.label : a.label;
+    const thrust = progress < 0.28 || (progress > 0.4 && progress < 0.58) || (progress > 0.74 && progress < 0.99);
+    const shipF = Math.max(0, Math.min(1, (progress - 0.28) / 0.24));
+    const shipX = 190 + shipF * 160, shipY = 58 - shipF * 75;
+    return (React.createElement("div", { className: "gfx" },
+        React.createElement("svg", { className: "br-svg", viewBox: "0 0 340 230", role: "img", "aria-label": "Booster return and catch" },
+            React.createElement(SvgFx, { p: "br" }),
+            [[30, 30], [300, 22], [260, 60], [40, 90], [315, 130]].map(([sx, sy], i) => (React.createElement("circle", { key: i, cx: sx, cy: sy, r: "0.8", fill: "#fff", opacity: "0.4" }))),
+            React.createElement("line", { x1: "0", y1: "211", x2: "340", y2: "211", stroke: "#22334a", strokeWidth: "1.4" }),
+            React.createElement("polyline", { points: BR_KEYS.map(k => k.x + "," + k.y).join(" "), fill: "none", stroke: "#4AF0E0", strokeWidth: "1", strokeDasharray: "2 4", opacity: "0.14" }),
+            React.createElement("rect", { x: "64", y: "92", width: "7", height: "119", fill: "url(#brMetal)", stroke: "#3a4c66", strokeWidth: "0.8" }),
+            React.createElement("rect", { x: "71", y: "98", width: "18", height: "3", rx: "1", fill: "#42546a" }),
+            React.createElement("rect", { x: "71", y: "107", width: "18", height: "3", rx: "1", fill: "#42546a" }),
+            React.createElement("text", { x: "60", y: "88", textAnchor: "middle", fill: "#8A99B0", fontFamily: "ui-monospace, Menlo, monospace", fontSize: "6.5" }, "TOWER"),
+            React.createElement("rect", { x: "70", y: "205", width: "26", height: "6", fill: "#1a2c3e" }),
+            progress >= 0.28 && shipF < 1 && (React.createElement("g", { transform: `translate(${shipX}, ${shipY}) rotate(38)` },
+                React.createElement("path", { className: "ls-flame", d: "M-2.5,9 L0,20 L2.5,9 Z", fill: "url(#brFlame)" }),
+                React.createElement("rect", { x: "-3.5", y: "-10", width: "7", height: "19", rx: "3", fill: "url(#brMetal)", stroke: "#F5C842", strokeWidth: "0.7", strokeOpacity: "0.7" }),
+                React.createElement("path", { d: "M-3.5,-4 L-6.5,0 L-3.5,2 Z", fill: "url(#brMetal)", stroke: "#F5C842", strokeWidth: "0.5", strokeOpacity: "0.6" }),
+                React.createElement("path", { d: "M3.5,-4 L6.5,0 L3.5,2 Z", fill: "url(#brMetal)", stroke: "#F5C842", strokeWidth: "0.5", strokeOpacity: "0.6" }))),
+            React.createElement("g", { transform: `translate(${bx}, ${by}) rotate(${rot})` },
+                thrust && React.createElement("path", { className: "ls-flame", d: "M-3,14 L0,30 L3,14 Z", fill: "url(#brFlame)" }),
+                React.createElement("rect", { x: "-4.5", y: "-15", width: "9", height: "29", rx: "2", fill: "url(#brMetal)", stroke: "#52E07C", strokeWidth: "0.9", strokeOpacity: "0.8" }),
+                React.createElement("rect", { x: "-6", y: "-14", width: "2.5", height: "5", rx: "0.6", fill: "#42546a" }),
+                React.createElement("rect", { x: "3.5", y: "-14", width: "2.5", height: "5", rx: "0.6", fill: "#42546a" })),
+            React.createElement("g", null,
+                React.createElement("rect", { x: "238", y: "176", width: "94", height: "24", rx: "6", fill: "rgba(5,10,18,.75)", stroke: "rgba(82,224,124,.5)" }),
+                React.createElement("text", { x: "285", y: "186", textAnchor: "middle", fill: "#8A99B0", fontFamily: "ui-monospace, Menlo, monospace", fontSize: "6.5", letterSpacing: "1" }, "BOOSTER SPEED"),
+                React.createElement("text", { x: "285", y: "196", textAnchor: "middle", fill: "#52E07C", fontFamily: "ui-monospace, Menlo, monospace", fontSize: "9", fontWeight: "700" },
+                    v.toLocaleString(),
+                    " km/h"))),
+        React.createElement("p", { className: "ls-desc" }, label),
+        React.createElement("div", { className: "gfx-controls" },
+            React.createElement("button", { className: "btn btn-primary gfx-btn", onClick: () => { setProgress(0); setPlaying(true); }, disabled: playing }, playing ? "Flying…" : progress >= 1 ? "↺ Replay the catch" : "▶ Play the catch"))));
+}
+/* =================================================================
+   7) Size comparison (Module 7) — three rockets to scale
+   ================================================================= */
+function SizeComparison() {
+    const G = 245, S = 1.55; // ground y, pixels per metre
+    const h = (m) => G - m * S;
+    return (React.createElement("div", { className: "gfx" },
+        React.createElement("svg", { className: "sc-svg", viewBox: "0 0 340 302", role: "img", "aria-label": "Spectrum, Falcon 9 and Starship to scale" },
+            React.createElement(SvgFx, { p: "sc" }),
+            [[0, "0 m"], [50, "50 m"], [100, "100 m"]].map(([m, l]) => (React.createElement("g", { key: m },
+                React.createElement("line", { x1: "16", y1: h(m), x2: "328", y2: h(m), stroke: "#1c2a3e", strokeWidth: "0.8", strokeDasharray: m ? "3 4" : "none" }),
+                React.createElement("text", { x: "330", y: h(m) + 2.5, fill: "#5c6f8a", fontFamily: "ui-monospace, Menlo, monospace", fontSize: "7", textAnchor: "end" }, l)))),
+            React.createElement("g", null,
+                React.createElement("text", { x: "62", y: h(28) - 14, textAnchor: "middle", fill: "#4AF0E0", fontFamily: "ui-monospace, Menlo, monospace", fontSize: "8.5", fontWeight: "700" }, "SPECTRUM"),
+                React.createElement("text", { x: "62", y: h(28) - 5, textAnchor: "middle", fill: "#8A99B0", fontFamily: "ui-monospace, Menlo, monospace", fontSize: "7" }, "28 m"),
+                React.createElement("path", { d: `M62,${h(28)} L67,${h(24)} L57,${h(24)} Z`, fill: "url(#scNose)", stroke: "#4AF0E0", strokeWidth: "0.7", strokeOpacity: "0.7" }),
+                React.createElement("rect", { x: "57", y: h(24), width: "10", height: 24 * S, fill: "url(#scMetal)", stroke: "#4AF0E0", strokeWidth: "0.7", strokeOpacity: "0.5" }),
+                React.createElement("path", { d: `M57,${G - 8} L52,${G} L57,${G} Z`, fill: "url(#scMetal)" }),
+                React.createElement("path", { d: `M67,${G - 8} L72,${G} L67,${G} Z`, fill: "url(#scMetal)" })),
+            React.createElement("circle", { cx: "95", cy: G - 2.4, r: "1", fill: "#E6ECF5" }),
+            React.createElement("line", { x1: "95", y1: G - 1.4, x2: "95", y2: G, stroke: "#E6ECF5", strokeWidth: "0.9" }),
+            React.createElement("text", { x: "101", y: G - 3, fill: "#8A99B0", fontFamily: "ui-monospace, Menlo, monospace", fontSize: "6" }, "\u2190 a person"),
+            React.createElement("g", null,
+                React.createElement("text", { x: "165", y: h(70) - 14, textAnchor: "middle", fill: "#FF7A45", fontFamily: "ui-monospace, Menlo, monospace", fontSize: "8.5", fontWeight: "700" }, "FALCON 9"),
+                React.createElement("text", { x: "165", y: h(70) - 5, textAnchor: "middle", fill: "#8A99B0", fontFamily: "ui-monospace, Menlo, monospace", fontSize: "7" }, "70 m"),
+                React.createElement("path", { d: `M165,${h(70)} Q172,${h(66)} 172,${h(62)} L158,${h(62)} Q158,${h(66)} 165,${h(70)} Z`, fill: "url(#scMetal)", stroke: "#FF7A45", strokeWidth: "0.7", strokeOpacity: "0.5" }),
+                React.createElement("rect", { x: "158", y: h(62), width: "14", height: 62 * S, fill: "url(#scMetal)", stroke: "#FF7A45", strokeWidth: "0.7", strokeOpacity: "0.5" }),
+                React.createElement("rect", { x: "158", y: h(46), width: "14", height: "4", fill: "url(#scBand)", opacity: "0.9" }),
+                React.createElement("line", { x1: "154", y1: G, x2: "158", y2: G - 10, stroke: "#8fa3ba", strokeWidth: "1.2" }),
+                React.createElement("line", { x1: "176", y1: G, x2: "172", y2: G - 10, stroke: "#8fa3ba", strokeWidth: "1.2" })),
+            React.createElement("g", null,
+                React.createElement("text", { x: "265", y: h(121) - 14, textAnchor: "middle", fill: "#F5C842", fontFamily: "ui-monospace, Menlo, monospace", fontSize: "8.5", fontWeight: "700" }, "STARSHIP"),
+                React.createElement("text", { x: "265", y: h(121) - 5, textAnchor: "middle", fill: "#8A99B0", fontFamily: "ui-monospace, Menlo, monospace", fontSize: "7" }, "121 m"),
+                React.createElement("path", { d: `M265,${h(121)} Q277,${h(112)} 277,${h(104)} L253,${h(104)} Q253,${h(112)} 265,${h(121)} Z`, fill: "url(#scMetal)", stroke: "#F5C842", strokeWidth: "0.7", strokeOpacity: "0.5" }),
+                React.createElement("rect", { x: "253", y: h(104), width: "24", height: 33 * S, fill: "url(#scMetal)", stroke: "#F5C842", strokeWidth: "0.7", strokeOpacity: "0.5" }),
+                React.createElement("path", { d: `M253,${h(102)} L246,${h(98)} L253,${h(94)} Z`, fill: "url(#scMetal)", stroke: "#F5C842", strokeWidth: "0.5", strokeOpacity: "0.5" }),
+                React.createElement("path", { d: `M277,${h(102)} L284,${h(98)} L277,${h(94)} Z`, fill: "url(#scMetal)", stroke: "#F5C842", strokeWidth: "0.5", strokeOpacity: "0.5" }),
+                React.createElement("rect", { x: "253", y: h(71), width: "24", height: 71 * S, fill: "url(#scMetal)", stroke: "#F5C842", strokeWidth: "0.7", strokeOpacity: "0.5" }),
+                React.createElement("rect", { x: "249", y: h(71), width: "3", height: "7", rx: "0.8", fill: "#42546a" }),
+                React.createElement("rect", { x: "278", y: h(71), width: "3", height: "7", rx: "0.8", fill: "#42546a" }),
+                [58, 44, 30, 16].map(m => (React.createElement("line", { key: m, x1: "255", y1: h(m), x2: "275", y2: h(m), stroke: "#42546a", strokeWidth: "0.7" })))),
+            [
+                ["62", "#4AF0E0", ["1 t to LEO", "~€10,000/kg", "expendable"]],
+                ["165", "#FF7A45", ["22.8 t to LEO", "~$5,500/kg share", "booster flies 36×"]],
+                ["265", "#F5C842", ["100+ t goal", "full reuse goal", "caught by tower"]]
+            ].map(([x, c, lines], i) => (React.createElement("g", { key: i }, lines.map((l, j) => (React.createElement("text", { key: j, x: x, y: 258 + j * 10, textAnchor: "middle", fill: j === 0 ? c : "#8A99B0", fontFamily: "ui-monospace, Menlo, monospace", fontSize: "7" }, l)))))),
+            React.createElement("text", { x: "170", y: "290", textAnchor: "middle", fill: "#5c6f8a", fontFamily: "ui-monospace, Menlo, monospace", fontSize: "6.5", letterSpacing: "1" }, "BOOSTER HANDOVER: \u2014 / ~8,000 / ~5,700 KM/H"),
+            React.createElement("text", { x: "170", y: "299", textAnchor: "middle", fill: "#5c6f8a", fontFamily: "ui-monospace, Menlo, monospace", fontSize: "6.5", letterSpacing: "1" }, "EVERY SPRINTER QUITS EARLY"))));
+}
+/* =================================================================
    Lesson block renderer
    ================================================================= */
 function Block({ b }) {
@@ -1430,6 +1812,9 @@ function Block({ b }) {
                 React.createElement("div", { className: "part-name" }, it.k),
                 React.createElement("div", { className: "part-text" }, it.v))))));
         case "rocketDiagram": return React.createElement(RocketDiagram, null);
+        case "velocityTimeline": return React.createElement(VelocityTimeline, null);
+        case "boosterReturn": return React.createElement(BoosterReturn, null);
+        case "sizeComparison": return React.createElement(SizeComparison, null);
         case "launchAnim": return HAS_WEBGL ? React.createElement(Launch3D, null) : React.createElement(LaunchSequence, null);
         case "orbitViz": return React.createElement(OrbitVisualiser, null);
         case "deltaVViz": return React.createElement(DeltaVBudget, null);
