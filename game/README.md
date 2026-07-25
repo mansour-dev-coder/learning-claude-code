@@ -1,7 +1,7 @@
 # Orbit Academy 🚀
 
 A gamified, space-themed learning game about the rocket industry with real-time
-3D visuals (WebGL / three.js). Progress through seven missions — each with three
+3D visuals (WebGL / three.js). Progress through eight missions — each with three
 lessons and a five-question quiz — earning XP, ranks and badges. Score **80% or
 higher** to unlock the next mission.
 
@@ -33,6 +33,12 @@ higher** to unlock the next mission.
    stage-speed story: why boosters quit early and upper stages do the work.
 7. **Starship** — hot staging, the tower catch, why test flights stop just
    short of orbit, and all three rockets compared to scale.
+8. **How to Watch a Launch** — countdown vocabulary, reading the speed and
+   altitude telemetry, and why boosters end up on ships or in the sea.
+
+Also included: a searchable **glossary** built from every term in the course,
+and a **mixed review** mode that quizzes 10 random questions across all
+cleared missions.
 
 Every technical term is introduced with an everyday analogy *before* the formal
 definition.
