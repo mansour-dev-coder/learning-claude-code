@@ -19,7 +19,8 @@ const MODULE_BADGES = {
     4: { icon: "⚙️", name: "Spectrum Specialist" },
     5: { icon: "💼", name: "Space Tycoon" },
     6: { icon: "🦅", name: "Falcon Flyer" },
-    7: { icon: "🛸", name: "Starship Commander" }
+    7: { icon: "🛸", name: "Starship Commander" },
+    8: { icon: "📡", name: "Mission Control Ready" }
 };
 function rankFor(xp) {
     let idx = 0;
@@ -488,6 +489,72 @@ const MODULES = [
             { q: "Why does the tower catch the booster instead of it landing on legs?", options: ["Legs are illegal in Texas", "Legs are dead weight on every flight — catching keeps the booster light and speeds up reflight", "The ground is too soft", "It looks better on camera"], answer: 1, explain: "No legs means less mass to carry to the edge of space and back, and a caught booster can go straight back onto the pad." },
             { q: "Why do Starship test flights deliberately stop just short of orbital velocity?", options: ["The engines can't reach orbital speed", "So gravity guarantees a safe ocean re-entry even if everything fails", "To save fuel for landing", "Orbits require a special licence"], answer: 1, explain: "A hair below orbital speed, the trajectory always comes back down into empty ocean on its own — no risk of an uncontrolled 100-tonne wreck stuck in orbit." },
             { q: "What makes Starship's reuse goal different from Falcon 9's?", options: ["It reuses only the fairing", "Both stages are designed to come home — full reuse, nothing thrown away", "It is refuelled in flight by Falcon 9", "It has no second stage"], answer: 1, explain: "Falcon 9 lands its booster but expends the upper stage. Starship aims to recover both — the final step of making a rocket work like an airliner." }
+        ]
+    },
+    /* -------------------- MODULE 8 -------------------- */
+    {
+        id: 8, accent: "#52E07C",
+        title: "How to Watch a Launch",
+        subtitle: "Everything the commentators say, finally decoded.",
+        lessons: [
+            {
+                tab: "Before the engines light",
+                blocks: [
+                    { type: "p", text: `A launch broadcast starts hours before anything moves, and most of the vocabulary that confuses people happens in this quiet stretch. Here's the countdown, decoded.` },
+                    { type: "term", term: "Launch window", plain: `Catching a train. Some days the station is open all evening — any train will do. Other days there is exactly ONE train, and if you miss it you go home.`, def: `The <b>launch window</b> is the time range in which lift-off can happen and still reach the right orbit. Missions chasing a moving target — a space station, or a specific satellite plane — often have an <b>instantaneous window</b>: one exact second, or scrub.` },
+                    { type: "term", term: "Hold & scrub", plain: `A pause is not a cancellation — pressing pause on a film vs. giving up and going to bed.`, def: `A <b>hold</b> is a planned or unplanned pause in the countdown while a problem is checked. A <b>scrub</b> means today's attempt is over — weather, a stray boat (remember Isar's fishing vessel at T-3 seconds?), or a sensor reading nobody liked.` },
+                    { type: "term", term: "Go / No-Go poll", plain: `A teacher calling the register before the school trip: every seat must answer "here".`, def: `Shortly before launch, the launch director asks every system controller — propulsion, range, weather, recovery — for a verdict. One "No-Go" stops the count. When you hear a rapid chorus of "GO… GO… GO", that's the poll.` },
+                    { type: "parts", items: [
+                            { k: "Chill-in", v: "Pre-cooling the engines with a trickle of cryogenic propellant so the real flow doesn't shock the metal. Like running the tap warm before a shower — in reverse." },
+                            { k: "Prop load", v: "Filling the tanks. Often done late because super-chilled propellants warm up and expand if they sit too long." },
+                            { k: "Startup", v: "The final seconds, when the rocket's own computer takes command of the count." },
+                            { k: "Nominal", v: "The most important word in spaceflight: everything is exactly as planned. Boring is beautiful." }
+                        ] }
+                ]
+            },
+            {
+                tab: "The two numbers on screen",
+                blocks: [
+                    { type: "p", text: `Your eye watches the rocket. Engineers watch the two numbers in the corner: SPEED and ALTITUDE. Once you can read them, a launch stops being fireworks and becomes a story you can follow.` },
+                    { type: "term", term: "Speed — why the number is so huge", plain: `On the motorway you do 100 km/h. A jet airliner does 900. A rifle bullet does about 3,500. Orbit needs 28,000 km/h — eight times a bullet.`, def: `Streams show speed in <b>km/h</b> because it's a familiar unit — but the scale is beyond anything familiar. 28,000 km/h means <b>almost 8 kilometres every single second</b>: an entire city crossed per heartbeat. When the number looks absurd, it's working correctly.` },
+                    { type: "specs", items: [
+                            { k: "Car, motorway", v: "~100 km/h" },
+                            { k: "Jet airliner", v: "~900 km/h" },
+                            { k: "Rifle bullet", v: "~3,500 km/h" },
+                            { k: "Starship booster at handoff", v: "~5,700 km/h" },
+                            { k: "Falcon 9 booster at MECO", v: "~8,000 km/h" },
+                            { k: "Orbit", v: "~28,000 km/h — 8 km every second" }
+                        ] },
+                    { type: "term", term: "Altitude — the number that stops mattering", plain: `Early in the flight, altitude sprints upward and everyone stares at it. Then it slows to a crawl — and that's not a problem, it's the plan.`, def: `<b>Altitude</b> climbs fast at first because the rocket is escaping the thick, draggy part of the atmosphere. Around 100–200 km it nearly flattens while speed keeps grinding upward — the gravity turn has tipped the rocket over to spend its fuel going SIDEWAYS, because sideways speed is what orbit is made of.` },
+                    { type: "insight", text: `The one-line rule for any stream: a flat altitude with rising speed is a healthy launch. Only worry if the SPEED number stalls.` },
+                    { type: "p", text: `Watch both numbers play out here — altitude behaviour is exactly why the cyan line matters more than how high anything got:` },
+                    { type: "velocityTimeline" }
+                ]
+            },
+            {
+                tab: "Pad, ship, or sea?",
+                blocks: [
+                    { type: "p", text: `You watched a first stage end up in the water and wondered what went wrong. Here's the secret: a booster in the sea is usually not a failure. There are three very different ways it happens.` },
+                    { type: "term", term: "Droneship landing (planned, at sea)", plain: `If you sprint flat-out away from home, you can't jog back — so a friend parks a ship where you'll come down.`, def: `On heavy, fast missions the booster travels too far downrange to fly home. It lands — upright, intact, reusable — on a floating <b>droneship</b>. It IS in the middle of the ocean, but it's standing on a deck. Complete success.` },
+                    { type: "term", term: "Deliberate splashdown (planned, in the water)", plain: `A new trapeze artist practises over the net before performing over the crowd.`, def: `Brand-new boosters and new versions (like Starship's V3) deliberately target <b>open water</b> instead of the tower or pad. The tower is the most precious hardware at the launch site — a returning booster only earns a catch attempt after proving itself over the empty sea.` },
+                    { type: "p", text: `And then there's what you probably saw on Starship's Flight 13: the booster flew its return beautifully, relit 13 engines for the boostback — and then the final landing burn failed, so it hit the water hard and exploded. Here's the key: it was ALREADY aiming for the water as a planned test. The failure wasn't "it went to the sea" — it was the last few seconds of braking. Everything before that was data worth keeping.` },
+                    { type: "insight", text: `Three water endings that look similar on camera: standing on a droneship = success. Gentle planned splashdown = successful test. Hard uncontrolled impact = the one real failure. Listen to the commentary tone — it tells you which one you just watched.` },
+                    { type: "parts", items: [
+                            { k: "Downrange", v: "Distance travelled across the ground, away from the pad — not height. A booster can be 600 km downrange while only 100 km up." },
+                            { k: "Throttle down", v: "Easing the engines around Max-Q so the rocket doesn't fight the thick air at full power — you learned why in Mission 2." },
+                            { k: "Entry burn", v: "A returning booster re-lighting engines to brake before the air gets thick." },
+                            { k: "Landing burn", v: "The final brake — from falling like a stone to touching down at walking pace, in seconds." },
+                            { k: "Deploy", v: "The payload released into orbit. The actual point of the whole day." }
+                        ] }
+                ]
+            }
+        ],
+        quiz: [
+            { q: "What does an 'instantaneous launch window' mean?", options: ["The rocket launches instantly when fueled", "There is exactly one second to launch — miss it and the attempt is scrubbed", "The launch can happen any time that day", "The countdown has no holds"], answer: 1, explain: "Missions chasing a moving target — a station or a satellite plane — must launch at one exact moment to arrive in the right place. Miss it, and you wait for the next window." },
+            { q: "The commentator says the vehicle is 'nominal'. What does that mean?", options: ["Something minor is wrong", "The rocket is flying on autopilot", "Everything is exactly as planned", "The mission is named but not funded"], answer: 2, explain: "'Nominal' is spaceflight's favourite word: all systems performing exactly as expected. In a launch, boring is beautiful." },
+            { q: "Mid-flight, altitude nearly stops climbing while speed keeps rising. What's happening?", options: ["The rocket is failing to climb", "The gravity turn — fuel is now spent going sideways, which is what orbit requires", "The atmosphere is pushing it down", "The engines are throttled off"], answer: 1, explain: "Healthy and intentional: above the thick air, height matters little. The rocket tips over and pours everything into sideways speed — because orbit IS sideways speed." },
+            { q: "Orbital speed of ~28,000 km/h means covering roughly how much ground per second?", options: ["about 800 metres", "about 2 km", "about 8 km", "about 80 km"], answer: 2, explain: "28,000 km/h is nearly 8 kilometres every second — an entire city crossed per heartbeat. That's why km/h numbers on streams look absurd." },
+            { q: "Which of these booster endings is the actual FAILURE?", options: ["Standing upright on a droneship at sea", "A gentle, deliberately-targeted ocean splashdown", "The landing burn fails and it hits the water hard", "Being caught by the tower"], answer: 2, explain: "Droneship landings and planned splashdown tests are successes that happen to be at sea. The failure is only when the final braking goes wrong — like Starship Flight 13's booster." }
         ]
     }
 ];
@@ -1774,6 +1841,42 @@ function SizeComparison() {
             React.createElement("text", { x: "170", y: "299", textAnchor: "middle", fill: "#5c6f8a", fontFamily: "ui-monospace, Menlo, monospace", fontSize: "6.5", letterSpacing: "1" }, "EVERY SPRINTER QUITS EARLY"))));
 }
 /* =================================================================
+   Glossary — every term in the course, searchable. Built straight
+   from the lesson data, so it can never drift out of date.
+   ================================================================= */
+function Glossary({ onBack }) {
+    const [q, setQ] = useState("");
+    const terms = useMemo(() => {
+        const out = [];
+        MODULES.forEach(m => m.lessons.forEach(l => l.blocks.forEach(b => {
+            if (b.type === "term")
+                out.push({ term: b.term, plain: b.plain, def: b.def, id: m.id });
+            if (b.type === "parts" && (m.id === 8))
+                b.items.forEach(it => out.push({ term: it.k, plain: "", def: it.v, id: m.id }));
+        })));
+        return out.sort((a, b) => a.term.localeCompare(b.term));
+    }, []);
+    const needle = q.trim().toLowerCase();
+    const list = needle ? terms.filter(t => (t.term + " " + t.plain + " " + t.def).toLowerCase().includes(needle)) : terms;
+    return (React.createElement("div", null,
+        React.createElement("div", { className: "quiz-head" },
+            React.createElement("span", { className: "q-count" },
+                list.length,
+                " TERMS"),
+            React.createElement("button", { className: "reset-btn", onClick: onBack }, "\u2190 Back to missions")),
+        React.createElement("input", { className: "gl-search", type: "search", placeholder: "Search a word you heard on a stream \u2014 e.g. nominal, MECO, downrange\u2026", value: q, onChange: e => setQ(e.target.value) }),
+        list.map((t, i) => (React.createElement("div", { className: "term", key: i },
+            React.createElement("div", { className: "term-name" },
+                t.term,
+                " ",
+                React.createElement("span", { className: "gl-src" },
+                    "M0",
+                    t.id)),
+            t.plain ? React.createElement("p", { className: "term-plain" }, t.plain) : null,
+            React.createElement("p", { className: "term-def", dangerouslySetInnerHTML: { __html: t.def } })))),
+        !list.length && React.createElement("p", { className: "lesson-p" }, "No match yet \u2014 that term isn't in the course.")));
+}
+/* =================================================================
    Lesson block renderer
    ================================================================= */
 function Block({ b }) {
@@ -2010,6 +2113,29 @@ function App() {
     function toggleMute() {
         setProfile(prev => ({ ...prev, muted: !prev.muted }));
     }
+    const [review, setReview] = useState(null);
+    const [reviewResult, setReviewResult] = useState(null);
+    function startReview() {
+        const pool = MODULES.filter(m => progress[m.id] && progress[m.id].completed).flatMap(m => m.quiz);
+        if (!pool.length)
+            return;
+        const a = pool.slice();
+        for (let i = a.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [a[i], a[j]] = [a[j], a[i]];
+        }
+        setReview({ id: "review", title: "Mixed Review", quiz: a.slice(0, Math.min(10, a.length)) });
+        setReviewResult(null);
+        setMode("review");
+        window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+    function finishReview(score, total) {
+        if (!profile.muted)
+            sfx.play(score / total >= PASS ? "complete" : "wrong");
+        setReviewResult({ score, total });
+        setMode("reviewDone");
+        window.scrollTo({ top: 0, behavior: "smooth" });
+    }
     const module = MODULES.find(m => m.id === currentId);
     const completedCount = MODULES.filter(m => progress[m.id] && progress[m.id].completed).length;
     const pctComplete = Math.round((completedCount / MODULES.length) * 100);
@@ -2121,13 +2247,22 @@ function App() {
                                 React.createElement("span", { className: "nav-name" }, m.title),
                                 React.createElement("span", { className: "nav-meta" }, !unlocked ? "🔒 Locked" : done ? "Completed · best " + progress[m.id].best + "/" + m.quiz.length : (active ? "In progress" : "Unlocked")))));
                     })),
+                    React.createElement("div", { className: "side-tools" },
+                        React.createElement("button", { className: "tool-btn", onClick: () => { setMode("glossary"); window.scrollTo({ top: 0, behavior: "smooth" }); } }, "\uD83D\uDCD6 Glossary"),
+                        React.createElement("button", { className: "tool-btn", onClick: startReview, disabled: completedCount === 0, title: completedCount === 0 ? "Clear a mission first" : "10 random questions from cleared missions" }, "\uD83C\uDFAF Mixed review")),
                     profile.badges.length > 0 && (React.createElement("div", { className: "badge-shelf" },
                         React.createElement("p", { className: "sidebar-title" }, "Badges"),
                         React.createElement("div", { className: "badge-row" }, profile.badges.map(id => (React.createElement("span", { key: id, className: "badge-pip", title: MODULE_BADGES[id].name }, MODULE_BADGES[id].icon)))))),
                     React.createElement("div", { className: "sidebar-footer" },
                         React.createElement("button", { className: "reset-btn", onClick: resetProgress }, "Reset progress"))),
                 React.createElement("main", { className: "main" },
-                    React.createElement("div", { className: "module-head" },
+                    mode === "glossary" ? (React.createElement("div", { className: "module-head" },
+                        React.createElement("div", { className: "module-kicker" }, "REFERENCE"),
+                        React.createElement("h2", { className: "module-title" }, "Glossary"),
+                        React.createElement("p", { className: "module-sub" }, "Every term in the course \u2014 look up anything you hear on a launch stream."))) : (mode === "review" || mode === "reviewDone") ? (React.createElement("div", { className: "module-head" },
+                        React.createElement("div", { className: "module-kicker" }, "RETENTION CHECK"),
+                        React.createElement("h2", { className: "module-title" }, "Mixed Review"),
+                        React.createElement("p", { className: "module-sub" }, "Random questions from every mission you have cleared \u2014 this is how it sticks."))) : (React.createElement("div", { className: "module-head" },
                         React.createElement("div", { className: "module-kicker" },
                             "MISSION 0",
                             module.id,
@@ -2135,9 +2270,27 @@ function App() {
                             MODULES.length,
                             progress[module.id] && progress[module.id].completed ? " — CLEARED" : ""),
                         React.createElement("h2", { className: "module-title" }, module.title),
-                        React.createElement("p", { className: "module-sub" }, module.subtitle)),
+                        React.createElement("p", { className: "module-sub" }, module.subtitle))),
                     mode === "lesson" && (React.createElement(LessonView, { module: module, onStartQuiz: () => { setMode("quiz"); window.scrollTo({ top: 0, behavior: "smooth" }); } })),
                     mode === "quiz" && (React.createElement(Quiz, { module: module, onFinish: finishQuiz, onAnswer: handleAnswer, onExit: () => setMode("lesson") })),
-                    mode === "results" && result && (React.createElement(Results, { module: module, score: result.score, total: result.total, hasNext: hasNext, xpEarned: result.xpEarned, newBadge: result.newBadge, onRetry: () => { setMode("quiz"); setResult(null); }, onContinue: continueNext, onReview: () => setMode("lesson") })))))));
+                    mode === "results" && result && (React.createElement(Results, { module: module, score: result.score, total: result.total, hasNext: hasNext, xpEarned: result.xpEarned, newBadge: result.newBadge, onRetry: () => { setMode("quiz"); setResult(null); }, onContinue: continueNext, onReview: () => setMode("lesson") })),
+                    mode === "glossary" && React.createElement(Glossary, { onBack: () => setMode("lesson") }),
+                    mode === "review" && review && (React.createElement(Quiz, { module: review, onFinish: finishReview, onAnswer: handleAnswer, onExit: () => setMode("lesson") })),
+                    mode === "reviewDone" && reviewResult && (React.createElement("div", { className: "card results" },
+                        React.createElement("div", { className: "mission-tag" }, "MIXED REVIEW \u2014 ALL CLEARED MISSIONS"),
+                        React.createElement("div", { className: "score-ring", style: { "--ring-deg": Math.round(reviewResult.score / reviewResult.total * 360) + "deg", "--ring-color": reviewResult.score / reviewResult.total >= PASS ? "var(--green)" : "var(--orange)" } },
+                            React.createElement("div", { className: "score-inner" },
+                                React.createElement("span", { className: "score-pct" },
+                                    Math.round(reviewResult.score / reviewResult.total * 100),
+                                    "%"),
+                                React.createElement("span", { className: "score-frac" },
+                                    reviewResult.score,
+                                    " / ",
+                                    reviewResult.total))),
+                        React.createElement("h2", null, reviewResult.score / reviewResult.total >= PASS ? "Still sharp! 🎯" : "Worth a refresher"),
+                        React.createElement("p", { className: "r-sub" }, "Questions drawn at random across everything you have cleared. Come back to this any time \u2014 retrieval is how knowledge sticks."),
+                        React.createElement("div", { className: "cta-row", style: { justifyContent: "center" } },
+                            React.createElement("button", { className: "btn btn-primary", onClick: startReview }, "\u21BA New random set"),
+                            React.createElement("button", { className: "btn btn-ghost", onClick: () => setMode("lesson") }, "Back to missions")))))))));
 }
 ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App, null));
