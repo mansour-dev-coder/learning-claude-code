@@ -1,0 +1,18 @@
+{
+  "name": "sultan-1453",
+  "version": "0.1.0",
+  "private": true,
+  "description": "LLM-narrated Ottoman grand strategy game with a deterministic engine",
+  "type": "module",
+  "scripts": {
+    "sim": "tsx scripts/sim.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3",
+    "vitest": "^2.1.9"
+  }
+}
