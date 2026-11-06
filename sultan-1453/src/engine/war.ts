@@ -17,7 +17,16 @@ import {
   stance,
   warWith,
   type TurnCtx,
+  schedule,
 } from './state';
+
+/** After a victory the corps expects its customary gift; the Agha raises it at the next Divan. */
+function expectVictoryDonative(s: GameState) {
+  const last = Number(s.flags.victoryDonativeTurn ?? -99);
+  if (s.turn - last < 3) return;
+  s.flags.victoryDonativeTurn = s.turn;
+  schedule(s, 1, 'event', 'victoryDonative', 'the corps expects a victory gift');
+}
 
 // ─────────────────────────────────────────────────────────── field battle ──
 
@@ -497,6 +506,7 @@ export function fightCampaignBattle(ctx: TurnCtx, enemy: NeighbourId, enemyMen: 
     devastate(s, war, enemy, 1);
     s.flags.lastVictoryTurn = s.turn;
     shocks(s, { janissaries: 5, rumelianBeys: 4 });
+    expectVictoryDonative(s);
     log(ctx, 'battle', `${label}: victory over ${n.name}. Their losses about ${theirLoss.toLocaleString()}, ours about ${ourLoss.toLocaleString()}.`);
   } else {
     c.morale = clamp(c.morale - 20);
@@ -705,6 +715,7 @@ function captureByCampaign(ctx: TurnCtx, enemy: NeighbourId, stormed: boolean) {
   if (war) war.score = clamp(war.score + 25 + p.walls / 4, -100, 100);
   s.flags.lastVictoryTurn = s.turn;
   shocks(s, { janissaries: 10, rumelianBeys: 6, ulema: p.id === 'constantinople' ? 20 : 3 });
+  expectVictoryDonative(s);
   c.morale = clamp(c.morale + 15);
   log(ctx, 'siege', `${p.name} ${stormed ? 'is taken by storm; three days of plunder are proclaimed' : 'surrenders on terms; lives and property of the inhabitants are spared'}. The Sultan’s fifth of the booty: ${Math.round(booty * 0.2).toLocaleString()} akçe.`);
   if (p.id === 'constantinople') {

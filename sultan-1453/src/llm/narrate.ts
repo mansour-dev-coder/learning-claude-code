@@ -1,7 +1,7 @@
 // Streams the month's narration. Read-only: takes a frozen snapshot, returns prose. It cannot touch state.
 import Anthropic from '@anthropic-ai/sdk';
 import type { GameState } from '../engine/types';
-import { FALLBACK, MODEL, getClient, prompt, type Client } from './client';
+import { MODEL, getClient, prompt, type Client } from './client';
 import { dilemmaSheet, divanRoster, monthSheet, realmSummary, LETTERS } from './context';
 import { auditNarration } from './audit';
 import { fmtDate } from '../engine/calendar';
@@ -39,7 +39,6 @@ export async function narrateMonth(
       {
         model: MODEL,
         max_tokens: 64000,
-        ...FALLBACK,
         output_config: { effort: 'medium' },
         system: [{ type: 'text', text: `${prompt('game_master')}\n\n${prompt('ministers')}`, cache_control: { type: 'ephemeral' } }],
         messages: [{ role: 'user', content: input }],

@@ -80,10 +80,12 @@ describe('parseCommand', () => {
     const r = await parseCommand(s, 'customary donative and twenty guns', { client });
     expect(r.actions).toEqual([{ type: 'resolveDilemma', dilemmaId: d.id, optionId: d.options[1].id }, { type: 'castCannon', guns: 20 }]);
     expect(r.reply).toContain('recorded');
-    const params = calls[0] as { model: string; tool_choice: { type: string }; tools: unknown[]; fallbacks: string };
+    const params = calls[0] as { model: string; tool_choice: { type: string }; tools: unknown[]; fallbacks?: unknown; betas?: unknown };
     expect(params.model).toBe('claude-sonnet-5-5');
     expect(params.tool_choice.type).toBe('auto');
-    expect(params.fallbacks).toBe('default');
+    // no re-routing of declined requests to another model
+    expect(params.fallbacks).toBeUndefined();
+    expect(params.betas).toBeUndefined();
   });
 
   it('sends invalid calls back once for correction', async () => {

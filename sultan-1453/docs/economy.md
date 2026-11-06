@@ -109,7 +109,7 @@ It also follows his reforms: Patriarchate 1453, tahrir 1455, iltizam 1460. Wars 
 
 Raising the cizye to 45 akçe in 1465 lifts the result to about 1.65×.
 
-**The model does not reach the ~2× (≈1.8M ducat) anchor. Flagged.** What is missing is mostly map, not mechanics:
+**The model does not reach the ~2× (≈1.8M ducat) anchor. 1.6× is accepted for now; the additions are in the Phase 4 backlog in DECISIONS.md.** What is missing is mostly map, not mechanics:
 1. **Conquests of 1461–75 that are not on the map:**
    - Bosnia (1463), with the Srebrenica silver mines
    - Trebizond and Amasra (1461)

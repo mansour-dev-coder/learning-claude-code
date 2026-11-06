@@ -42,6 +42,23 @@ export const MILITARY_EVENTS: EventDef[] = [
     defaultOption: 'customary',
   },
   {
+    id: 'victoryDonative',
+    title: 'The corps expects its victory gift',
+    category: 'military',
+    presenter: 'janissaryAgha',
+    cooldown: 0,
+    forcedOnly: true,
+    condition: (s) => s.army.janissaries + (s.campaign?.janissaries ?? 0) > 0,
+    weight: 1,
+    brief: (s) => `After the victory the Janissaries and Porte cavalry expect the customary gift. ${(s.army.janissaries + s.army.palaceCavalry + (s.campaign ? s.campaign.janissaries + s.campaign.palaceCavalry : 0)).toLocaleString()} men wait to see the Sultan's hand.`,
+    options: [
+      { id: 'generous', label: 'A generous gift (250 akçe a man)', summary: (s) => `${k(kapikulu(s) * 250)}; the corps will remember it.`, available: (s) => canAfford(s, kapikulu(s) * 250), apply: (ctx) => { spend(ctx.s, kapikulu(ctx.s) * 250); shock(ctx.s, 'janissaries', 12); } },
+      { id: 'customary', label: 'The customary gift (100 akçe a man)', summary: (s) => `${k(kapikulu(s) * 100)}.`, available: (s) => canAfford(s, kapikulu(s) * 100), apply: (ctx) => { spend(ctx.s, kapikulu(ctx.s) * 100); shock(ctx.s, 'janissaries', 4); } },
+      { id: 'refuse', label: 'Victory is its own reward', summary: 'The barracks mutter that the Sultan keeps the booty for himself.', apply: (ctx) => shock(ctx.s, 'janissaries', -10) },
+    ],
+    defaultOption: 'customary',
+  },
+  {
     id: 'orbanCannon',
     title: 'A Hungarian founder offers great bombards',
     category: 'military',
@@ -439,3 +456,7 @@ function levy(ctx: import('../state').TurnCtx, count: number) {
 }
 
 
+
+function kapikulu(s: import('../types').GameState) {
+  return s.army.janissaries + s.army.palaceCavalry + (s.campaign ? s.campaign.janissaries + s.campaign.palaceCavalry : 0);
+}

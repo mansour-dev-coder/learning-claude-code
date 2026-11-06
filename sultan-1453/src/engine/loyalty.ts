@@ -32,10 +32,6 @@ export function equilibriumTerms(s: GameState, f: FactionId): EquilibriumTerm[] 
     if (key.startsWith(`perm_${f}_`)) add(key.slice(6 + f.length), Number(s.flags[key]));
   }
 
-  // Royal largesse was expected. A Sultan sitting on more than a year of expenses looks miserly.
-  const hoard = s.treasury / Math.max(1, expensesEstimate(s));
-  if (hoard > 12 && (f === 'janissaries' || f === 'ulema' || f === 'harem')) add('a hoarding Sultan', -Math.min(f === 'janissaries' ? 8 : 5, (hoard - 12) * 0.5));
-
   switch (f) {
     case 'janissaries': {
       const monthlyPay = s.army.janissaries * C.janissaryDailyPay * 30 + 1;
@@ -96,15 +92,6 @@ export function equilibriumTerms(s: GameState, f: FactionId): EquilibriumTerm[] 
     }
   }
   return t;
-}
-
-/** Cheap expense estimate (avoids a circular import with economy.ts). */
-function expensesEstimate(s: GameState) {
-  const c = s.campaign;
-  const jan = s.army.janissaries + (c?.janissaries ?? 0);
-  const cav = s.army.palaceCavalry + (c?.palaceCavalry ?? 0);
-  const garrisons = ottomanProvinces(s).reduce((a, p) => a + p.garrison, 0);
-  return jan * C.janissaryDailyPay * 30 + cav * C.palaceCavalryDailyPay * 30 + garrisons * C.garrisonDailyPay * 30 + C.courtBase;
 }
 
 export function equilibrium(s: GameState, f: FactionId) {

@@ -9,7 +9,7 @@ import { Rng } from '../engine/rng';
 import type { TurnCtx } from '../engine/state';
 import { ACTION_TOOLS, toolCallToAction } from './actionTools';
 import { ordersSheet } from './context';
-import { FALLBACK, MODEL, getClient, prompt, type Client } from './client';
+import { MODEL, getClient, prompt, type Client } from './client';
 
 export interface ParsedOrders {
   actions: Action[];
@@ -30,7 +30,6 @@ export async function parseCommand(state: GameState, text: string, opts: { clien
     client.beta.messages.create({
       model: MODEL,
       max_tokens: 16000,
-      ...FALLBACK,
       output_config: { effort: 'low' },
       system: [{ type: 'text', text: prompt('parser'), cache_control: { type: 'ephemeral' } }],
       tools: ACTION_TOOLS,

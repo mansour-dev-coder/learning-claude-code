@@ -7,13 +7,6 @@ import { fileURLToPath } from 'node:url';
 /** Model for narration and order parsing (per the project brief). Override with SULTAN_MODEL. */
 export const MODEL = process.env.SULTAN_MODEL ?? 'claude-sonnet-5-5';
 
-/**
- * Server-side refusal fallback: if a safety classifier declines a request (battle scenes and executions can
- * trip one), the API re-runs it on a suitable fallback model inside the same call, so the game does not stall.
- * Claude API only; if you route through Bedrock/Vertex/Foundry, remove these two fields.
- */
-export const FALLBACK = { betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default' as const };
-
 export type Client = Pick<Anthropic, 'beta'>;
 
 let shared: Anthropic | null = null;

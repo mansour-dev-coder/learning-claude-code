@@ -1,5 +1,6 @@
 // Dynasty: ageing, illness, mortality, births, princely households, assassination, deposition, succession.
 import type { GameState, Prince } from './types';
+import { computeBudget } from './economy';
 import { addModifier, clamp, livingPrinces, log, newId, princeAge, shock, sultanAge, type TurnCtx } from './state';
 
 /** Annual mortality hazard for an adult man in the 15th c. elite (Gompertz-style). */
@@ -45,11 +46,14 @@ export function dynastyMonth(ctx: TurnCtx) {
     return;
   }
 
+  // A full treasury is a prize: rival princes and their households grow bolder (more ambition, not less loyalty elsewhere).
+  const treasuryMonths = s.treasury / Math.max(1, computeBudget(s).totalExpenses);
+  const prize = treasuryMonths > 12 ? Math.min(1, (treasuryMonths - 12) * 0.1) : 0;
   // princes
   for (const p of livingPrinces(s)) {
     const pa = princeAge(s, p.birthYear);
     if (p.province) p.household = clamp(p.household + 0.4);
-    if (pa >= 15 && !p.heldBy) p.ambition = clamp(p.ambition + (p.province ? 0.25 : 0.4) + (age > 50 ? 0.4 : 0));
+    if (pa >= 15 && !p.heldBy) p.ambition = clamp(p.ambition + (p.province ? 0.25 : 0.4) + (age > 50 ? 0.4 : 0) + prize);
     // child mortality, roughly a third before adulthood
     const childRisk = pa < 5 ? 0.006 : pa < 15 ? 0.0015 : 0.0012;
     if (ctx.rng.chance(childRisk)) {

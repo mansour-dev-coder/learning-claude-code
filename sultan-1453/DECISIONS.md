@@ -91,14 +91,15 @@ Each entry is something I decided without asking you. To override one, tell me i
 - The Janissaries settle around 70–80 loyalty under a random player. The corps may be too docile. **Deferred to Phase 4** so it can be tuned on human play.
 - ~~Peace too easy against defiant small powers~~ — **resolved (23a)**.
 - Under random play, Janissary numbers shrink (campaign losses outpace cadets). A human player recruits; the sim bot does not.
-- Revenue grows about 1.6× from 1451 to 1475 under the scripted conquest reign, short of the ~2× anchor. See docs/economy.md, "Growth to 1475".
+- Revenue grows about 1.6× from 1451 to 1475 under the scripted conquest reign. **Accepted** (see docs/economy.md, "Growth to 1475"). The missing provinces are in the Phase 4 backlog.
 
 ## Phase 1 review changes
 
 31. **Discretionary spending.** The spending *actions* already existed: donatives, embassies, construction, galleys, cannon, devşirme. What was missing was the Divan *pushing* the Sultan to use them. Now:
    - **Four pressure events** whose weight grows with the treasury: the imperial külliye, the Kapudan's fleet programme, return gifts for foreign embassies, and the princes' circumcision festival. Refusing costs loyalty or stance.
-   - **A "hoarding Sultan" penalty** on Janissary, ulema and harem equilibria once the treasury exceeds 12 months of expenses. Royal largesse was expected.
-   - **Result** (`npm run balance`, 20 seeds, 36 months of peace from 1451):
+   - ~~A "hoarding Sultan" loyalty penalty~~ — **removed at your request.** Faction pressure from money now comes only from the specific Divan requests above, the accession donative, and a new **victory donative** request: after a field victory or a captured fortress, the Agha asks at the next Divan (at most once per 3 months). Refusing costs Janissary loyalty.
+   - **A full treasury emboldens rivals instead.** Above 12 months of expenses, adult princes and brothers gain ambition faster: up to +1 a month, scaling with the surplus. They build households and plot sooner. Other factions' loyalty is unaffected, and a test checks this.
+   - **Result** (`npm run balance`, 20 seeds, 36 months of peace from 1451). Unchanged after removing the hoarding penalty, which never triggered inside three years:
 
      | Policy | Treasury change over 3 years |
      |---|---|
@@ -114,7 +115,7 @@ Each entry is something I decided without asking you. To override one, tell me i
 ## Phase 2 — LLM layer
 
 35. **Model:** `claude-sonnet-5-5`, as the brief specified. You can override it with `SULTAN_MODEL`. Narration runs at effort `medium` and order parsing at `low`; both settings live in `src/llm/`. Thinking can't be turned off on this model, so the code doesn't try.
-36. **Refusal fallback is on.** Each request sends `fallbacks: "default"` with the `server-side-fallback-2026-07-01` beta. If a safety classifier declines a scene (a battle or an execution, say), the API re-runs it on a fallback model in the same call, so the game doesn't stall. This works on the Claude API only; remove the two fields in `src/llm/client.ts` if you move to Bedrock, Vertex or Foundry. If the whole chain still refuses, or the API is unreachable, the game shows the engine's own plain-text summary of the month and play continues.
+36. **No refusal fallback — removed at your request.** Declined scenes are not re-routed to another model. Instead the Game Master prompt now keeps narration in the register of a 15th-century chronicler: battles, executions and fratricide are recorded as events with political consequences, never described graphically (see "Register" in `prompts/game_master.md`). If Claude still declines, or the API is unreachable, the game shows the engine's plain summary of the month and play continues.
 37. **Orders are one tool per action** (25 tools, `strict: true`), not a single tool taking a union of every action. Each schema stays small and well inside the API's strict-mode limits, which a test enforces. The model can issue several orders in one reply. The tool list never changes between requests, so it stays in the prompt cache.
 38. **No forced tool calls.** `tool_choice: auto` is used because Sonnet 5.5 rejects forced tool use. The parser prompt tells the model to issue orders and to ask instead of guessing. When it calls no tool, its text is shown as the court secretary's question.
 39. **Three checks between the model and the state:**
@@ -129,3 +130,19 @@ Each entry is something I decided without asking you. To override one, tell me i
     - The narrator receives a frozen copy of the state.
 41. **Number audit.** After each narration, every figure the narrator wrote is checked against its inputs (3% tolerance; years and small counts ignored). Anything unmatched is shown to the player as a warning. The engine never reads narration, so a slip misleads at worst and cannot corrupt the state.
 42. **Terminal edition.** `npm run play` came early, so the game is playable before the Phase 3 UI. It saves to `saves/*.json`; Prisma arrives in Phase 3. With no `ANTHROPIC_API_KEY` set it runs offline, showing the engine's text and taking choices like `1a 2c`. Pass `--online` to use an `ant auth login` profile instead of a key.
+
+## Phase 4 backlog
+
+- **Map additions to close the revenue gap toward ~2× by 1475:**
+  - Bosnia (1463), with the Srebrenica silver mines (tax-farm income)
+  - Trebizond and Amasra (1461)
+  - Kastamonu/Sinop (Candar, 1461), with the Küre copper mines
+  - Lesbos (1462)
+  - Caffa and the Genoese Crimea (1475)
+  - Moldavian tribute
+  - Ragusan tribute (Ragusa paid from the 1440s, with rises later)
+  - When they're in, turn the `it.fails` ≥1.8× check in `tests/revenue.test.ts` into a normal test.
+- **Janissary temper:** tune loyalty using notes from human play, not the random bot.
+- **Ministers:** ageing, death, and plotting on their own.
+- **Daughters and marriage alliances.**
+- Historian mode (`/historian`) and `pause game`, as originally planned.
