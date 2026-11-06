@@ -2,9 +2,9 @@
 import Anthropic from '@anthropic-ai/sdk';
 import type { GameState } from '../engine/types';
 import { MODEL, getClient, prompt, type Client } from './client';
-import { dilemmaSheet, divanRoster, monthSheet, realmSummary, LETTERS } from './context';
+import { narrationInput, plainNarration } from './sheets';
+export { narrationInput, plainNarration };
 import { auditNarration } from './audit';
-import { fmtDate } from '../engine/calendar';
 
 export interface NarrationResult {
   text: string;
@@ -12,19 +12,6 @@ export interface NarrationResult {
   warnings: string[];
   source: 'claude' | 'fallback';
   usage?: { input: number; cacheRead: number; cacheWrite: number; output: number };
-}
-
-export function narrationInput(s: GameState, chronicle: string[] = []): string {
-  return [
-    '# REALM', realmSummary(s), '',
-    '# EVENTS', monthSheet(s.lastReport), '',
-    '# THE DIVAN', divanRoster(s), '',
-    '# DILEMMAS', dilemmaSheet(s), '',
-    '# CHRONICLE (your recent narration, for continuity only)',
-    chronicle.length ? chronicle.slice(-2).map((c) => c.slice(0, 1500)).join('\n---\n') : '(none yet)',
-    '',
-    s.status === 'active' ? `Narrate ${fmtDate(s.date)} now.` : `The reign has ended: ${s.statusReason}. Narrate it.`,
-  ].join('\n');
 }
 
 export async function narrateMonth(
@@ -74,27 +61,6 @@ export async function narrateMonth(
     }
     throw err;
   }
-}
-
-/** Deterministic, LLM-free rendering: used offline, on refusals, and when the API is unreachable. */
-export function plainNarration(s: GameState): string {
-  const L: string[] = [`## ${fmtDate(s.date)}`, ''];
-  const r = s.lastReport;
-  if (r) {
-    for (const d of r.decisions) L.push(`- ${d.dilemma}: ${d.option}${d.byDefault ? ' (by default)' : ''}`);
-    for (const f of r.facts) if (!r.decisions.some((d) => f.startsWith(`${d.dilemma}: `))) L.push(`- ${f}`);
-    for (const a of r.actionsRejected) L.push(`- Not carried out: ${a.reason}`);
-  }
-  if (s.status !== 'active') {
-    L.push('', `**${s.statusReason}**`);
-    return L.join('\n');
-  }
-  L.push('', '### The Divan');
-  s.pendingDilemmas.forEach((d, i) => {
-    L.push('', `**${i + 1}. ${d.title}** — ${d.presenterName}`, d.brief);
-    d.options.forEach((o, j) => L.push(`- **${LETTERS[j]})** ${o.available ? o.label : `~~${o.label}~~`} — ${o.summary}`));
-  });
-  return L.join('\n');
 }
 
 function deepFreeze<T>(o: T): T {

@@ -4,6 +4,10 @@ An LLM-narrated Ottoman strategy game. The Anthropic API plays Game Master and n
 
 **Status:** Phase 1 (engine) and Phase 2 (LLM layer) are complete; Phase 3 (UI and saves) and Phase 4 (polish) are in [PLAN.md](PLAN.md).
 
+## Play in the browser
+
+The browser edition is published as a private Claude artifact (`dist/sultan-1453.html`, built with `npm run build:web`). Claude narrates through the viewer's own Claude account, so no API key is needed. Saves go to the viewer's private artifact storage.
+
 ## Play it now (terminal)
 
 ```bash

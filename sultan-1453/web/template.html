@@ -1,0 +1,176 @@
+<title>Sultan: 1453</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya:ital,wght@0,400;0,500;0,700;1,400&family=Alegreya+SC:wght@500;700&family=Alegreya+Sans:wght@400;500;700&display=swap">
+<style>
+/* Layout: an İznik-tiled band over a two-column court — chronicle and Divan on the left, the Defterdar's ledger on the right; one column on phones. */
+:root {
+  --paper: #f4f6f7;      /* glazed white */
+  --panel: #ffffff;
+  --ink: #17202e;
+  --muted: #5b6676;
+  --line: #d5dde4;
+  --cobalt: #1d3f8c;     /* İznik cobalt */
+  --turq: #1f7f7c;       /* turquoise glaze */
+  --coral: #b8371f;      /* bole red, used sparingly */
+  --tint: #e7eef7;
+  --display: "Alegreya SC", "Palatino Linotype", Georgia, serif;
+  --body: "Alegreya", "Palatino Linotype", Georgia, serif;
+  --ui: "Alegreya Sans", "Segoe UI", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --paper: #0f1522; --panel: #161e2e; --ink: #e8ecf2; --muted: #9aa6b8; --line: #2a3548;
+  --cobalt: #8fb0ff; --turq: #5cc7c0; --coral: #ff8a6e; --tint: #1c2840; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --paper: #0f1522; --panel: #161e2e; --ink: #e8ecf2; --muted: #9aa6b8; --line: #2a3548;
+  --cobalt: #8fb0ff; --turq: #5cc7c0; --coral: #ff8a6e; --tint: #1c2840; color-scheme: dark }
+
+html, body { background: var(--paper); color: var(--ink); }
+body { font-family: var(--body); font-size: 17px; line-height: 1.55; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 0 48px; }
+.band { height: 10px; background:
+  radial-gradient(circle at 10px 5px, var(--coral) 2px, transparent 2.5px) 0 0 / 20px 10px,
+  linear-gradient(90deg, var(--cobalt) 0 50%, var(--turq) 50% 100%) 0 0 / 20px 10px; opacity: .9; }
+h1, h2, h3, h4 { font-family: var(--display); font-weight: 700; text-wrap: balance; margin: 0; }
+button { font: 500 15px/1.2 var(--ui); cursor: pointer; border-radius: 6px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); padding: 10px 14px; }
+button:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px solid var(--turq); outline-offset: 2px; }
+button:disabled { opacity: .5; cursor: default; }
+button.primary { background: var(--cobalt); border-color: var(--cobalt); color: var(--paper); }
+
+/* header */
+.top { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 20px; padding-block: 18px 14px; border-bottom: 1px solid var(--line); }
+.top h1 { font-size: 26px; letter-spacing: .04em; color: var(--cobalt); }
+.top .when { font: 500 15px var(--ui); color: var(--muted); display: flex; gap: 14px; flex-wrap: wrap; }
+.top .when b { color: var(--ink); font-weight: 700; }
+.top .right { margin-left: auto; display: flex; gap: 10px; align-items: center; font: 13px var(--ui); color: var(--muted); }
+
+/* start screen */
+#start { max-width: 640px; margin: 40px auto 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 22px; }
+#start h2 { font-size: 40px; color: var(--cobalt); line-height: 1.1; }
+#start .lede { font-size: 19px; margin: 0; }
+.form { display: grid; gap: 14px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 20px; }
+.form label { display: grid; gap: 6px; font: 500 14px var(--ui); color: var(--muted); }
+select, input, textarea { width: 100%; max-width: 100%; box-sizing: border-box; font: 16px var(--ui); color: var(--ink); background: var(--paper); border: 1px solid var(--line); border-radius: 6px; padding: 10px; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.small { font: 14px var(--ui); color: var(--muted); margin: 0; }
+
+/* game */
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 28px; margin-top: 22px; align-items: start; }
+@media (max-width: 920px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+.chronicle { min-width: 0; }
+#narration { max-width: 68ch; }
+#narration h2 { font-size: 30px; color: var(--cobalt); margin-bottom: 8px; }
+#narration h3 { font-size: 20px; color: var(--turq); margin: 26px 0 6px; letter-spacing: .03em; }
+#narration p { margin: 0 0 12px; }
+#narration strong { font-weight: 700; }
+#narration .thinking { color: var(--muted); font-style: italic; }
+#warnings { font: 13px var(--ui); color: var(--coral); padding-left: 18px; margin: 6px 0 0; }
+#warnings:empty { display: none; }
+
+#dilemmas { display: grid; gap: 16px; margin-top: 22px; }
+.dilemma { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: grid; gap: 10px; }
+.dilemma header { display: flex; gap: 12px; align-items: flex-start; }
+.dilemma .num { font: 700 15px var(--ui); width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: var(--tint); color: var(--cobalt); flex: none; }
+.dilemma h4 { font-size: 19px; }
+.dilemma .who { margin: 0; font: 14px var(--ui); color: var(--muted); }
+.dilemma .brief { margin: 0; font-size: 16px; color: var(--muted); }
+.options { display: grid; gap: 8px; }
+.option { text-align: left; display: flex; gap: 12px; align-items: flex-start; padding: 10px 12px; background: var(--paper); }
+.option .letter { font: 700 14px var(--ui); color: var(--cobalt); text-transform: uppercase; padding-top: 2px; width: 14px; flex: none; }
+.option strong { display: block; font: 600 15px var(--ui); }
+.option .sum { display: block; font: 14px/1.4 var(--ui); color: var(--muted); margin-top: 2px; }
+.option.chosen { border-color: var(--cobalt); background: var(--tint); box-shadow: inset 3px 0 0 var(--cobalt); }
+.fallback-note { margin: 0; font: 13px var(--ui); color: var(--muted); }
+.ending { background: var(--panel); border: 1px solid var(--coral); border-radius: 10px; padding: 18px; display: grid; gap: 10px; justify-items: start; }
+
+.command { margin-top: 22px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: grid; gap: 10px; }
+.command textarea { width: 100%; min-height: 70px; resize: vertical; box-sizing: border-box; }
+#reply { white-space: pre-line; font: 14px/1.45 var(--ui); background: var(--tint); border-radius: 6px; padding: 10px 12px; margin: 0; }
+#orders { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+#orders li { display: flex; justify-content: space-between; gap: 10px; font: 14px var(--ui); border-bottom: 1px dashed var(--line); padding-bottom: 6px; min-width: 0; }
+#orders li span { min-width: 0; overflow-wrap: anywhere; }
+#orders .x { padding: 0 8px; border: none; background: none; color: var(--coral); font-size: 20px; }
+.endbar { display: flex; gap: 10px; flex-wrap: wrap; justify-content: space-between; align-items: center; }
+
+/* ledger */
+aside { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; font: 14px/1.45 var(--ui); }
+@media (max-width: 920px) { aside { position: static; } }
+aside h2 { font-size: 18px; color: var(--cobalt); }
+aside h3 { font: 700 12px var(--ui); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin: 16px 0 6px; }
+aside p { margin: 0 0 6px; }
+.ledger-note { color: var(--muted); font-style: italic; }
+.tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+.tile { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; display: grid; }
+.tile .k { font-size: 12px; color: var(--muted); }
+.tile .v { font: 700 20px var(--ui); font-variant-numeric: tabular-nums; }
+.tile .u { font-size: 12px; color: var(--muted); }
+.tile.bad .v { color: var(--coral); }
+.tile.good .v { color: var(--turq); }
+.factions { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.factions li { display: grid; grid-template-columns: 112px 1fr 72px; gap: 8px; align-items: center; }
+.bar { height: 6px; background: var(--tint); border-radius: 3px; overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--turq); }
+.bar i.low { background: var(--coral); }
+.mood { font-size: 12px; color: var(--muted); text-align: right; }
+.plain { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.plain li span { color: var(--muted); }
+.neighbours li { display: flex; justify-content: space-between; gap: 8px; }
+.war { color: var(--coral); }
+.field { background: var(--tint); border-radius: 6px; padding: 6px 8px; }
+@media (prefers-reduced-motion: no-preference) { .option { transition: background .15s, border-color .15s; } }
+</style>
+
+<div class="band" aria-hidden="true"></div>
+<div class="wrap">
+  <header class="top">
+    <h1>Sultan: 1453</h1>
+    <div class="when"><b id="date">The House of Osman</b><span id="sultan"></span></div>
+    <div class="right"><span id="saveNote"></span><button id="menu">Menu</button></div>
+  </header>
+
+  <main id="start">
+    <h2>The throne of Osman awaits</h2>
+    <p class="lede">You are the Sultan. Each month your Divan brings you its troubles: the treasury, the Janissaries, the harem, the frontier. Your ministers advise you, and not all of them honestly. The engine keeps the true accounts.</p>
+    <div class="form">
+      <label for="scenario">Reign
+        <select id="scenario">
+          <option value="mehmed1451">Mehmed II, February 1451: a young Sultan, Constantinople unconquered</option>
+          <option value="murad1421">Murad II, June 1421: a pretender marches on Edirne</option>
+          <option value="fictional">An unknown Sultan, in a year you choose</option>
+        </select>
+      </label>
+      <label for="year" id="yearRow" hidden>Year of accession (1420–1500)
+        <input id="year" type="number" min="1420" max="1500" value="1460">
+      </label>
+      <label for="difficulty">Difficulty
+        <select id="difficulty"><option value="easy">Gentle</option><option value="normal" selected>Historical</option><option value="hard">Harsh</option></select>
+      </label>
+      <div class="row"><button id="newGame" class="primary">Ascend the throne</button><button id="continue" hidden>Continue reign</button><span class="small" id="continueNote"></span></div>
+      <p class="small" id="aiStatus">Connecting…</p>
+    </div>
+  </main>
+
+  <div id="game" hidden>
+    <div class="grid">
+      <div class="chronicle">
+        <article id="narration" aria-live="polite"></article>
+        <ul id="warnings"></ul>
+        <div id="dilemmas"></div>
+        <section class="command">
+          <label for="command" class="small" id="aiNote"></label>
+          <textarea id="command" placeholder="e.g. Give the customary donative, confine my brother, and cast twenty guns."></textarea>
+          <div class="row"><button id="send">Record orders</button></div>
+          <p id="reply" hidden></p>
+          <ul id="orders"></ul>
+          <div class="endbar"><span class="small">Unanswered dilemmas take the course marked below each.</span><button id="endMonth" class="primary">End month</button></div>
+        </section>
+      </div>
+      <aside>
+        <h2>The Defterdar’s ledger</h2>
+        <div id="ledger"></div>
+      </aside>
+    </div>
+  </div>
+</div>
+<script>/*BUNDLE*/</script>
