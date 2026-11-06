@@ -67,3 +67,32 @@ sultan-1453/
 2. **LLM layer** — GM prompt, minister personas, narration (streaming), command-parsing tool schema, guardrails.
 3. **UI + saves** — Next.js three-pane screen, Prisma/SQLite saves, streaming narration, SVG province map.
 4. **Polish** — `/historian`, `pause game`, balance pass with the sim.
+
+
+## Phase 3 (revised): 3D front end
+
+The engine and LLM layer are unchanged. The 3D layer only reads `GameState` and sends `Action`s.
+
+```
+src/client3d/                 framework-agnostic 3D game (Three.js + plain DOM), shared by both front ends
+├── geo.ts                    map extent, lon/lat → world, hand-drawn coastlines, mountain ridges, province centres
+├── terrain.ts                voxel terrain: land/sea grid, heights, biomes, province ownership tint (one InstancedMesh)
+├── models.ts                 procedural low-poly models: city, Constantinople, army, galley, siege works, banners
+├── markers.ts                armies, fleets and sieges derived from state, tweened month to month
+├── scene.ts                  renderer, camera + orbit controls, lights, water, hover picking, render loop
+├── hud.ts                    DOM overlay: top HUD (ledger), Divan panel, chronicle panel, command bar, tooltip
+├── oracle.ts                 interface for narration and order parsing (HTTP, artifact `sample`, or offline)
+├── md.ts                     tiny markdown renderer for the chronicle
+└── app.ts                    mountGame(root, oracle, storage): start screen, turn flow, wiring
+app/                          Next.js App Router
+├── layout.tsx, page.tsx      mounts client3d (client-only)
+├── api/narrate/route.ts      streams narration from src/llm (server-side API key)
+└── api/orders/route.ts       parses free-text orders via src/llm
+web3d/                        artifact build: same client3d + `sample`-based oracle, bundled to one HTML file
+├── artifact.ts, template.html, build.mjs
+```
+
+**Stages** (stop for review after each):
+- **A — strategic map:** terrain, provinces by owner, hover info, armies, fleets, sieges, the HUD ledger, command bar, chronicle panel.
+- **B — the palace:** walkable Edirne/Topkapı, with the Divan in the throne room, plus the treasury, harem and Gate.
+- **C — cinematics:** siege and battle scenes driven by the engine's result.

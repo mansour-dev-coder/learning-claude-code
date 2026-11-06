@@ -56,10 +56,10 @@ export async function parseCommand(state: GameState, text: string, opts: { clien
     }
     return { actions, reply: reply.trim(), invalid: invalid.map(({ tool, error }) => ({ tool, error })), source: 'claude' };
   } catch (err) {
-    if (err instanceof Anthropic.AnthropicError) {
-      return { actions: [], reply: `The court secretary is unavailable (${err.message}). Use numbered choices like "1a 2c", or /help.`, invalid: [], source: 'unavailable' };
-    }
-    throw err;
+    // Any failure to reach Claude (missing credentials raise a plain Error) degrades to buttons and shortcuts.
+    const raw = err instanceof Error ? err.message : String(err);
+    const msg = /authentication/i.test(raw) ? "no ANTHROPIC_API_KEY is set on the server" : raw;
+    return { actions: [], reply: `The court secretary is unavailable (${msg.slice(0, 120)}). Use numbered choices like "1a 2c".`, invalid: [], source: 'unavailable' };
   }
 }
 

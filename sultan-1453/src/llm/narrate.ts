@@ -1,5 +1,4 @@
 // Streams the month's narration. Read-only: takes a frozen snapshot, returns prose. It cannot touch state.
-import Anthropic from '@anthropic-ai/sdk';
 import type { GameState } from '../engine/types';
 import { MODEL, getClient, prompt, type Client } from './client';
 import { narrationInput, plainNarration } from './sheets';
@@ -54,12 +53,9 @@ export async function narrateMonth(
     };
   } catch (err) {
     // any SDK failure (auth, rate limit, network, missing credentials) degrades to the engine's own summary
-    if (err instanceof Anthropic.AnthropicError) {
-      const fb = plainNarration(s);
-      opts.onText?.(fb);
-      return { text: fb, warnings: [`narrator unavailable: ${(err as Error).message}`], source: 'fallback' };
-    }
-    throw err;
+    const fb = plainNarration(s);
+    opts.onText?.(fb);
+    return { text: fb, warnings: [`narrator unavailable: ${(err instanceof Error ? err.message : String(err)).slice(0, 160)}`], source: 'fallback' };
   }
 }
 

@@ -146,3 +146,29 @@ Each entry is something I decided without asking you. To override one, tell me i
 - **Ministers:** ageing, death, and plotting on their own.
 - **Daughters and marriage alliances.**
 - Historian mode (`/historian`) and `pause game`, as originally planned.
+
+## Phase 3 Stage A — 3D strategic map
+
+43. **One 3D client, two front ends.** `src/client3d/` uses Three.js and plain DOM, with no React inside.
+    - **Next.js app:** `app/page.tsx` mounts it, and Claude is reached through `/api/narrate` (streaming) and `/api/orders`, with the API key kept on the server.
+    - **Artifact build:** `web3d/` bundles the same client into one HTML file. Claude is reached through the artifact's `sample` capability, so you can play from the link with no API key.
+    - The 3D layer only reads `GameState` and sends `Action`s; neither the engine nor the LLM layer was changed for it.
+44. **No third-party art assets.** All terrain and models are procedural: hand-drawn coastline polygons, ridge lines for mountains, and models built from boxes, cones and cylinders. There are no asset licences to track. Code dependencies: three.js (MIT), Next.js (MIT), React (MIT), esbuild (MIT, build only). The Alegreya type families load from Google Fonts (SIL Open Font License).
+45. **The map is stylised, not surveyed.**
+    - Coastlines are about 150 hand-placed points sampled onto a 0.25° grid (about 25 km cells).
+    - Small islands and the straits are drawn explicitly. The Bosporus and Dardanelles are widened to stay visible at that resolution.
+    - Province borders are weighted Voronoi regions around each seat, kept on their own landmass (Thrace can't fall to Bursa across the Marmara).
+    - Lands outside the game's provinces (Italy, the Danube plain north of Buda, Cyrenaica) are drawn muted.
+46. **Performance.**
+    - The terrain is one `InstancedMesh` of about 4,000 columns: one draw call, with shading baked into vertex colours.
+    - Each model is a single merged geometry, and labels are screen-space sprites.
+    - The scene is about 50 draw calls in total, and hover picking runs at most every other frame.
+    - Press **F** to show the measured frame rate.
+47. **Markers follow engine state.**
+    - The Sultan's army moves along the capital→target line according to its campaign phase and months remaining.
+    - Enemy field armies stand at their capital, or at their siege.
+    - Siege works lose wall blocks on the gun side as the breach grows, with a breach bar and percentage above.
+    - The fleet sits at Gelibolu or off the target's coast.
+    - Markers glide to their new positions over about 1.6 seconds when a month ends, and the camera pans to the action.
+48. **Saves:** browser storage in the Next.js app; private per-user artifact storage, with a local fallback, in the artifact build. **Prisma/SQLite saves are deferred** until after Stage C, unless you want them sooner.
+49. **Missing credentials** (no `ANTHROPIC_API_KEY`) degrade the Next.js app to the plain chronicle plus buttons and shortcuts, and never cause a server error.
