@@ -5,7 +5,7 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 
 const MAT = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
 
-class Builder {
+export class Builder {
   parts: THREE.BufferGeometry[] = [];
   add(g: THREE.BufferGeometry, color: string, x = 0, y = 0, z = 0, ry = 0) {
     const geo = g.index ? g.toNonIndexed() : g.clone();
@@ -36,8 +36,8 @@ class Builder {
   dome(r: number, color: string, x = 0, y = 0, z = 0) {
     return this.add(new THREE.SphereGeometry(r, 8, 4, 0, Math.PI * 2, 0, Math.PI / 2), color, x, y, z);
   }
-  mesh() {
-    const m = new THREE.Mesh(mergeGeometries(this.parts), MAT);
+  mesh(material: THREE.Material = MAT) {
+    const m = new THREE.Mesh(mergeGeometries(this.parts), material);
     m.castShadow = false;
     return m;
   }

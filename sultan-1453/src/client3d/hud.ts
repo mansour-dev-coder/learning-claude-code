@@ -93,6 +93,16 @@ export const HUD_CSS = `
 .s3 .start p { margin: 0; color: #d6dce6; }
 .s3 .start label { display: grid; gap: 5px; font-size: 13px; color: var(--muted); }
 .s3 .start select, .s3 .start input { width: 100%; font: 15px var(--ui); color: var(--ink); background: rgba(0,0,0,.35); border: 1px solid var(--line); border-radius: 7px; padding: 9px; }
+.s3 .placebar { left: 50%; transform: translateX(-50%); top: 74px; display: flex; gap: 6px; align-items: center; padding: 6px 8px; flex-wrap: wrap; justify-content: center; max-width: calc(100% - 20px); }
+.s3 .placebar b { font: 700 15px var(--display); color: var(--gold); margin: 0 6px; }
+.s3 .placebar button { padding: 6px 10px; font-size: 13px; }
+.s3 .prompt { left: 50%; transform: translateX(-50%); bottom: 168px; padding: 8px 14px; font-size: 14px; }
+.s3 .dlg { left: 50%; transform: translateX(-50%); bottom: 150px; width: min(640px, calc(100% - 20px)); max-height: 58%; display: flex; flex-direction: column; z-index: 4; }
+.s3 .dlg .pbody { font: 15.5px/1.5 var(--body); }
+.s3 .dlg .speech { margin: 0; }
+.s3 .dlg .who2 { color: var(--muted); font: 13px var(--ui); margin: 0; }
+.s3 .dlg .acts { display: grid; gap: 6px; }
+.s3 .hint { font: 12px var(--ui); color: var(--muted); }
 .s3 .fps { position: absolute; right: 12px; bottom: 8px; font: 11px var(--ui); color: rgba(255,255,255,.7); text-shadow: 0 1px 2px #000; pointer-events: none; }
 
 @media (max-width: 820px) {
@@ -107,6 +117,11 @@ export const HUD_CSS = `
   .s3 .cmd .row { flex-wrap: wrap; }
   .s3 .cmd input { flex-basis: 100%; }
   .s3 .cmd button { flex: 1; }
+  .s3 .placebar { top: auto; bottom: 150px; flex-wrap: nowrap; padding: 5px 6px; gap: 4px; }
+  .s3 .placebar button { padding: 6px 8px; }
+  .s3 .placebar .hint, .s3 .placebar b { display: none; }
+  .s3 .dlg { bottom: 200px; max-height: 50%; }
+  .s3 .prompt { bottom: 198px; font-size: 13px; padding: 6px 10px; }
 }
 `;
 
@@ -123,6 +138,7 @@ export const HUD_HTML = `
   <div class="facs" id="s3-facs" title="Faction loyalty, as reported"></div>
   <span class="spacer"></span>
   <div class="tabs"><button id="s3-tab-divan">Divan</button><button id="s3-tab-chron">Chronicle</button></div>
+  <button id="s3-mode" class="primary">Enter the palace</button>
   <button id="s3-legend-t" aria-pressed="false">Legend</button>
   <button id="s3-menu">Menu</button>
   <button id="s3-hud-t" aria-label="Collapse top bar">–</button>
@@ -135,6 +151,9 @@ export const HUD_HTML = `
   <div class="chips" id="s3-orders"></div>
 </section>
 <div class="panel tip" id="s3-tip" hidden></div>
+<div class="panel placebar" id="s3-place" hidden><b id="s3-room">The palace</b><button data-room="divan">Divan</button><button data-room="treasury">Treasury</button><button data-room="harem">Harem</button><button data-room="gate">Gate</button><span class="hint">WASD or tap to walk · drag to turn · E or tap a person to speak</span></div>
+<div class="panel prompt" id="s3-prompt" hidden></div>
+<section class="panel dlg" id="s3-dlg" hidden><div class="phead"><h3 id="s3-dlg-name"></h3><button id="s3-dlg-x" aria-label="Close">×</button></div><div class="pbody" id="s3-dlg-body"></div></section>
 <div class="panel legend" id="s3-legend" hidden></div>
 <div class="fps" id="s3-fps"></div>
 <div class="start" id="s3-start">

@@ -28,6 +28,7 @@ export class MapScene {
   private tickCount = 0;
   private tmp = new THREE.Vector3();
   private running = true;
+  private paused = false;
   private fpsSamples: number[] = [];
   private focusTween: { from: THREE.Vector3; to: THREE.Vector3; t: number } | null = null;
   onHover: (h: HoverInfo) => void = () => {};
@@ -97,6 +98,13 @@ export class MapScene {
     new ResizeObserver(() => this.resize()).observe(container);
     this.resize();
     this.loop();
+  }
+
+  /** Pause rendering (and hide the canvas) while another view is shown. */
+  setActive(on: boolean) {
+    this.paused = !on;
+    this.renderer.domElement.style.display = on ? 'block' : 'none';
+    if (on) this.resize();
   }
 
   resize() {
@@ -179,6 +187,7 @@ export class MapScene {
   private loop = () => {
     if (!this.running) return;
     requestAnimationFrame(this.loop);
+    if (this.paused) { this.clock.getDelta(); return; }
     const dt = Math.min(0.05, this.clock.getDelta());
     const now = performance.now();
     this.fpsSamples.push(now);

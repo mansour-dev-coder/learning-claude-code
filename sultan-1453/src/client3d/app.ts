@@ -5,10 +5,11 @@ import { fmtDate } from '../engine/calendar';
 import { reportedView } from '../engine/intel';
 import { grainConsumption } from '../engine/economy';
 import { describeAction } from '../engine/actions';
-import { fmtAkce, type TurnCtx } from '../engine/state';
+import { fmtAkce, princeAge, type TurnCtx } from '../engine/state';
 import { LETTERS } from '../llm/context';
 import { parseShortcuts, previewOrders } from '../llm/orders';
 import { MapScene } from './scene';
+import { PalaceScene, type Npc } from './palace/scene';
 import { HUD_CSS, HUD_HTML } from './hud';
 import { esc, md } from './md';
 import { LEGEND, OWNER_COLORS } from './palette';
@@ -36,6 +37,9 @@ export function mountGame(root: HTMLElement, opts: MountOptions) {
   const $ = <T extends HTMLElement>(id: string) => root.querySelector<T>(`#${id}`)!;
 
   const scene = new MapScene(root.querySelector('.map') as HTMLElement);
+  const palace = new PalaceScene(root.querySelector('.map') as HTMLElement);
+  let inPalace = false;
+  let talking: Npc | null = null;
   let game: SaveGame | null = null;
   let busy = false;
 
@@ -150,12 +154,121 @@ export function mountGame(root: HTMLElement, opts: MountOptions) {
     $('s3-warn').innerHTML = game!.warnings.map((w) => `<p class="warn">⚠ ${esc(w)}</p>`).join('');
   };
 
+  const answeredSet = () => new Set(game!.orders.filter((o) => o.type === 'resolveDilemma').map((o) => (o as { dilemmaId: string }).dilemmaId));
+
   const render = () => {
     if (!game) return;
     renderHud();
     renderDivan();
     renderOrders();
+    palace.setState(game.state, answeredSet());
+    if (talking) renderDialogue(talking);
   };
+
+  // ── the palace ──
+  const setMode = (palaceOn: boolean) => {
+    inPalace = palaceOn;
+    scene.setActive(!palaceOn);
+    palace.setActive(palaceOn);
+    $('s3-place').hidden = !palaceOn;
+    $('s3-mode').textContent = palaceOn ? 'Return to the map' : 'Enter the palace';
+    $('s3-legend').hidden = true;
+    tip.hidden = true;
+    if (!palaceOn) { closeDialogue(); $('s3-prompt').hidden = true; }
+    // the Divan panel stays available but starts folded inside the palace: the ministers present in person
+    if (palaceOn && !divan.classList.contains('collapsed') && window.innerWidth > 820) { divan.classList.add('collapsed'); $('s3-divan-t').textContent = '+'; }
+    if (palaceOn && window.innerWidth <= 820) { divan.classList.add('hidden-m'); chron.classList.add('hidden-m'); }
+  };
+
+  /** The minister's words from this month's chronicle, if the narrator gave him a speech; else the engine's brief. */
+  const speechFor = (name: string) => {
+    const text = game!.narration ?? '';
+    const at = text.indexOf('### The Divan');
+    if (at < 0) return null;
+    const para = text.slice(at).split(/\n\s*\n|\n(?=\*\*)/).find((p) => p.includes(`**${name}`) || p.startsWith(`**${name.split(' ')[0]}`));
+    return para ? para.replace(/\*\*/g, '').replace(/^\s*[-*] /gm, '').trim() : null;
+  };
+
+  const closeDialogue = () => { talking = null; $('s3-dlg').hidden = true; };
+
+  const renderDialogue = (npc: Npc) => {
+    const s = game!.state;
+    $('s3-dlg-name').innerHTML = `${esc(npc.name)}<small>${esc(npc.title)}</small>`;
+    const body = $('s3-dlg-body');
+    body.innerHTML = '';
+    const p = (html: string, cls = 'speech') => { const el = document.createElement('p'); el.className = cls; el.innerHTML = html; body.append(el); return el; };
+    const act = (label: string, fn: () => void, disabled = false) => { const b = document.createElement('button'); b.className = 'opt'; b.textContent = label; b.disabled = disabled || busy; b.onclick = fn; return b; };
+    const dls = s.pendingDilemmas.filter((d) => npc.dilemmas.includes(d.id));
+    if (dls.length) {
+      const said = speechFor(npc.name);
+      if (said) p(esc(said));
+      for (const d of dls) {
+        const chosen = game!.orders.find((o) => o.type === 'resolveDilemma' && o.dilemmaId === d.id) as { optionId: string } | undefined;
+        p(`<strong>${esc(d.title)}.</strong> ${esc(d.brief)}`, said ? 'who2' : 'speech');
+        const box = document.createElement('div');
+        box.className = 'acts';
+        d.options.forEach((o, j) => {
+          const b = document.createElement('button');
+          b.className = `opt${chosen?.optionId === o.id ? ' chosen' : ''}`;
+          b.disabled = !o.available || busy;
+          b.innerHTML = `<b>${LETTERS[j]}</b><span>${esc(o.label)}<span>${esc(o.summary)}${o.available ? '' : ' (not possible now)'}</span></span>`;
+          b.onclick = () => addOrders([{ type: 'resolveDilemma', dilemmaId: d.id, optionId: o.id }], '');
+          box.append(b);
+        });
+        body.append(box);
+        p(chosen ? 'Your answer is recorded. It takes effect when the month ends.' : `If you give no order: ${esc(d.options.find((o) => o.id === d.defaultOptionId)?.label ?? '')}`, 'who2');
+      }
+      return;
+    }
+    switch (npc.kind) {
+      case 'minister': {
+        const m = Object.values(s.ministers).find((x) => x.name === npc.name);
+        p(`“My Sultan, I have nothing before the Divan this month.”`);
+        if (m) p(esc(m.personality), 'who2');
+        break;
+      }
+      case 'treasurer': {
+        const v = reportedView(s);
+        p(`“The chests hold ${fmtAkce(v.treasury)} akçe, my Sultan. Each month brings ${fmtAkce(v.budget.totalRevenue)} and takes ${fmtAkce(v.budget.totalExpenses)}.${s.arrears > 0 ? ` The troops are owed ${fmtAkce(s.arrears)}.` : ''}” These are the Defterdar's figures.`);
+        const box = document.createElement('div');
+        box.className = 'acts';
+        if (s.arrears > 0) box.append(act('Pay the troops what they are owed', () => addOrders([{ type: 'payArrears' }], '')));
+        box.append(act('Order a secret audit of the registers (60,000 akçe)', () => addOrders([{ type: 'audit' }], '')));
+        box.append(act('Cast ten siege guns (60,000 akçe)', () => addOrders([{ type: 'castCannon', guns: 10 }], '')));
+        box.append(act('A customary donative to the corps (250 akçe a man)', () => addOrders([{ type: 'grantDonative', akcePerMan: 250 }], '')));
+        body.append(box);
+        break;
+      }
+      case 'valide': p(`“${esc(s.dynasty.valide?.note ?? '')}. The harem is quiet, my son, for now.”`); break;
+      case 'consort': {
+        const c = s.dynasty.consorts.find((x) => x.name === npc.name);
+        const sons = s.dynasty.princes.filter((x) => x.alive && x.motherId === c?.id).map((x) => x.name);
+        p(`${esc(npc.name)}, ${esc(npc.title)}. ${sons.length ? `Mother of Şehzade ${sons.map(esc).join(' and Şehzade ')}.` : 'She has no living son.'}`);
+        break;
+      }
+      case 'prince': {
+        const pr = s.dynasty.princes.find((x) => `Şehzade ${x.name}` === npc.name);
+        if (pr) p(`${esc(npc.title)}. His household is ${pr.household > 60 ? 'strong' : pr.household > 30 ? 'growing' : 'small'}; his tutors call him ${pr.ability >= 7 ? 'quick' : pr.ability >= 4 ? 'diligent' : 'slow'}${princeAge(s, pr.birthYear) >= 15 ? `, and his ambition ${pr.ambition > 70 ? 'is spoken of' : 'is unremarkable'}` : ''}.`);
+        break;
+      }
+      case 'eunuch': p('“The doors of the harem are kept, my Sultan. If I hear anything that concerns you, you will hear it first.”'); break;
+      case 'petitioner': p(`“${esc(npc.note ?? '')}”`); p('Petitions at the Gate bring news. Decisions are taken in the Divan.', 'who2'); break;
+      default: p('He bows and says nothing.');
+    }
+  };
+
+  palace.onInteract = (npc) => { talking = npc; $('s3-prompt').hidden = true; $('s3-dlg').hidden = false; renderDialogue(npc); };
+  palace.onNear = (npc) => {
+    const el = $('s3-prompt');
+    if (!npc || talking) { el.hidden = true; return; }
+    el.hidden = false;
+    el.textContent = `${npc.dilemmas.length ? '★ ' : ''}Speak with ${npc.name} (E, or tap him)`;
+  };
+  palace.onRoom = (room) => { $('s3-room').textContent = room?.name ?? 'The palace grounds'; };
+  $('s3-dlg-x').onclick = closeDialogue;
+  window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && talking) closeDialogue(); });
+  root.querySelectorAll<HTMLButtonElement>('#s3-place button[data-room]').forEach((b) => (b.onclick = () => { closeDialogue(); palace.teleport(b.dataset.room as 'divan'); }));
+  $('s3-mode').onclick = () => setMode(!inPalace);
 
   const flash = (t: string) => { $('s3-reply').textContent = t; };
 
@@ -215,6 +328,11 @@ export function mountGame(root: HTMLElement, opts: MountOptions) {
     game.orders = [];
     flash(report.actionsRejected.map((r) => `✗ ${r.reason}`).join('\n'));
     scene.setState(state);
+    if (inPalace) {
+      closeDialogue();
+      palace.setState(state, answeredSet());
+      if (state.pendingDilemmas.length) { palace.teleport('divan'); flash('The Divan is assembled in the throne room.'); }
+    }
     if (state.campaign) scene.focus(state.campaign.phase === 'mustering' ? state.capital : state.campaign.target);
     else if (state.sieges[0]) scene.focus(state.sieges[0].province);
     render();
@@ -308,6 +426,7 @@ export function mountGame(root: HTMLElement, opts: MountOptions) {
     async play(actions: Action[]) { if (game) { game.orders = actions; await endMonth(); } },
     get game() { return game; },
     get scene() { return scene; },
+    get palace() { return palace; },
     dispose() { scene.dispose(); root.innerHTML = ''; },
   };
 }

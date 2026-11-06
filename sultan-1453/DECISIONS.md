@@ -172,3 +172,41 @@ Each entry is something I decided without asking you. To override one, tell me i
     - Markers glide to their new positions over about 1.6 seconds when a month ends, and the camera pans to the action.
 48. **Saves:** browser storage in the Next.js app; private per-user artifact storage, with a local fallback, in the artifact build. **Prisma/SQLite saves are deferred** until after Stage C, unless you want them sooner.
 49. **Missing credentials** (no `ANTHROPIC_API_KEY`) degrade the Next.js app to the plain chronicle plus buttons and shortcuts, and never cause a server error.
+
+### Stage A review fixes
+
+50. **Fixed palette, owned land in full colour.**
+    - The colours: Ottoman crimson, Byzantine purple, Venice teal, Hungary green, Serbia blue, Wallachia white, Albania black, Karaman ochre, Mamluk gold, Aq Qoyunlu sand.
+    - Owned cells now take the power's colour outright, shaded only by height. Before, they were blended with the terrain, which turned Ottoman crimson orange.
+    - Ochre, gold and sand are separated by lightness.
+    - Albanian black borders are drawn lighter, so they stay visible.
+    - A **Legend** toggle lists each power's colour and its current relation to you.
+51. **One-line panels.** The top bar, the Divan and the chronicle each collapse to a single line. On desktop the chronicle starts collapsed, and a gold dot marks a new entry.
+52. **Labels.**
+    - Each kind looks different: towns are dark pills, capitals have a gold rim, armies are pills in the side's colour with crossed swords, fleets have a ship mark, and sieges carry their breach bar.
+    - Labels keep the same on-screen size at every zoom.
+    - Where labels collide, the less important one tries three other positions before hiding. The order of importance is siege > army > fleet > capital > town.
+    - A besieging army is named on its siege label ("Imperial army 19k besieging Constantinople: breach 36%").
+    - Armies stand on a coloured ground ring and grow with zoom-out, up to 2.6×, so they can't be mistaken for towns.
+
+## Phase 3 Stage B — the palace
+
+53. **One plan, two palaces.** Both have the Gate (first court), the second court, the Divan hall, the Treasury, and the Harem through the Gate of Felicity.
+    - **Topkapı** is used when the capital is Constantinople. It has stone walls, lead domes, the twin octagonal towers of the Gate of Salutation, the Tower of Justice and cypresses.
+    - **Edirne** is used before the move. It has timber galleries, tiled pyramid roofs, a single gate tower, plane trees and the Tunca along the east side.
+    - Both are stylised. The real Edirne New Palace was only begun in 1450, so in the 1421 scenario it stands for whichever palace Murad used.
+54. **The "throne room" is the Divan hall** (the Kubbealtı at Topkapı). Historically, from Mehmed II's later reign the Sultan stopped sitting in the Divan and listened from behind a grilled window, the *kafes*, which is modelled above the throne. Here the Sultan walks in and the ministers present in person, for playability.
+55. **Who stands where.**
+    - **The Divan hall:** the nine ministers, in a half-circle before the throne. Anyone with an unanswered matter has a gold banner, which turns green once you've ruled.
+    - **The Treasury:** the Hazinedarbaşı reports the Defterdar's figures and offers quick orders (pay arrears, audit, cast guns, donative). The chests on the floor scale with the treasury, one per million akçe, up to thirty.
+    - **The Harem:** the Valide (or the senior lady), consorts and the princes kept at the palace, with the Chief Eunuch at the door. Dilemmas presented by the Valide or the Chief Eunuch are raised here.
+    - **The Gate:** petitioners repeat last month's news, and Janissary guards stand watch.
+56. **Speech.** If this month's chronicle gave a minister a speech under "The Divan", his dialogue opens with those words. Otherwise it opens with the engine's brief. The options are the same as the Divan panel's and record the same orders. The month still ends from the command bar.
+57. **Movement and camera.**
+    - Move with WASD/arrow keys, or click or tap to walk. Drag to turn, scroll to zoom. Press E or tap a person to speak.
+    - Quick-travel buttons cover each room.
+    - Inside a room, everything above 2.3 m is trimmed (a Sims-style cutaway), so walls never hide you.
+    - Outdoors, the camera pulls in front of any wall between it and the Sultan.
+    - People turn to face the Sultan when he comes within 5 m.
+    - When a month ends while you are in the palace, you are taken to the Divan hall for the new matters.
+58. **Rendering.** The map pauses while you are in the palace, so only one scene renders at a time. Each building set is a single merged mesh, and each person is one mesh plus a label.
