@@ -116,13 +116,20 @@ export class Terrain {
 
   private paint() {
     const c = new THREE.Color();
+    const own = new THREE.Color();
     this.cells.forEach((cell, i) => {
-      c.copy(cell.base);
       const owner = cell.province ? this.owners[cell.province] : undefined;
-      if (owner) c.lerp(new THREE.Color(OWNER_COLORS[owner] ?? '#999999'), cell.h >= 7 ? 0.35 : 0.72);
-      else c.lerp(new THREE.Color('#9aa0a2'), 0.35); // lands outside the game: muted
-      if (cell.border) c.multiplyScalar(0.72);
-      if (cell.province && cell.province === this.hovered) c.lerp(new THREE.Color('#ffffff'), 0.28);
+      if (owner) {
+        // owned land takes the power's colour outright; height and a little noise only shade it,
+        // so a power reads the same on plain and mountain
+        own.set(OWNER_COLORS[owner] ?? '#999999');
+        c.copy(own).offsetHSL(0, 0, (cell.h - 3) * 0.018 + (hash(cell.lon * 9.1, cell.lat * 5.7) - 0.5) * 0.05);
+        c.lerp(cell.base, 0.12);
+      } else {
+        c.copy(cell.base).lerp(new THREE.Color('#9aa0a2'), 0.35); // lands outside the game: muted
+      }
+      if (cell.border) c.multiplyScalar(owner === 'albania' ? 1.9 : 0.68);
+      if (cell.province && cell.province === this.hovered) c.lerp(new THREE.Color(owner === 'wallachia' ? '#ffd54f' : '#ffffff'), 0.3);
       this.mesh.setColorAt(i, c);
     });
     if (this.mesh.instanceColor) this.mesh.instanceColor.needsUpdate = true;

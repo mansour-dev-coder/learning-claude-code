@@ -25,6 +25,8 @@ export class MapScene {
   private pointerDirty = false;
   private lastPointer = { x: 0, y: 0 };
   private frame = 0;
+  private tickCount = 0;
+  private tmp = new THREE.Vector3();
   private running = true;
   private fpsSamples: number[] = [];
   private focusTween: { from: THREE.Vector3; to: THREE.Vector3; t: number } | null = null;
@@ -134,6 +136,40 @@ export class MapScene {
     return this.terrain.cells[hit.instanceId].province;
   }
 
+  /**
+   * Hide labels that would overlap a more important one (siege > army > fleet > capital > city), so
+   * sieges and armies stay legible where many markers crowd together, as around Constantinople.
+   */
+  private declutter() {
+    const W = this.container.clientWidth, H = this.container.clientHeight;
+    const k = (this.camera.projectionMatrix.elements[5] * H) / 2;
+    const placed: [number, number, number, number][] = [];
+    const sprites = this.markers.labels().sort((a, b) => b.userData.priority - a.userData.priority);
+    // each label tries its usual anchor (above), then below, right and left, before giving way
+    const anchors: [number, number][] = [[0.5, 0], [0.5, 1.15], [-0.08, 0.5], [1.08, 0.5]];
+    for (const s of sprites) {
+      if (s.userData.anchor === undefined) s.userData.anchor = [s.center.x, s.center.y];
+      const p = s.getWorldPosition(this.tmp).project(this.camera);
+      if (p.z > 1 || Math.abs(p.x) > 1.2 || Math.abs(p.y) > 1.2) { s.visible = false; continue; }
+      const x = ((p.x + 1) / 2) * W, y = ((1 - p.y) / 2) * H;
+      const w = s.scale.x * k, h = s.scale.y * k;
+      const own = s.userData.anchor as [number, number];
+      let chosen: [number, number, number, number] | null = null;
+      for (const [cx, cy] of [own, ...anchors]) {
+        const left = x - cx * w, top = y - (1 - cy) * h;
+        const r: [number, number, number, number] = [left - 3, top - 3, left + w + 3, top + h + 3];
+        if (!placed.some((q) => r[0] < q[2] && r[2] > q[0] && r[1] < q[3] && r[3] > q[1])) {
+          chosen = r;
+          s.center.set(cx, cy);
+          break;
+        }
+        if (s.userData.priority <= 1) break; // plain town labels don't wander
+      }
+      s.visible = !!chosen;
+      if (chosen) placed.push(chosen);
+    }
+  }
+
   /** Measured frames per second over the last ~2 seconds. */
   fps() {
     if (this.fpsSamples.length < 2) return 0;
@@ -159,6 +195,10 @@ export class MapScene {
     }
     this.controls.update();
     this.markers.tick(dt, this.clock.elapsedTime);
+    if (this.tickCount++ % 6 === 0) {
+      this.markers.setZoom(this.camera.position.distanceTo(this.controls.target));
+      this.declutter();
+    }
     // hover picking at most every other frame
     if (this.pointerDirty && this.frame++ % 2 === 0) {
       this.pointerDirty = false;

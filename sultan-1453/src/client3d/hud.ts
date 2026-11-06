@@ -31,6 +31,14 @@ export const HUD_CSS = `
 .s3 .fac i.low { background: var(--crimson); }
 .s3 .hud .spacer { flex: 1; }
 .s3 .tabs { display: none; gap: 6px; }
+.s3 .hud.min .stat:not(.keep), .s3 .hud.min .facs, .s3 .hud.min .brand { display: none; }
+.s3 .phead h3 small { font: 500 13px var(--ui); color: var(--muted); margin-left: 8px; letter-spacing: 0; }
+.s3 .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--gold); margin-left: 8px; vertical-align: 2px; }
+.s3 .dot[hidden] { display: none; }
+.s3 .legend { left: max(10px, env(safe-area-inset-left, 0px)); bottom: 150px; width: min(280px, calc(100% - 20px)); padding: 10px 12px; display: grid; gap: 5px; font-size: 13px; z-index: 3; }
+.s3 .legend .sw { display: inline-block; width: 14px; height: 14px; border-radius: 3px; margin-right: 8px; vertical-align: -2px; border: 1px solid rgba(255,255,255,.35); }
+.s3 .legend .sub { color: var(--muted); margin-left: 4px; }
+.s3 .legend .kind { display: flex; gap: 8px; align-items: center; color: var(--muted); }
 
 /* side panels */
 .s3 .divan { top: 74px; right: max(10px, env(safe-area-inset-right, 0px)); bottom: 150px; width: 360px; display: flex; flex-direction: column; }
@@ -47,6 +55,7 @@ export const HUD_CSS = `
 .s3 .thinking { color: var(--muted); font-style: italic; }
 .s3 .collapsed .pbody { display: none; }
 .s3 .collapsed { bottom: auto !important; }
+.s3 .collapsed .phead { border-bottom: none; }
 
 .s3 .dl { border: 1px solid var(--line); border-radius: 8px; padding: 10px; display: grid; gap: 8px; background: rgba(255,255,255,.03); }
 .s3 .dl header { display: flex; gap: 10px; }
@@ -106,7 +115,7 @@ export const HUD_HTML = `
 <div class="panel hud">
   <span class="brand">Sultan: 1453</span>
   <span class="date" id="s3-date"></span>
-  <div class="stat"><span class="k">Treasury</span><span class="v" id="s3-tre"></span></div>
+  <div class="stat keep"><span class="k">Treasury</span><span class="v" id="s3-tre"></span></div>
   <div class="stat" id="s3-net-w"><span class="k">Monthly</span><span class="v" id="s3-net"></span></div>
   <div class="stat opt-stat" id="s3-arr-w"><span class="k">Arrears</span><span class="v" id="s3-arr"></span></div>
   <div class="stat opt-stat" id="s3-bread-w"><span class="k">Bread</span><span class="v" id="s3-bread"></span></div>
@@ -114,16 +123,19 @@ export const HUD_HTML = `
   <div class="facs" id="s3-facs" title="Faction loyalty, as reported"></div>
   <span class="spacer"></span>
   <div class="tabs"><button id="s3-tab-divan">Divan</button><button id="s3-tab-chron">Chronicle</button></div>
+  <button id="s3-legend-t" aria-pressed="false">Legend</button>
   <button id="s3-menu">Menu</button>
+  <button id="s3-hud-t" aria-label="Collapse top bar">–</button>
 </div>
-<section class="panel chron" id="s3-chron"><div class="phead"><h3>Chronicle</h3><button id="s3-chron-t" aria-label="Collapse chronicle">–</button></div><div class="pbody"><div id="s3-narr"></div><div id="s3-warn"></div></div></section>
-<section class="panel divan" id="s3-divan"><div class="phead"><h3>The Divan</h3><button id="s3-divan-t" aria-label="Collapse Divan">–</button></div><div class="pbody" id="s3-dilemmas"></div></section>
+<section class="panel chron collapsed" id="s3-chron"><div class="phead"><h3>Chronicle<small id="s3-chron-sub"></small><span class="dot" id="s3-chron-dot" hidden></span></h3><button id="s3-chron-t" aria-label="Expand chronicle">+</button></div><div class="pbody"><div id="s3-narr"></div><div id="s3-warn"></div></div></section>
+<section class="panel divan" id="s3-divan"><div class="phead"><h3>The Divan<small id="s3-divan-sub"></small></h3><button id="s3-divan-t" aria-label="Collapse Divan">–</button></div><div class="pbody" id="s3-dilemmas"></div></section>
 <section class="panel cmd">
   <div class="row"><input id="s3-cmd" placeholder="Your orders, my Sultan: e.g. pay the customary donative and cast twenty guns" autocomplete="off"><button id="s3-send">Record</button><button id="s3-end" class="primary">End month</button></div>
   <p class="reply" id="s3-reply"></p>
   <div class="chips" id="s3-orders"></div>
 </section>
 <div class="panel tip" id="s3-tip" hidden></div>
+<div class="panel legend" id="s3-legend" hidden></div>
 <div class="fps" id="s3-fps"></div>
 <div class="start" id="s3-start">
   <div class="panel card">

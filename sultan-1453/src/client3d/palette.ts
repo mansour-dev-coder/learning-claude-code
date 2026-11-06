@@ -1,18 +1,29 @@
-// Owner colours: chosen to stay distinct from each other and from the grass, steppe and rock tones.
+// Fixed named palette for every power. Hues are spaced so neighbours on the map never share a colour family;
+// the three warm "yellows" are separated by lightness (ochre dark, gold bright, sand pale).
 export const OWNER_COLORS: Record<string, string> = {
-  ottoman: '#d32f2f', // crimson of the Ottoman banner
-  byzantium: '#7b1fa2', // imperial purple
-  venice: '#00897b', // teal (lagoon)
-  hungary: '#2e7d32', // green of the Hunyadi arms
-  serbia: '#1565c0',
-  wallachia: '#ec407a',
-  albania: '#263238', // black of Skanderbeg's eagle
-  karaman: '#00acc1',
-  mamluks: '#f9a825', // Mamluk yellow
-  aqqoyunlu: '#eceff1', // "White Sheep"
-  papacy: '#fdd835',
+  ottoman: '#c41e2a', // crimson
+  byzantium: '#6a1b9a', // purple
+  venice: '#00897b', // teal
+  hungary: '#2e7d32', // green
+  serbia: '#1e5bb8', // blue
+  wallachia: '#f4f4f0', // white
+  albania: '#1c1c1c', // black
+  karaman: '#a8641e', // ochre
+  mamluks: '#f2c010', // gold
+  aqqoyunlu: '#d8c9a3', // sand
+  papacy: '#f2c010',
 };
 
-export const OWNER_NAMES: Record<string, string> = {
-  ottoman: 'the Sublime State',
-};
+/** Legend order and labels. */
+export const LEGEND: { id: string; name: string; colour: string }[] = [
+  { id: 'ottoman', name: 'Ottoman', colour: 'crimson' },
+  { id: 'byzantium', name: 'Byzantium', colour: 'purple' },
+  { id: 'venice', name: 'Venice', colour: 'teal' },
+  { id: 'hungary', name: 'Hungary', colour: 'green' },
+  { id: 'serbia', name: 'Serbia', colour: 'blue' },
+  { id: 'wallachia', name: 'Wallachia', colour: 'white' },
+  { id: 'albania', name: 'Albania', colour: 'black' },
+  { id: 'karaman', name: 'Karaman', colour: 'ochre' },
+  { id: 'mamluks', name: 'Mamluks', colour: 'gold' },
+  { id: 'aqqoyunlu', name: 'Aq Qoyunlu', colour: 'sand' },
+];

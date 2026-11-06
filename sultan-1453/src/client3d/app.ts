@@ -11,7 +11,7 @@ import { parseShortcuts, previewOrders } from '../llm/orders';
 import { MapScene } from './scene';
 import { HUD_CSS, HUD_HTML } from './hud';
 import { esc, md } from './md';
-import { OWNER_COLORS } from './palette';
+import { LEGEND, OWNER_COLORS } from './palette';
 import { offlineOracle, type Oracle, type SaveGame, type Storage3D } from './oracle';
 
 const MOOD = (v: number) => (v >= 75 ? 'devoted' : v >= 60 ? 'content' : v >= 45 ? 'uneasy' : v >= 30 ? 'resentful' : 'mutinous');
@@ -83,6 +83,10 @@ export function mountGame(root: HTMLElement, opts: MountOptions) {
     $('s3-bread-w').className = `stat opt-stat ${months < 1.5 ? 'bad' : ''}`;
     const men = s.army.janissaries + s.army.palaceCavalry + (s.campaign ? s.campaign.janissaries + s.campaign.palaceCavalry + s.campaign.timariots : 0);
     $('s3-army').textContent = s.campaign ? `${Math.round(men / 1000)}k in the field` : `${Math.round(s.army.janissaries / 1000)}k Janissaries`;
+    $('s3-chron-sub').textContent = fmtDate(s.lastReport?.date ?? s.date);
+    const answered = s.pendingDilemmas.filter((d) => game!.orders.some((o) => o.type === 'resolveDilemma' && o.dilemmaId === d.id)).length;
+    $('s3-divan-sub').textContent = s.status === 'active' ? `${s.pendingDilemmas.length} matters · ${answered} answered` : 'the reign has ended';
+    renderLegend();
     $('s3-facs').innerHTML = FACTIONS.map((f) => `<span class="fac" title="${FL[f]}: ${MOOD(v.factions[f])}"><i class="${v.factions[f] < 35 ? 'low' : ''}" style="height:${v.factions[f]}%"></i></span>`).join('');
   };
 
@@ -155,6 +159,14 @@ export function mountGame(root: HTMLElement, opts: MountOptions) {
 
   const flash = (t: string) => { $('s3-reply').textContent = t; };
 
+  const renderLegend = () => {
+    const s = game?.state;
+    $('s3-legend').innerHTML = LEGEND.map((l) => {
+      const rel = !s || l.id === 'ottoman' ? '' : s.neighbours[l.id as NeighbourId]?.relation ?? '';
+      return `<div><span class="sw" style="background:${OWNER_COLORS[l.id]}"></span>${l.name}<span class="sub">${l.colour}${rel && rel !== 'none' ? ` · ${rel}` : ''}</span></div>`;
+    }).join('') + `<div class="kind">Pills in a power's colour with crossed swords are armies; dark pills are towns; a red bar is a siege's breach.</div>`;
+  };
+
   // ── orders ──
   const addOrders = (proposed: Action[], reply: string) => {
     if (!game) return;
@@ -186,6 +198,7 @@ export function mountGame(root: HTMLElement, opts: MountOptions) {
     $('s3-narr').innerHTML = '<p class="thinking">The chronicler sharpens his reed pen…</p>';
     $('s3-warn').innerHTML = '';
     const res = await oracle.narrate(game.state, game.chronicle, (t) => { $('s3-narr').innerHTML = md(t); });
+    if (chron.classList.contains('collapsed') || chron.classList.contains('hidden-m')) $('s3-chron-dot').hidden = false;
     game.narration = res.text;
     game.warnings = res.warnings;
     if (oracle.online && !res.warnings.some((w) => w.includes('unavailable'))) game.chronicle = [...game.chronicle, res.text].slice(-2);
@@ -234,12 +247,20 @@ export function mountGame(root: HTMLElement, opts: MountOptions) {
 
   // ── panels ──
   const chron = $('s3-chron'), divan = $('s3-divan');
-  const openChronicle = () => { chron.classList.remove('collapsed', 'hidden-m'); if (window.innerWidth <= 820) divan.classList.add('hidden-m'); $('s3-chron-t').textContent = '–'; };
-  $('s3-chron-t').onclick = () => { chron.classList.toggle('collapsed'); $('s3-chron-t').textContent = chron.classList.contains('collapsed') ? '+' : '–'; };
+  // the chronicle stays collapsed on desktop; a gold dot marks a new entry
+  const openChronicle = () => { if (window.innerWidth <= 820) return; };
+  $('s3-chron-t').onclick = () => {
+    chron.classList.toggle('collapsed');
+    const open = !chron.classList.contains('collapsed');
+    $('s3-chron-t').textContent = open ? '–' : '+';
+    if (open) $('s3-chron-dot').hidden = true;
+  };
+  $('s3-hud-t').onclick = () => { const h = root.querySelector('.hud')!; h.classList.toggle('min'); $('s3-hud-t').textContent = h.classList.contains('min') ? '+' : '–'; };
+  $('s3-legend-t').onclick = () => { const l = $('s3-legend'); l.hidden = !l.hidden; $('s3-legend-t').setAttribute('aria-pressed', String(!l.hidden)); renderLegend(); };
   $('s3-divan-t').onclick = () => { divan.classList.toggle('collapsed'); $('s3-divan-t').textContent = divan.classList.contains('collapsed') ? '+' : '–'; };
   $('s3-tab-divan').onclick = () => { divan.classList.toggle('hidden-m'); chron.classList.add('hidden-m'); };
-  $('s3-tab-chron').onclick = () => { chron.classList.toggle('hidden-m'); divan.classList.add('hidden-m'); };
-  if (window.innerWidth <= 820) divan.classList.add('hidden-m');
+  $('s3-tab-chron').onclick = () => { chron.classList.toggle('hidden-m'); divan.classList.add('hidden-m'); $('s3-chron-dot').hidden = true; };
+  if (window.innerWidth <= 820) { divan.classList.add('hidden-m'); chron.classList.add('hidden-m'); chron.classList.remove('collapsed'); }
 
   // ── controls ──
   $('s3-send').onclick = () => { const i = $('s3-cmd') as HTMLInputElement; const t = i.value.trim(); if (t) { i.value = ''; void interpret(t); } };
@@ -286,6 +307,7 @@ export function mountGame(root: HTMLElement, opts: MountOptions) {
     /** Test hook: record these orders and end the month. */
     async play(actions: Action[]) { if (game) { game.orders = actions; await endMonth(); } },
     get game() { return game; },
+    get scene() { return scene; },
     dispose() { scene.dispose(); root.innerHTML = ''; },
   };
 }

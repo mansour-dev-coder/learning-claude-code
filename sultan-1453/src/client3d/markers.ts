@@ -2,8 +2,10 @@
 import * as THREE from 'three';
 import type { GameState, NeighbourId } from '../engine/types';
 import { SEATS, toWorld } from './geo';
-import { OWNER_COLORS } from './palette';
-import { armyModel, barSprite, cityModel, constantinopleModel, galleyModel, labelSprite, siegeModel } from './models';
+import { LEGEND, OWNER_COLORS } from './palette';
+
+const SHORT = Object.fromEntries(LEGEND.map((l) => [l.id, l.name]));
+import { armyModel, cityModel, constantinopleModel, galleyModel, labelSprite, ringModel, siegeModel } from './models';
 import type { Terrain } from './terrain';
 
 interface Marker {
@@ -30,11 +32,7 @@ const ANCHORS: Record<string, [number, number]> = {
 export class Markers {
   group = new THREE.Group();
   private markers = new Map<string, Marker>();
-  private labels = new THREE.Group();
-
-  constructor(private terrain: Terrain) {
-    this.group.add(this.labels);
-  }
+  constructor(private terrain: Terrain) {}
 
   seat(id: string, dx = 0, dz = 0): THREE.Vector3 {
     const s = SEATS[id];
@@ -96,8 +94,8 @@ export class Markers {
         const g = new THREE.Group();
         const model = p.id === 'constantinople' ? constantinopleModel(color, owner === 'ottoman') : cityModel({ size: p.landTax > 1.4e6 ? 2 : 1, walls: p.walls, ottoman: owner === 'ottoman', capital, color });
         g.add(model);
-        const label = labelSprite(p.name.replace(/ \(.*\)/, ''), { size: 0.26 });
-        label.position.set(0, 1.6, 0);
+        const label = labelSprite(p.name.replace(/ \(.*\)/, ''), { kind: capital ? 'capital' : 'city' });
+        label.position.set(0, 1.2, 0);
         g.add(label);
         g.userData.province = p.id;
         return g;
@@ -112,24 +110,31 @@ export class Markers {
       const travel = Math.max(1, Math.ceil(s.provinces[c.target].travelMonths));
       const prog = c.phase === 'mustering' ? 0 : c.phase === 'marching' ? 1 - c.monthsLeftInPhase / travel : c.phase === 'besieging' ? 1 : c.monthsLeftInPhase / travel;
       const men = c.janissaries + c.palaceCavalry + c.timariots;
-      put('army:ottoman', `ott|${Math.round(Math.log10(men + 1) * 3)}`, () => {
+      put('army:ottoman', `ott|${Math.round(Math.log10(men + 1) * 3)}|${c.phase === 'besieging'}`, () => {
         const g = new THREE.Group();
-        g.add(armyModel(OWNER_COLORS.ottoman, men, true));
-        const l = labelSprite(`Imperial army · ${Math.round(men / 1000)}k`, { size: 0.22, bg: 'rgba(120,20,20,0.75)' });
-        l.position.set(0, 1.9, 0);
+        const body = new THREE.Group();
+        body.add(armyModel(OWNER_COLORS.ottoman, men, true), ringModel(OWNER_COLORS.ottoman));
+        body.userData.zoomScale = true;
+        g.add(body);
+        if (c.phase === 'besieging') return g; // the siege label names the army
+        const l = labelSprite(`Imperial army ${Math.round(men / 1000)}k`, { kind: 'army', accent: OWNER_COLORS.ottoman });
+        l.position.set(-0.4, 0.9, 0);
+        l.center.set(1, 0); // label extends away from the town it faces
         g.add(l);
         return g;
       }, start.clone().lerp(target, Math.max(0, Math.min(1, prog))));
       if (c.fleet > 0) {
-        put('fleet:ottoman', 'ott', () => galleyModel(OWNER_COLORS.ottoman), this.sea(c.target));
+        put('fleet:ottoman', 'ott', () => { const g = galleyModel(OWNER_COLORS.ottoman); g.userData.zoomScale = true; return g; }, this.sea(c.target));
       }
     }
     if (s.army.fleet.galleys > 0) {
       put('fleet:home', 'home', () => {
         const g = new THREE.Group();
-        g.add(galleyModel(OWNER_COLORS.ottoman));
-        const l = labelSprite(`${s.army.fleet.galleys} galleys`, { size: 0.18 });
-        l.position.set(0, -0.4, 1.2);
+        const body = galleyModel(OWNER_COLORS.ottoman);
+        body.userData.zoomScale = true;
+        g.add(body);
+        const l = labelSprite(`${s.army.fleet.galleys} galleys`, { kind: 'fleet', accent: '#1f4e79' });
+        l.position.set(0, 1.0, 0);
         g.add(l);
         return g;
       }, this.sea('gelibolu'));
@@ -144,11 +149,17 @@ export class Markers {
         const home = n.capital && SEATS[n.capital] ? n.capital : Object.values(s.provinces).find((p) => p.owner === e && SEATS[p.id])?.id;
         if (!home && !sg) continue;
         const at = sg ? this.seat(sg.province, -2.2, 1.2) : this.seat(home!, 1.2, 1.0);
-        put(`army:${e}`, `${e}|${Math.round(Math.log10(n.fieldArmy + 1) * 3)}`, () => {
+        put(`army:${e}`, `${e}|${Math.round(Math.log10(n.fieldArmy + 1) * 3)}|${!!sg}`, () => {
           const g = new THREE.Group();
-          g.add(armyModel(OWNER_COLORS[e] ?? '#555', n.fieldArmy, false));
-          const l = labelSprite(`${n.name.replace(/^(Kingdom|Republic|Principality|Beylik|League) of /, '')} · ~${Math.round(n.fieldArmy / 1000)}k`, { size: 0.2 });
-          l.position.set(0, 1.9, 0);
+          const body = new THREE.Group();
+          body.add(armyModel(OWNER_COLORS[e] ?? '#555', n.fieldArmy, false), ringModel(OWNER_COLORS[e] ?? '#555'));
+          body.userData.zoomScale = true;
+          g.add(body);
+          const short = SHORT[e] ?? n.name;
+          if (sg) return g; // named on the siege label
+          const l = labelSprite(`${short} ~${Math.round(n.fieldArmy / 1000)}k`, { kind: 'army', accent: OWNER_COLORS[e] ?? '#555' });
+          l.position.set(-0.4, 0.9, 0);
+          l.center.set(1, 0);
           g.add(l);
           return g;
         }, at);
@@ -158,14 +169,15 @@ export class Markers {
     // sieges
     for (const sg of s.sieges) {
       const color = OWNER_COLORS[sg.attacker] ?? '#555';
-      put(`siege:${sg.province}`, `${Math.round(sg.breach / 10)}|${sg.attacker}`, () => {
+      put(`siege:${sg.province}`, `${Math.round(sg.breach)}|${sg.attacker}|${sg.attacker === 'ottoman' ? Math.round(((c?.janissaries ?? 0) + (c?.timariots ?? 0)) / 1000) : ''}`, () => {
         const g = new THREE.Group();
         g.add(siegeModel(sg.breach, color));
-        const bar = barSprite(sg.breach, '#ff7043');
-        bar.position.set(0, 2.4, 0);
-        g.add(bar);
-        const l = labelSprite(`Siege · breach ${Math.round(sg.breach)}%`, { size: 0.2, bg: 'rgba(80,20,10,0.8)' });
-        l.position.set(0, 2.8, 0);
+        const town = s.provinces[sg.province].name.replace(/ \(.*\)/, '');
+        const who = sg.attacker === 'ottoman'
+          ? `Imperial army ${Math.round(((c?.janissaries ?? 0) + (c?.palaceCavalry ?? 0) + (c?.timariots ?? 0)) / 1000)}k`
+          : SHORT[sg.attacker] ?? sg.attacker;
+        const l = labelSprite(`${who} besieging ${town}: breach ${Math.round(sg.breach)}%`, { kind: 'siege', value: sg.breach, accent: color });
+        l.position.set(0, 2.6, 0);
         g.add(l);
         return g;
       }, this.seat(sg.province));
@@ -184,6 +196,21 @@ export class Markers {
       }
       if (m.key.startsWith('fleet')) m.obj.position.y = m.to.y + Math.sin(time * 1.6 + m.to.x) * 0.02;
     }
+  }
+
+  /** Scale troop and ship models with camera distance so they stay visible when zoomed out. */
+  setZoom(distance: number) {
+    const k = Math.max(1, Math.min(2.6, distance / 20));
+    for (const m of this.markers.values()) {
+      m.obj.traverse((o) => { if (o.userData.zoomScale) o.scale.setScalar(k); });
+    }
+  }
+
+  /** All label sprites, for decluttering. */
+  labels(): THREE.Sprite[] {
+    const out: THREE.Sprite[] = [];
+    for (const m of this.markers.values()) m.obj.traverse((o) => { if ((o as THREE.Sprite).isSprite && o.userData.priority) out.push(o as THREE.Sprite); });
+    return out;
   }
 
   /** Province id of a city marker under a ray, if any. */

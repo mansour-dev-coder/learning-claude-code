@@ -155,42 +155,77 @@ export function siegeModel(breach: number, attackerColor: string) {
   return m;
 }
 
-/** A text label as a sprite (sharp at the map's zoom range). */
-export function labelSprite(text: string, opts: { color?: string; bg?: string; size?: number } = {}) {
-  const px = 44;
+export type LabelKind = 'city' | 'capital' | 'army' | 'fleet' | 'siege';
+const PRIORITY: Record<LabelKind, number> = { city: 1, capital: 2, fleet: 3, army: 4, siege: 5 };
+
+function luminance(hex: string) {
+  const c = new THREE.Color(hex);
+  return 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b;
+}
+
+/**
+ * A map label as a screen-space sprite (same size at every zoom). Kinds look different at a glance:
+ * cities are dark pills, armies are pills in the side's colour with crossed swords, sieges carry a breach bar.
+ * `userData.priority` lets the scene hide lower-priority labels that overlap higher ones.
+ */
+export function labelSprite(text: string, opts: { kind?: LabelKind; accent?: string; value?: number } = {}) {
+  const kind = opts.kind ?? 'city';
+  const px = kind === 'city' ? 34 : 40;
+  const pad = 16;
+  const icon = kind === 'army' || kind === 'fleet' || kind === 'siege' ? px : 0;
+  const barH = kind === 'siege' ? 16 : 0;
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d')!;
-  ctx.font = `600 ${px}px "Alegreya Sans", system-ui, sans-serif`;
-  const w = Math.ceil(ctx.measureText(text).width) + 28;
-  canvas.width = w; canvas.height = px + 20;
-  ctx.font = `600 ${px}px "Alegreya Sans", system-ui, sans-serif`;
-  ctx.fillStyle = opts.bg ?? 'rgba(20,24,32,0.62)';
-  ctx.beginPath(); ctx.roundRect(0, 0, w, px + 20, 12); ctx.fill();
-  ctx.fillStyle = opts.color ?? '#ffffff';
+  const font = `${kind === 'city' ? 600 : 700} ${px}px "Alegreya Sans", system-ui, sans-serif`;
+  ctx.font = font;
+  const w = Math.ceil(ctx.measureText(text).width) + pad * 2 + icon;
+  const h = px + 18 + barH + (barH ? 8 : 0);
+  canvas.width = w; canvas.height = h;
+  ctx.font = font;
+  const accent = opts.accent ?? '#c41e2a';
+  const bg = kind === 'city' || kind === 'capital' ? 'rgba(18,22,30,0.72)' : kind === 'siege' ? 'rgba(60,14,10,0.92)' : accent;
+  ctx.fillStyle = bg;
+  ctx.beginPath(); ctx.roundRect(0, 0, w, h, 12); ctx.fill();
+  if (kind === 'capital') { ctx.strokeStyle = '#e9c46a'; ctx.lineWidth = 5; ctx.stroke(); }
+  if (kind === 'army' || kind === 'fleet') { ctx.strokeStyle = 'rgba(255,255,255,0.85)'; ctx.lineWidth = 4; ctx.stroke(); }
+  if (kind === 'siege') { ctx.strokeStyle = accent; ctx.lineWidth = 6; ctx.stroke(); }
+  const fg = kind === 'army' || kind === 'fleet' ? (luminance(accent) > 0.6 ? '#141414' : '#ffffff') : '#ffffff';
+  // icon
+  const ix = pad + icon / 2, iy = (px + 18) / 2;
+  ctx.strokeStyle = fg; ctx.fillStyle = fg; ctx.lineWidth = 5; ctx.lineCap = 'round';
+  if (kind === 'army' || kind === 'siege') { // crossed swords
+    const r = px * 0.32;
+    ctx.beginPath(); ctx.moveTo(ix - r, iy - r); ctx.lineTo(ix + r, iy + r); ctx.moveTo(ix + r, iy - r); ctx.lineTo(ix - r, iy + r); ctx.stroke();
+    ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.moveTo(ix - r * 0.9, iy + r * 0.25); ctx.lineTo(ix - r * 0.25, iy + r * 0.9); ctx.moveTo(ix + r * 0.9, iy + r * 0.25); ctx.lineTo(ix + r * 0.25, iy + r * 0.9); ctx.stroke();
+  } else if (kind === 'fleet') { // hull and sail
+    ctx.beginPath(); ctx.moveTo(ix - 14, iy + 6); ctx.lineTo(ix + 14, iy + 6); ctx.lineTo(ix + 9, iy + 13); ctx.lineTo(ix - 9, iy + 13); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(ix, iy + 4); ctx.lineTo(ix, iy - 14); ctx.lineTo(ix + 11, iy + 1); ctx.closePath(); ctx.fill();
+  }
+  ctx.fillStyle = fg;
   ctx.textBaseline = 'middle';
-  ctx.fillText(text, 14, (px + 20) / 2 + 2);
+  ctx.fillText(text, pad + icon + (icon ? 6 : 0), (px + 18) / 2 + 2);
+  if (barH) {
+    const v = Math.max(0, Math.min(1, (opts.value ?? 0) / 100));
+    ctx.fillStyle = 'rgba(255,255,255,0.18)'; ctx.fillRect(pad, px + 18, w - pad * 2, barH);
+    ctx.fillStyle = '#ff7043'; ctx.fillRect(pad, px + 18, (w - pad * 2) * v, barH);
+  }
   const tex = new THREE.CanvasTexture(canvas);
   tex.colorSpace = THREE.SRGBColorSpace;
   tex.minFilter = THREE.LinearFilter;
-  // constant on-screen size: readable at every zoom level
   const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthWrite: false, depthTest: false, transparent: true, sizeAttenuation: false }));
-  const s = (opts.size ?? 0.26) * 0.075;
-  sprite.scale.set((s * w) / (px + 20), s, 1);
-  sprite.renderOrder = 10;
+  const s = (kind === 'city' ? 0.019 : kind === 'capital' ? 0.021 : kind === 'siege' ? 0.021 : 0.023) * (h / (px + 18));
+  sprite.scale.set((s * w) / h, s, 1);
+  sprite.center.set(0.5, 0); // anchored at its bottom edge, above the marker
+  sprite.renderOrder = 10 + PRIORITY[kind];
+  sprite.userData.priority = PRIORITY[kind];
   return sprite;
 }
 
-/** A small progress bar sprite (e.g. siege breach). */
-export function barSprite(value: number, color: string) {
-  const canvas = document.createElement('canvas');
-  canvas.width = 128; canvas.height = 20;
-  const ctx = canvas.getContext('2d')!;
-  ctx.fillStyle = 'rgba(20,24,32,0.75)'; ctx.fillRect(0, 0, 128, 20);
-  ctx.fillStyle = color; ctx.fillRect(3, 3, Math.round(122 * Math.max(0, Math.min(1, value / 100))), 14);
-  const tex = new THREE.CanvasTexture(canvas);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthWrite: false, depthTest: false, transparent: true, sizeAttenuation: false }));
-  sprite.scale.set(0.09, 0.014, 1);
-  sprite.renderOrder = 10;
-  return sprite;
+/** A coloured ground ring under an army, so troops read as troops and not as a town. */
+export function ringModel(color: string) {
+  const ring = new THREE.Mesh(new THREE.RingGeometry(0.55, 0.75, 20), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.85, side: THREE.DoubleSide }));
+  ring.rotation.x = -Math.PI / 2;
+  ring.position.y = 0.03;
+  return ring;
 }
