@@ -180,7 +180,7 @@ export function applyAction(ctx: TurnCtx, a: Action): ActionResult {
       const f = s.flags.foundry ? 0.75 : 1;
       const cost = Math.round((guns * C.gunCastCost + bombards * C.bombardCastCost) * f);
       if (guns + bombards === 0) return fail('nothing to cast');
-      if (bombards > 0 && s.army.artillery.quality < 0.7 && !s.flags.foundry) return fail('no founder at the Porte can yet cast great bombards (build a tophane or hire a master founder)');
+      if (bombards > 0 && s.army.artillery.quality < 0.8 && !s.flags.foundry) return fail('no founder at the Porte can yet cast great bombards (build a tophane or hire a master founder)');
       if (!canAfford(s, cost)) return fail(`casting costs ${cost.toLocaleString()} akçe`);
       spend(s, cost);
       s.army.artillery.guns += guns;

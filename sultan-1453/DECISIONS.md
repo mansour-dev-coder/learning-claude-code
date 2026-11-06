@@ -110,3 +110,22 @@ Each entry is something I decided without asking you. To override one, tell me i
 32. **Grain fixes found by the 25-year run.** Supply was calibrated against prosperity 70 while provinces sit near 65, which meant a permanent ~3% deficit and bread riots every spring. It is now normalised to 65 with a 6% margin. A coastal capital draws 30% of its grain by sea, flat through the year. The grain-shortage dilemma now defaults to buying, which was the grain administration's routine.
 33. **Assassination was too frequent.** In the 25-year run young Sultans were assassinated about once per run. Base risk is now 0.02% a month, and an ignored plot adds 0.4% a month for 6 months (was 1%).
 34. **Recovery and the capital.** Ruined provinces (prosperity below 50) rebuild at 2% of the gap a month instead of 0.6%. The capital's prosperity target follows its population. Constantinople's customs scale with population, from ×0.6 to ×2.5 against a 50k baseline.
+
+## Phase 2 — LLM layer
+
+35. **Model:** `claude-sonnet-5-5`, as the brief specified. You can override it with `SULTAN_MODEL`. Narration runs at effort `medium` and order parsing at `low`; both settings live in `src/llm/`. Thinking can't be turned off on this model, so the code doesn't try.
+36. **Refusal fallback is on.** Each request sends `fallbacks: "default"` with the `server-side-fallback-2026-07-01` beta. If a safety classifier declines a scene (a battle or an execution, say), the API re-runs it on a fallback model in the same call, so the game doesn't stall. This works on the Claude API only; remove the two fields in `src/llm/client.ts` if you move to Bedrock, Vertex or Foundry. If the whole chain still refuses, or the API is unreachable, the game shows the engine's own plain-text summary of the month and play continues.
+37. **Orders are one tool per action** (25 tools, `strict: true`), not a single tool taking a union of every action. Each schema stays small and well inside the API's strict-mode limits, which a test enforces. The model can issue several orders in one reply. The tool list never changes between requests, so it stays in the prompt cache.
+38. **No forced tool calls.** `tool_choice: auto` is used because Sonnet 5.5 rejects forced tool use. The parser prompt tells the model to issue orders and to ask instead of guessing. When it calls no tool, its text is shown as the court secretary's question.
+39. **Three checks between the model and the state:**
+    1. every tool call is re-validated against the order schemas in `toolCallToAction`;
+    2. every order is dry-run on a throwaway copy of the state (`previewOrders`), so refusals show before the month ends — the outcome of a peace offer is hidden so the preview can't be used to peek at the dice;
+    3. `resolveTurn` validates everything again.
+    Invalid calls go back to the model once for correction.
+40. **What each model call sees.**
+    - Narration and parsing are separate, stateless calls: the system prompt (cached) plus a fresh fact sheet. No conversation history is kept, only the last two narrations as a "chronicle" for continuity.
+    - The narrator gets the *reported* figures from `reportedView()` and the ministers' secret agendas, labelled SECRET, so it can colour their speech.
+    - The order parser gets ids and option letters only — no agendas, no hidden figures.
+    - The narrator receives a frozen copy of the state.
+41. **Number audit.** After each narration, every figure the narrator wrote is checked against its inputs (3% tolerance; years and small counts ignored). Anything unmatched is shown to the player as a warning. The engine never reads narration, so a slip misleads at worst and cannot corrupt the state.
+42. **Terminal edition.** `npm run play` came early, so the game is playable before the Phase 3 UI. It saves to `saves/*.json`; Prisma arrives in Phase 3. With no `ANTHROPIC_API_KEY` set it runs offline, showing the engine's text and taking choices like `1a 2c`. Pass `--online` to use an `ant auth login` profile instead of a key.
