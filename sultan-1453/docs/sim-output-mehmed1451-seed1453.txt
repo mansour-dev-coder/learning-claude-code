@@ -23,333 +23,354 @@ Provinces: 14 Ottoman; avg loyalty 63, avg prosperity 66
 Dynasty: Mara Hatun (Valide, inf 45); princes: Bayezid (son, 4, hh 10, amb 20); Mustafa (son, 1, hh 10, amb 20); Küçük Ahmed (brother, 1, hh 15, amb 0); Orhan Çelebi (pretender, 39, held by byzantium, hh 20, amb 60)
 Hidden: Mahmud Çelebi under-reports tax farm and customs revenue by 124,335 akçe/month; Kazancı Doğan reports the corps 11 points more content than it is; Çandarlı Halil Pasha paints Byzantine Empire as friendlier (+24) and stronger than it is; Dayı Karaca Pasha understates Balkan armies by 16%
 
-Opening Divan: [Kazancı Doğan] The accession donative (cülus bahşişi) | [Çandarlı Halil Pasha] The question of the brothers | [Molla Fahreddin-i Acemi] A wandering şeyh preaches against the Sultan
+Opening Divan: [Kazancı Doğan] The accession donative (cülus bahşişi) | [Çandarlı Halil Pasha] The question of the brothers | [Molla Fahreddin-i Acemi] A famous scholar seeks patronage
 
-── Resolved February 1451 (weather: rain) — treasury 25.00M → 21.58M, net budget 333k, grain 3.3 mo
+── Resolved February 1451 (weather: harshWinter) — treasury 25.00M → 21.58M, net budget 333k, grain 3.2 mo
    ⚖ The accession donative (cülus bahşişi) → A generous donative
    ⚖ The question of the brothers → Give him a distant sancak
-   ⚖ A wandering şeyh preaches against the Sultan → Ignore him
-   Δ loyalty: Janissaries +17, Harem +7
-   ledger: treasury 21,583k | arrears 0k | grain 3.3 mo | jan 62 ul 60 rum 58 ana 56 har 57 mer 54 mil 51 | provinces 14
-   next Divan (March 1451): Merchants petition over customs | A Hungarian founder offers great bombards | Rivalry between the mothers of princes
+   ⚖ A famous scholar seeks patronage → Decline politely
+   Δ loyalty: Janissaries +18, Rumelian beys -2, Harem +7
+   ledger: treasury 21,583k | arrears 0k | grain 3.2 mo | jan 63 ul 59 rum 58 ana 55 har 57 mer 55 mil 51 | provinces 14
+   next Divan (March 1451): Build a fortress on the Bosporus | Merchants petition over customs | Raiders cross the frontier
 
-── Resolved March 1451 (weather: drought) — treasury 21.58M → 21.87M, net budget 289k, grain 2.5 mo
+── Resolved March 1451 (weather: fair) — treasury 21.58M → 21.69M, net budget 253k, grain 2.6 mo
+   ⚖ Build a fortress on the Bosporus → Not yet
    ⚖ Merchants petition over customs → Keep the rate
-   ⚖ A Hungarian founder offers great bombards → Send him away
-   ⚖ Rivalry between the mothers of princes → Favour the younger line
+   ⚖ Raiders cross the frontier → Reinforce the garrison (150,000 akçe)
    ▶ enacted Trade capitulations to Venice and Genoa
    ▶ Medrese college begun
    • Enacted: Trade capitulations to Venice and Genoa.
    • Work begins: Medrese college at Aydın & Saruhan.
-   ledger: treasury 21,872k | arrears 0k | grain 2.5 mo | jan 63 ul 60 rum 59 ana 57 har 58 mer 54 mil 49 | provinces 14
-   next Divan (April 1451): Build a fortress on the Bosporus | Drought and locusts | The corps needs fresh boys | A vassal is late with tribute
+   ledger: treasury 21,686k | arrears 0k | grain 2.6 mo | jan 64 ul 59 rum 59 ana 56 har 58 mer 54 mil 49 | provinces 14
+   next Divan (April 1451): A Hungarian founder offers great bombards | Whispers about the Defterdar | A vassal is late with tribute | The akıncı beys ask leave to raid
 
-── Resolved April 1451 (weather: fair) — treasury 21.87M → 20.71M, net budget -763k, grain 2 mo
-   ⚖ Build a fortress on the Bosporus → Build it now (3M over 5 months)
-   ⚖ Drought and locusts → Collect in full
-   ⚖ The corps needs fresh boys → A small levy (1,000 boys)
+── Resolved April 1451 (weather: fair) — treasury 21.69M → 21.56M, net budget -115k, grain 2.2 mo
+   ⚖ A Hungarian founder offers great bombards → Hire him: a great bombard every two months
+   ⚖ Whispers about the Defterdar → Palace gossip; ignore it
    ⚖ A vassal is late with tribute → Reduce the tribute by a third
+   ⚖ The akıncı beys ask leave to raid → Allow the raid
    ▶ campaign against Krujë (Albania)
-   • Work begins: Rumeli Hisarı (Boğazkesen, “the Throat-Cutter”) at Edirne (Thrace).
-   • Devşirme officers collect 1,000 boys from the Balkan villages.
+   • Orban is taken into the Sultan’s service at Edirne.
+   • Kingdom of Hungary (John Hunyadi, regent for Ladislaus V) declares war on the Sublime State.
    • The horsetail standards are raised: 4,250 Janissaries, 2,125 Porte cavalry, 14,535 timariot sipahis and 20 guns (0 great bombards) muster for Krujë (Albania).
    • The army sets out for Krujë (Albania).
-   • Raiders of League of Lezhë (Albania) burn villages around Üsküp (Skopje) (prosperity −4).
-   Δ loyalty: Janissaries +3, Christian millets -6
-   ledger: treasury 20,709k | arrears 0k | grain 2.0 mo | jan 67 ul 60 rum 58 ana 59 har 58 mer 52 mil 43 | provinces 14 | army: marching Krujë (Albania)
-   next Divan (May 1451): A tax farmer bleeds the peasants | The Emperor’s envoys and Prince Orhan | The ulema ask to confirm old endowments | The fleet is rotting at Gelibolu
+   Δ loyalty: Rumelian beys +8
+   ledger: treasury 21,565k | arrears 0k | grain 2.2 mo | jan 64 ul 57 rum 66 ana 58 har 56 mer 54 mil 49 | provinces 14 | army: marching Krujë (Albania)
+   next Divan (May 1451): The Emperor’s envoys and Prince Orhan | Bandits on the roads
 
-── Resolved May 1451 (weather: fair) — treasury 20.71M → 20.31M, net budget -638k, grain 1.6 mo
-   ⚖ A tax farmer bleeds the peasants → Execute him and confiscate his wealth
-   ⚖ The Emperor’s envoys and Prince Orhan → Answer them in Edirne next spring
+── Resolved May 1451 (weather: fair) — treasury 21.56M → 21.40M, net budget -160k, grain 1.8 mo
+   ⚖ The Emperor’s envoys and Prince Orhan → Double the pension
+   ⚖ Bandits on the roads → Leave it to the sancak bey
+   Δ loyalty: Anatolian beys +3, Merchants -4
+   ledger: treasury 21,405k | arrears 0k | grain 1.8 mo | jan 63 ul 58 rum 68 ana 60 har 55 mer 50 mil 50 | provinces 14 | army: marching Krujë (Albania)
+   next Divan (June 1451): The granaries of the capital run low | The Kapudan asks for a fleet
+
+── Resolved June 1451 (weather: fair) — treasury 21.40M → 20.80M, net budget -400k, grain 4.1 mo
+   ⚖ The granaries of the capital run low → Requisition from Thrace at the fixed price (narh)
+   ⚖ The Kapudan asks for a fleet → Build an arsenal first (3M over 12 months)
+   • Work begins: Naval arsenal (tersane) at Gelibolu.
+   • Battle before Krujë (Albania): victory over League of Lezhë (Albania). Their losses about 2,267, ours about 1,498.
+   • The siege of Krujë (Albania) begins. 3,000 defenders man walls of strength 80.
+   • A great bombard is cast (1 in the park).
+   Δ loyalty: Janissaries +4, Rumelian beys -2, Anatolian beys +2, Christian millets -3
+   ledger: treasury 20,804k | arrears 0k | grain 4.1 mo | jan 67 ul 59 rum 66 ana 62 har 54 mer 51 mil 46 | provinces 14 | army: besieging Krujë (Albania)
+   next Divan (July 1451): The ulema ask to confirm old endowments | The Pope preaches a crusade | Rivalry between the mothers of princes | Fire in the bazaar
+
+── Resolved July 1451 (weather: fair) — treasury 20.80M → 20.64M, net budget -167k, grain 5.6 mo
    ⚖ The ulema ask to confirm old endowments → Revert them to the state
-   ⚖ The fleet is rotting at Gelibolu → Neglect it
-   • The tax farmer of Amasya (Rum) is executed; 240,000 akçe confiscated.
-   • Enacted: Revert waqf and freehold lands to the state.
-   Δ loyalty: Ulema -16, Merchants -5, Christian millets +4
-   ledger: treasury 20,311k | arrears 0k | grain 1.6 mo | jan 66 ul 44 rum 58 ana 60 har 59 mer 48 mil 47 | provinces 14 | army: marching Krujë (Albania)
-   next Divan (June 1451): The Valide offers counsel | Plague | The granaries of the capital run low | The war party against the Grand Vizier
-
-── Resolved June 1451 (weather: fair) — treasury 20.31M → 21.16M, net budget -717k, grain 3.9 mo
-   ⚖ The Valide offers counsel → Grant the villages
-   ⚖ Plague → The court withdraws to the summer pastures
-   ⚖ The granaries of the capital run low → Buy Black Sea and Thessalian grain at market
-   ⚖ The war party against the Grand Vizier → Arrest and execute him for treason
-   • Plague in Edirne (Thrace).
-   • 35,880 kile of grain bought at double price.
-   • Çandarlı Halil Pasha is executed. Saruca Pasha becomes Grand Vizier.
-   • Battle before Krujë (Albania): victory over League of Lezhë (Albania). Their losses about 2,600, ours about 1,139.
-   • The siege of Krujë (Albania) begins. 3,000 defenders man walls of strength 80.
-   Δ loyalty: Janissaries +9, Ulema -3, Rumelian beys +4, Anatolian beys -22, Harem +4, Merchants -2
-   ledger: treasury 21,163k | arrears 0k | grain 3.9 mo | jan 75 ul 41 rum 62 ana 37 har 63 mer 45 mil 48 | provinces 14 | army: besieging Krujë (Albania)
-   next Divan (July 1451): Bandits on the roads | Sipahis evade campaign service
-
-── Resolved July 1451 (weather: fair) — treasury 21.16M → 20.67M, net budget -635k, grain 5.1 mo
-   ⚖ Bandits on the roads → Amnesty and enrol them as azaps
-   ⚖ Sipahis evade campaign service → Fine the absent (bedel)
-   ▶ cast 10 guns and 0 bombards for 60,000
-   • Siege of Krujë (Albania), month 1: breach 1%, defenders 2,943, their stores 3.0 months.
-   Δ loyalty: Janissaries -2
-
-══ August 1451 — Mehmed II, age 19, health 87 — capital Edirne (Thrace) ══
-Treasury 20.67M akçe   Arrears 0   Coin 0.98 g Ag   Cizye 35/hh   Customs 4%
-Budget (TRUE), akçe/month:
-  Crown domains land tax (hass)                1.07M   Janissary pay (ulufe)                     477k
-  Cizye (poll tax on non-Muslims)               669k   Porte cavalry pay (altı bölük)            817k
-  Customs & tolls (gümrük)                      581k   Fortress garrisons                        621k
-  Tax farms: mines, mints, salt (mukataa)       753k   Court, harem & chancery                   549k
-  Tribute from vassals (haraç)                  125k   Fleet upkeep                               72k
-                                                       Artillery & armourers (topçu, cebeci)      12k
-                                                       Campaign provisioning                     317k
-                                                       Construction & waqf works                 700k
-                                                       Payments to foreign powers                 25k
-                                                       Acemi oğlan (cadets) upkeep                79k
-                                                       Unaccounted (shrinkage)                   125k
-  TOTAL REVENUE                                3.20M   TOTAL EXPENSES                           3.79M   NET -595k
-Grain: 92,298 kile (5.1 months for 27,600 people)
-Army: 750 Janissaries, 375 Porte cavalry, 17,065 timariots at home, 10 guns + 0 bombards (q 0.70), 24 galleys, cadets 1750
-Campaign → Krujë (Albania): besieging (0 mo), 18645 men (3789 jan / 1895 cav / 12961 tim), 20 guns 0 bombards, morale 82, supply 3.2
-Siege of Krujë (Albania) (ottoman vs albania): month 1, breach 1%, 2943 defenders, stores 3.0
-Factions (loyalty → equilibrium):
-  Janissaries 73→70 | Ulema 42→41 | Rumelian beys 62→69 | Anatolian beys 36→47 | Harem 63→58 | Merchants 45→59 | Christian millets 47→46
-Wars: League of Lezhë (Albania) (score 17)
-Neighbours: hungary truce -39 [34k], venice peace 21 [9k], papacy none -60 [0k], serbia tributary 22 [12k], wallachia tributary 29 [12k], byzantium peace -35 [7k], karaman peace -38 [23k], mamluks peace 23 [28k], aqqoyunlu none -7 [28k], albania war -73 [9k]
-Provinces: 14 Ottoman; avg loyalty 62, avg prosperity 65
-Dynasty: Mara Hatun (Valide, inf 53); princes: Bayezid (son, 4, hh 10, amb 28); Mustafa (son, 1, hh 10, amb 20); Küçük Ahmed (brother, 1, Amasya (Rum), hh 37, amb 15); Orhan Çelebi (pretender, 39, held by byzantium, hh 20, amb 60)
-Laws: Trade capitulations to Venice and Genoa; Revert waqf and freehold lands to the state
-Building: Medrese college (7 mo); Rumeli Hisarı (Boğazkesen, “the Throat-Cutter”) (1 mo)
-Hidden: Mahmud Çelebi under-reports tax farm and customs revenue by 124,739 akçe/month; Kazancı Doğan reports the corps 11 points more content than it is; Dayı Karaca Pasha understates Balkan armies by 16%
-   next Divan (August 1451): Whispers about the Defterdar | Raiders cross the frontier
-
-── Resolved August 1451 (weather: fair) — treasury 20.67M → 19.89M, net budget -631k, grain 6.2 mo
-   ⚖ Whispers about the Defterdar → Palace gossip; ignore it
-   ⚖ Raiders cross the frontier → Reinforce the garrison (150,000 akçe)
-   • Completed: Rumeli Hisarı (Boğazkesen, “the Throat-Cutter”) at Edirne (Thrace).
-   • A relief army of League of Lezhë (Albania) (6,230 men) falls on our siege lines.
-   • Relief battle at Krujë (Albania): victory over League of Lezhë (Albania). Their losses about 1,884, ours about 395.
-   • Siege of Krujë (Albania), month 2: breach 3%, defenders 2,912, their stores 2.0 months.
-   Δ loyalty: Janissaries +5, Rumelian beys +3
-   ledger: treasury 19,887k | arrears 0k | grain 6.2 mo | jan 78 ul 41 rum 66 ana 38 har 62 mer 45 mil 49 | provinces 14 | army: besieging Krujë (Albania)
-   next Divan (September 1451): The Pope preaches a crusade | War council before the walls
-
-── Resolved September 1451 (weather: rain) — treasury 19.89M → 19.63M, net budget 39k, grain 6.5 mo
-   ⚖ The Pope preaches a crusade → Offer Venice trade concessions to stay out (300,000 akçe in lost customs)
-   ⚖ War council before the walls → Keep bombarding
-   • Siege of Krujë (Albania), month 3: breach 4%, defenders 2,885, their stores 1.0 months.
-   ledger: treasury 19,627k | arrears 0k | grain 6.5 mo | jan 79 ul 41 rum 66 ana 38 har 61 mer 45 mil 49 | provinces 14 | army: besieging Krujë (Albania)
-   next Divan (October 1451): Karaman stirs the Turcomans | Fire in the bazaar | The enemy sues for peace
-
-── Resolved October 1451 (weather: fair) — treasury 19.63M → 19.49M, net budget -80k, grain 6.4 mo
-   ⚖ Karaman stirs the Turcomans → Declare war on Karaman
-   ⚖ Fire in the bazaar → Rebuild in stone: endow a bedesten
-   ⚖ The enemy sues for peace → Demand a border province
-   ▶ cast 10 guns and 0 bombards for 60,000
-   • War is declared on Beylik of Karaman. Casus belli: incitement of the Turcomans and alliance with the infidel.
-   • Work begins: Bedesten (covered market) at Edirne (Thrace).
-   • The envoys refuse to cede land and depart.
-   • Siege of Krujë (Albania), month 4: breach 5%, defenders 2,863, their stores 0.0 months.
-   • The court returns to the capital.
-   Δ loyalty: Janissaries -2, Merchants +4
-   ledger: treasury 19,486k | arrears 0k | grain 6.4 mo | jan 76 ul 40 rum 67 ana 39 har 61 mer 49 mil 49 | provinces 14 | army: besieging Krujë (Albania)
-   next Divan (November 1451): War council before the walls | Earthquake | A claimant to the Wallachian throne
-
-── Resolved November 1451 (weather: fair) — treasury 19.49M → 19.38M, net budget -109k, grain 6.2 mo
-   ⚖ War council before the walls → Lift the siege
-   ⚖ Earthquake → Remit taxes for a year instead
-   ⚖ A claimant to the Wallachian throne → Keep him in reserve at court
-   ▶ enacted Register the akıncı raiders
-   • The siege of Krujë (Albania) is lifted.
-   • Enacted: Register the akıncı raiders.
-   Δ loyalty: Janissaries -8
-   ledger: treasury 19,378k | arrears 0k | grain 6.2 mo | jan 69 ul 40 rum 66 ana 39 har 60 mer 51 mil 48 | provinces 14 | army: returning Krujë (Albania)
-   next Divan (December 1451): Mamluk envoy on the Dulkadir frontier | A new kanunname | A plot is uncovered
-
-── Resolved December 1451 (weather: mild) — treasury 19.38M → 19.28M, net budget -99k, grain 5.8 mo
-   ⚖ Mamluk envoy on the Dulkadir frontier → Insist on our protection
-   ⚖ A new kanunname → Shelve it
-   ⚖ A plot is uncovered → Purge the suspects
-   • The army returns to winter at home: the campaign is over.
-   Δ loyalty: Anatolian beys +5, Harem -6
-   ledger: treasury 19,279k | arrears 0k | grain 5.8 mo | jan 70 ul 39 rum 64 ana 44 har 53 mer 51 mil 47 | provinces 14
-   next Divan (January 1452): A famous scholar seeks patronage | A frontier commander asks for walls
-
-── Resolved January 1452 (weather: mild) — treasury 19.28M → 19.41M, net budget 227k, grain 5.3 mo
-   ⚖ A famous scholar seeks patronage → Grant him a chair and 100 akçe a day
-   ⚖ A frontier commander asks for walls → Refuse
-   Δ loyalty: Janissaries -3, Ulema +4, Rumelian beys +3
-
-══ February 1452 — Mehmed II, age 20, health 86 — capital Edirne (Thrace) ══
-Treasury 19.41M akçe   Arrears 0   Coin 0.98 g Ag   Cizye 35/hh   Customs 4%
-Budget (TRUE), akçe/month:
-  Crown domains land tax (hass)                1.02M   Janissary pay (ulufe)                     427k
-  Cizye (poll tax on non-Muslims)               670k   Porte cavalry pay (altı bölük)            732k
-  Customs & tolls (gümrük)                      587k   Fortress garrisons                        657k
-  Tax farms: mines, mints, salt (mukataa)       753k   Court, harem & chancery                   549k
-  Tribute from vassals (haraç)                  125k   Fleet upkeep                               72k
-                                                       Artillery & armourers (topçu, cebeci)      16k
-                                                       Construction & waqf works                 250k
-                                                       Payments to foreign powers                 25k
-                                                       Acemi oğlan (cadets) upkeep                79k
-                                                       Unaccounted (shrinkage)                   123k
-  TOTAL REVENUE                                3.16M   TOTAL EXPENSES                           2.93M   NET 230k
-Grain: 94,543 kile (5.3 months for 27,600 people)
-Army: 4,067 Janissaries, 2,034 Porte cavalry, 23,630 timariots at home, 40 guns + 0 bombards (q 0.70), 24 galleys, cadets 1750
-Factions (loyalty → equilibrium):
-  Janissaries 68→70 | Ulema 43→36 | Rumelian beys 67→75 | Anatolian beys 45→51 | Harem 54→58 | Merchants 51→59 | Christian millets 46→46
-Wars: League of Lezhë (Albania) (score 27); Beylik of Karaman (score 0)
-Neighbours: hungary truce -45 [37k], venice peace 44 [10k], papacy none -60 [0k], serbia tributary 17 [13k], wallachia tributary 27 [14k], byzantium peace -36 [8k], karaman war -71 [25k], mamluks peace 5 [31k], aqqoyunlu none -10 [31k], albania war -71 [9k]
-Provinces: 14 Ottoman; avg loyalty 62, avg prosperity 64
-Dynasty: Mara Hatun (Valide, inf 53); princes: Bayezid (son, 5, hh 10, amb 28); Mustafa (son, 2, hh 10, amb 20); Küçük Ahmed (brother, 2, Amasya (Rum), hh 40, amb 15); Orhan Çelebi (pretender, 40, held by byzantium, hh 0, amb 50)
-Laws: Trade capitulations to Venice and Genoa; Revert waqf and freehold lands to the state; Register the akıncı raiders
-Building: Medrese college (1 mo); Bedesten (covered market) (6 mo)
-Hidden: Mahmud Çelebi under-reports tax farm and customs revenue by 123,246 akçe/month; Kazancı Doğan reports the corps 11 points more content than it is; Dayı Karaca Pasha understates Balkan armies by 16%
-   next Divan (February 1452): The question of the brothers | Raiders cross the frontier
-
-── Resolved February 1452 (weather: rain) — treasury 19.41M → 19.70M, net budget 249k, grain 4.6 mo
-   ⚖ The question of the brothers → Have him strangled with a bowstring
-   ⚖ Raiders cross the frontier → Send a çavuş to demand reparations
-   • Şehzade Küçük Ahmed is put to death “for the order of the world.”
-   • Completed: Medrese college at Aydın & Saruhan.
-   Δ loyalty: Janissaries +5, Ulema +3, Harem -10
-   ledger: treasury 19,705k | arrears 0k | grain 4.6 mo | jan 72 ul 47 rum 67 ana 45 har 45 mer 52 mil 47 | provinces 14
-   next Divan (March 1452): A tax farmer bleeds the peasants | Rivalry between the mothers of princes
-
-── Resolved March 1452 (weather: fair) — treasury 19.70M → 20.03M, net budget 72k, grain 3.9 mo
-   ⚖ A tax farmer bleeds the peasants → Execute him and confiscate his wealth
+   ⚖ The Pope preaches a crusade → Christendom is too divided to march
    ⚖ Rivalry between the mothers of princes → Let the Valide settle it
-   ▶ campaign against Krujë (Albania)
-   • The tax farmer of Filibe (Plovdiv) is executed; 250,000 akçe confiscated.
-   • The horsetail standards are raised: 3,457 Janissaries, 1,729 Porte cavalry, 8,122 timariot sipahis and 40 guns (0 great bombards) muster for Krujë (Albania).
-   • The army sets out for Krujë (Albania).
-   Δ loyalty: Harem +5, Merchants -5
-   ledger: treasury 20,027k | arrears 0k | grain 3.9 mo | jan 73 ul 46 rum 67 ana 46 har 49 mer 47 mil 48 | provinces 14 | army: marching Krujë (Albania)
-   next Divan (April 1452): The akıncı beys ask leave to raid
+   ⚖ Fire in the bazaar → Let the guilds rebuild
+   • Enacted: Revert waqf and freehold lands to the state.
+   • Siege of Krujë (Albania), month 1: breach 2%, defenders 2,945, their stores 3.0 months.
+   Δ loyalty: Ulema -16, Harem +3, Merchants -6
 
-── Resolved April 1452 (weather: fair) — treasury 20.03M → 19.55M, net budget 65k, grain 3.4 mo
-   ⚖ The akıncı beys ask leave to raid → Allow the raid
-   ▶ 10 galleys built at Gelibolu
-   Δ loyalty: Rumelian beys +7, Harem +2
-   ledger: treasury 19,548k | arrears 0k | grain 3.4 mo | jan 74 ul 46 rum 73 ana 46 har 51 mer 48 mil 47 | provinces 14 | army: marching Krujë (Albania)
-   next Divan (May 1452): A vassal is late with tribute
-
-── Resolved May 1452 (weather: fair) — treasury 19.55M → 19.63M, net budget 80k, grain 2.9 mo
-   ⚖ A vassal is late with tribute → Reduce the tribute by a third
-   • Battle before Krujë (Albania): victory over League of Lezhë (Albania). Their losses about 1,856, ours about 1,053.
-   • The siege of Krujë (Albania) begins. 3,000 defenders man walls of strength 80.
-   • Raiders of League of Lezhë (Albania) burn villages around Üsküp (Skopje) (prosperity −8).
-   • Raiders of Beylik of Karaman burn villages around Kütahya (Germiyan) (prosperity −5).
-   Δ loyalty: Janissaries +6, Rumelian beys +5
-   ledger: treasury 19,627k | arrears 0k | grain 2.9 mo | jan 80 ul 44 rum 78 ana 45 har 52 mer 49 mil 46 | provinces 14 | army: besieging Krujë (Albania)
-   next Divan (June 1452): The enemy sues for peace
-
-── Resolved June 1452 (weather: fair) — treasury 19.63M → 19.78M, net budget 150k, grain 3.1 mo
-   ⚖ The enemy sues for peace → Demand a border province
-   • League of Lezhë (Albania) ceases to exist as an independent power.
-   • Peace with League of Lezhë (Albania): Krujë (Albania) is ceded to the Sultan.
-   • Raiders of Beylik of Karaman burn villages around Ankara (prosperity −5).
-   Δ loyalty: Ulema -2, Anatolian beys +3
-   ledger: treasury 19,778k | arrears 0k | grain 3.1 mo | jan 79 ul 42 rum 76 ana 47 har 52 mer 51 mil 46 | provinces 15 | army: returning Krujë (Albania)
-   next Divan (July 1452): A bumper harvest | Bandits on the roads
-
-── Resolved July 1452 (weather: fair) — treasury 19.78M → 19.64M, net budget 167k, grain 8.3 mo
-   ⚖ A bumper harvest → Fill the state granaries
-   ⚖ Bandits on the roads → Send the sipahis to hunt them down
-   • Completed: Bedesten (covered market) at Edirne (Thrace).
-   • The army returns to winter at home: the campaign is over.
-   Δ loyalty: Rumelian beys -3, Merchants +10
-
-══ August 1452 — Mehmed II, age 20, health 87 — capital Edirne (Thrace) ══
-Treasury 19.64M akçe   Arrears 0   Coin 0.98 g Ag   Cizye 35/hh   Customs 4%
+══ August 1451 — Mehmed II, age 19, health 86 — capital Edirne (Thrace) ══
+Treasury 20.64M akçe   Arrears 0   Coin 0.98 g Ag   Cizye 35/hh   Customs 4%
 Budget (TRUE), akçe/month:
-  Crown domains land tax (hass)                1.03M   Janissary pay (ulufe)                     377k
-  Cizye (poll tax on non-Muslims)               705k   Porte cavalry pay (altı bölük)            646k
-  Customs & tolls (gümrük)                      632k   Fortress garrisons                        729k
-  Tax farms: mines, mints, salt (mukataa)       754k   Court, harem & chancery                   524k
-  Tribute from vassals (haraç)                  117k   Fleet upkeep                               97k
-                                                       Artillery & armourers (topçu, cebeci)      16k
-                                                       Payments to foreign powers                 25k
-                                                       Acemi oğlan (cadets) upkeep                79k
-                                                       Unaccounted (shrinkage)                   126k
-  TOTAL REVENUE                                3.24M   TOTAL EXPENSES                           2.62M   NET 617k
-Grain: 148,985 kile (8.3 months for 27,600 people)
-Army: 3,588 Janissaries, 1,795 Porte cavalry, 19,918 timariots at home, 40 guns + 0 bombards (q 0.70), 34 galleys, cadets 1750
+  Crown domains land tax (hass)                1.13M   Janissary pay (ulufe)                     463k
+  Cizye (poll tax on non-Muslims)               686k   Porte cavalry pay (altı bölük)            794k
+  Customs & tolls (gümrük)                      593k   Fortress garrisons                        639k
+  Tax farms: mines, mints, salt (mukataa)       753k   Court, harem & chancery                   549k
+  Tribute from vassals (haraç)                  125k   Fleet upkeep                               87k
+                                                       Artillery & armourers (topçu, cebeci)      10k
+                                                       Campaign provisioning                     307k
+                                                       Construction & waqf works                 350k
+                                                       Payments to foreign powers                 50k
+                                                       Acemi oğlan (cadets) upkeep                34k
+                                                       Unaccounted (shrinkage)                   128k
+  TOTAL REVENUE                                3.29M   TOTAL EXPENSES                           3.41M   NET -124k
+Grain: 109,727 kile (5.6 months for 30,000 people)
+Army: 750 Janissaries, 375 Porte cavalry, 17,065 timariots at home, 0 guns + 1 bombards (q 0.85), 30 galleys, cadets 750
+Campaign → Krujë (Albania): besieging (0 mo), 18012 men (3661 jan / 1830 cav / 12521 tim), 20 guns 0 bombards, morale 82, supply 3.2
+Siege of Krujë (Albania) (ottoman vs albania): month 1, breach 2%, 2945 defenders, stores 3.0
 Factions (loyalty → equilibrium):
-  Janissaries 79→70 | Ulema 41→38 | Rumelian beys 74→68 | Anatolian beys 46→51 | Harem 53→60 | Merchants 61→64 | Christian millets 44→48
-Wars: Beylik of Karaman (score -6)
-Neighbours: hungary truce -40 [40k], venice peace 40 [12k], papacy none -61 [0k], serbia tributary 18 [14k], wallachia tributary 29 [14k], byzantium peace -31 [8k], karaman war -71 [25k], mamluks peace 11 [34k], aqqoyunlu none -11 [34k]
-Provinces: 15 Ottoman; avg loyalty 60, avg prosperity 63
-Dynasty: Mara Hatun (Valide, inf 63); princes: Bayezid (son, 5, hh 10, amb 28); Mustafa (son, 2, hh 10, amb 20); Orhan Çelebi (pretender, 40, held by byzantium, hh 0, amb 50)
-Laws: Trade capitulations to Venice and Genoa; Revert waqf and freehold lands to the state; Register the akıncı raiders
-Hidden: Mahmud Çelebi under-reports tax farm and customs revenue by 126,208 akçe/month; Kazancı Doğan reports the corps 11 points more content than it is; Dayı Karaca Pasha understates Balkan armies by 16%
-   next Divan (August 1452): Raiders cross the frontier
+  Janissaries 68→70 | Ulema 43→44 | Rumelian beys 67→77 | Anatolian beys 61→53 | Harem 58→58 | Merchants 45→59 | Christian millets 47→54
+Wars: League of Lezhë (Albania) (score 20); Kingdom of Hungary (score 0)
+Neighbours: hungary war -97 [34k], venice peace 4 [9k], papacy none -65 [0k], serbia tributary 21 [12k], wallachia tributary 32 [12k], byzantium peace 1 [7k], karaman peace -38 [23k], mamluks peace 20 [28k], aqqoyunlu none -4 [28k], albania war -75 [9k]
+Provinces: 14 Ottoman; avg loyalty 62, avg prosperity 65
+Dynasty: Mara Hatun (Valide, inf 55); princes: Bayezid (son, 4, hh 10, amb 20); Mustafa (son, 1, hh 10, amb 20); Küçük Ahmed (brother, 1, Amasya (Rum), hh 37, amb 15); Orhan Çelebi (pretender, 39, held by byzantium, hh 20, amb 60)
+Laws: Trade capitulations to Venice and Genoa; Revert waqf and freehold lands to the state
+Building: Medrese college (7 mo); Naval arsenal (tersane) (10 mo)
+Hidden: Mahmud Çelebi under-reports tax farm and customs revenue by 128,158 akçe/month; Kazancı Doğan reports the corps 11 points more content than it is; Çandarlı Halil Pasha paints Byzantine Empire as friendlier (+24) and stronger than it is; Dayı Karaca Pasha understates Balkan armies by 16%
+   next Divan (August 1451): The fleet is rotting at Gelibolu | A claimant to the Wallachian throne | A tax farmer bleeds the peasants | A plot is uncovered
 
-── Resolved August 1452 (weather: fair) — treasury 19.64M → 20.36M, net budget 720k, grain 9.4 mo
+── Resolved August 1451 (weather: fair) — treasury 20.64M → 19.31M, net budget -141k, grain 6.9 mo
+   ⚖ The fleet is rotting at Gelibolu → Full refit and new hulls
+   ⚖ A claimant to the Wallachian throne → Back him with 4,000 akıncıs and 200,000 akçe
+   ⚖ A tax farmer bleeds the peasants → Leave it to the kadı
+   ⚖ A plot is uncovered → Quiet investigation (80,000 akçe)
+   • Vlad Drăculea takes the Wallachian throne with Ottoman help.
+   • A relief army of League of Lezhë (Albania) (6,463 men) falls on our siege lines.
+   • Relief battle at Krujë (Albania): victory over League of Lezhë (Albania). Their losses about 1,769, ours about 1,178.
+   • Siege of Krujë (Albania), month 2: breach 3%, defenders 2,909, their stores 2.0 months.
+   • Raiders of League of Lezhë (Albania) burn villages around Üsküp (Skopje) (prosperity −8).
+   • A great bombard is cast (2 in the park).
+   Δ loyalty: Janissaries +3, Rumelian beys +4, Merchants +4
+   ledger: treasury 19,306k | arrears 0k | grain 6.9 mo | jan 71 ul 44 rum 71 ana 60 har 58 mer 48 mil 46 | provinces 14 | army: besieging Krujë (Albania)
+   next Divan (September 1451): Sipahis evade campaign service | A wandering şeyh preaches against the Sultan | The corps needs fresh boys | A new kanunname
+
+── Resolved September 1451 (weather: fair) — treasury 19.31M → 17.80M, net budget -165k, grain 7.4 mo
+   ⚖ Sipahis evade campaign service → Revoke their timars and regrant to the deserving
+   ⚖ A wandering şeyh preaches against the Sultan → Endow his lodge (zaviye) and bring him into the fold
+   ⚖ The corps needs fresh boys → A large levy (3,000 boys)
+   ⚖ A new kanunname → Shelve it
+   ▶ cast 10 guns and 0 bombards for 60,000
+   • Devşirme officers collect 3,000 boys from the Balkan villages.
+   • Siege of Krujë (Albania), month 3: breach 5%, defenders 2,856, their stores 1.0 months.
+   Δ loyalty: Ulema -5, Rumelian beys -3, Anatolian beys -9
+   ledger: treasury 17,801k | arrears 0k | grain 7.4 mo | jan 71 ul 39 rum 68 ana 51 har 59 mer 49 mil 45 | provinces 14 | army: besieging Krujë (Albania)
+   next Divan (October 1451): Karaman stirs the Turcomans | War council before the walls | An imperial mosque for the Sultan’s name
+
+── Resolved October 1451 (weather: rain) — treasury 17.80M → 17.06M, net budget -380k, grain 7.4 mo
+   ⚖ Karaman stirs the Turcomans → Buy peace with gifts (300,000 akçe)
+   ⚖ War council before the walls → Keep bombarding
+   ⚖ An imperial mosque for the Sultan’s name → Endow a great külliye in the capital (6M over 24 months)
+   ▶ enacted Register the akıncı raiders
+   • Work begins: Imperial mosque complex (külliye) at Edirne (Thrace).
+   • Enacted: Register the akıncı raiders.
+   • Siege of Krujë (Albania), month 4: breach 6%, defenders 2,832, their stores 0.0 months.
+   • A great bombard is cast (3 in the park).
+   Δ loyalty: Ulema +3, Rumelian beys +5
+   ledger: treasury 17,061k | arrears 0k | grain 7.4 mo | jan 71 ul 42 rum 72 ana 51 har 60 mer 50 mil 45 | provinces 14 | army: besieging Krujë (Albania)
+   next Divan (November 1451): Raiders cross the frontier | A frontier commander asks for walls | The enemy sues for peace | Earthquake
+
+── Resolved November 1451 (weather: fair) — treasury 17.06M → 16.65M, net budget -514k, grain 7.3 mo
+   ⚖ Raiders cross the frontier → Unleash the akıncıs in reprisal
+   ⚖ A frontier commander asks for walls → Refuse
+   ⚖ The enemy sues for peace → Send them away: the war goes on
+   ⚖ Earthquake → Remit taxes for a year instead
+   • Kasım has come: the sipahis must return to their timars, and the army turns for home.
+   Δ loyalty: Rumelian beys +5, Merchants +2, Christian millets -3
+   ledger: treasury 16,651k | arrears 0k | grain 7.3 mo | jan 69 ul 43 rum 77 ana 49 har 58 mer 52 mil 43 | provinces 14 | army: returning Krujë (Albania)
+   next Divan (December 1451): The Valide offers counsel | A foreign embassy at the Porte | Plague | The war party against the Grand Vizier
+
+── Resolved December 1451 (weather: mild) — treasury 16.65M → 16.06M, net budget -526k, grain 7.6 mo
+   ⚖ The Valide offers counsel → Decline with thanks
+   ⚖ A foreign embassy at the Porte → Send them off with a robe each
+   ⚖ Plague → The court withdraws to the summer pastures
+   ⚖ The war party against the Grand Vizier → Keep him; experience matters
+   • Plague in Edirne (Thrace).
+   • The army returns to winter at home: the campaign is over.
+   • A great bombard is cast (4 in the park).
+   Δ loyalty: Rumelian beys -4, Harem -4
+   ledger: treasury 16,065k | arrears 0k | grain 7.6 mo | jan 68 ul 42 rum 73 ana 49 har 54 mer 51 mil 44 | provinces 14
+   next Divan (January 1452): Mamluk envoy on the Dulkadir frontier
+
+── Resolved January 1452 (weather: harshWinter) — treasury 16.06M → 15.81M, net budget -251k, grain 6.9 mo
+   ⚖ Mamluk envoy on the Dulkadir frontier → Insist on our protection
+   Δ loyalty: Anatolian beys +2
+
+══ February 1452 — Mehmed II, age 20, health 85 — capital Edirne (Thrace) ══
+Treasury 15.81M akçe   Arrears 0   Coin 0.98 g Ag   Cizye 35/hh   Customs 4%
+Budget (TRUE), akçe/month:
+  Crown domains land tax (hass)                 988k   Janissary pay (ulufe)                     405k
+  Cizye (poll tax on non-Muslims)               635k   Porte cavalry pay (altı bölük)            693k
+  Customs & tolls (gümrük)                      594k   Fortress garrisons                        639k
+  Tax farms: mines, mints, salt (mukataa)       753k   Court, harem & chancery                   549k
+  Tribute from vassals (haraç)                  138k   Fleet upkeep                              112k
+                                                       Artillery & armourers (topçu, cebeci)      18k
+                                                       Construction & waqf works                 600k
+                                                       Payments to foreign powers                 50k
+                                                       Acemi oğlan (cadets) upkeep               169k
+                                                       Unaccounted (shrinkage)                   121k
+  TOTAL REVENUE                                3.11M   TOTAL EXPENSES                           3.36M   NET -248k
+Grain: 124,188 kile (6.9 months for 27,600 people)
+Army: 3,853 Janissaries, 1,926 Porte cavalry, 23,358 timariots at home, 30 guns + 4 bombards (q 0.85), 40 galleys, cadets 3750
+Factions (loyalty → equilibrium):
+  Janissaries 69→70 | Ulema 42→44 | Rumelian beys 74→82 | Anatolian beys 52→53 | Harem 54→57 | Merchants 53→59 | Christian millets 44→44
+Wars: League of Lezhë (Albania) (score 37); Kingdom of Hungary (score 0)
+Neighbours: hungary war -92 [37k], venice peace 1 [10k], papacy none -58 [0k], serbia tributary 13 [13k], wallachia tributary -24 [14k], byzantium peace -2 [8k], karaman peace -13 [25k], mamluks peace 4 [31k], aqqoyunlu none -14 [31k], albania war -91 [9k]
+Provinces: 14 Ottoman; avg loyalty 62, avg prosperity 64
+Dynasty: Mara Hatun (Valide, inf 50); princes: Bayezid (son, 5, hh 10, amb 20); Mustafa (son, 2, hh 10, amb 20); Küçük Ahmed (brother, 2, Amasya (Rum), hh 40, amb 15); Orhan Çelebi (pretender, 40, held by byzantium, hh 20, amb 60)
+Laws: Trade capitulations to Venice and Genoa; Revert waqf and freehold lands to the state; Register the akıncı raiders
+Building: Medrese college (1 mo); Naval arsenal (tersane) (4 mo); Imperial mosque complex (külliye) (20 mo)
+Hidden: Mahmud Çelebi under-reports tax farm and customs revenue by 121,214 akçe/month; Kazancı Doğan reports the corps 11 points more content than it is; Çandarlı Halil Pasha paints Byzantine Empire as friendlier (+24) and stronger than it is; Dayı Karaca Pasha understates Balkan armies by 16%
+   next Divan (February 1452): The question of the brothers
+
+── Resolved February 1452 (weather: harshWinter) — treasury 15.81M → 15.57M, net budget -248k, grain 6.1 mo
+   ⚖ The question of the brothers → Confine him within the palace
+   • Completed: Medrese college at Aydın & Saruhan.
+   Δ loyalty: Ulema +6, Harem +3
+   ledger: treasury 15,566k | arrears 0k | grain 6.1 mo | jan 68 ul 47 rum 76 ana 52 har 57 mer 51 mil 44 | provinces 14
+   next Divan (March 1452): The enemy sues for peace
+
+── Resolved March 1452 (weather: fair) — treasury 15.57M → 15.42M, net budget -147k, grain 5.5 mo
+   ⚖ The enemy sues for peace → Peace for annual tribute
+   ✗ {"type":"startCampaign","target":"kruje","artillery":true,"fleet":false,"ledBySultan":true}: We are not at war with League of Lezhë (Albania). Declare war first.
+   • Peace with League of Lezhë (Albania): they will pay 50,000 akçe a year in haraç.
+   Δ loyalty: Anatolian beys -2, Merchants +3
+   ledger: treasury 15,419k | arrears 0k | grain 5.5 mo | jan 67 ul 48 rum 74 ana 50 har 57 mer 54 mil 43 | provinces 14
+   next Divan (April 1452): A vassal is late with tribute | The akıncı beys ask leave to raid
+
+── Resolved April 1452 (weather: fair) — treasury 15.42M → 15.47M, net budget -417k, grain 5 mo
+   ⚖ A vassal is late with tribute → Let it go this year
+   ⚖ The akıncı beys ask leave to raid → Allow the raid
+   ▶ campaign against Belgrade
+   • The horsetail standards are raised: 3,275 Janissaries, 1,637 Porte cavalry, 8,241 timariot sipahis and 30 guns (4 great bombards) muster for Belgrade.
+   • The army sets out for Belgrade.
+   • Kingdom of Hungary lays siege to Vidin with some 27,300 men.
+   • Vidin under siege by Kingdom of Hungary, month 1: breach 8%, 1,177 defenders.
+   • The court returns to the capital.
+   Δ loyalty: Rumelian beys +5, Harem -2
+   ledger: treasury 15,472k | arrears 0k | grain 5.0 mo | jan 68 ul 47 rum 78 ana 51 har 55 mer 55 mil 43 | provinces 14 | army: marching Belgrade
+   next Divan (May 1452): Raiders cross the frontier | Bandits on the roads
+
+── Resolved May 1452 (weather: fair) — treasury 15.47M → 15.04M, net budget -428k, grain 4.6 mo
    ⚖ Raiders cross the frontier → Send a çavuş to demand reparations
+   ⚖ Bandits on the roads → Amnesty and enrol them as azaps
+   • Completed: Naval arsenal (tersane) at Gelibolu.
+   • Raiders of Kingdom of Hungary burn villages around Vidin (prosperity −7).
+   • Vidin under siege by Kingdom of Hungary, month 2: breach 15%, 1,157 defenders.
+   Δ loyalty: Rumelian beys -2
+   ledger: treasury 15,044k | arrears 0k | grain 4.6 mo | jan 67 ul 48 rum 76 ana 52 har 54 mer 54 mil 42 | provinces 14 | army: marching Belgrade
+   next Divan (June 1452): A tax farmer bleeds the peasants
+
+── Resolved June 1452 (weather: fair) — treasury 15.04M → 15.01M, net budget -178k, grain 4.7 mo
+   ⚖ A tax farmer bleeds the peasants → Fine him and renew his contract
+   • The tax farmer of Amasya (Rum) is fined.
+   • Battle before Belgrade: defeat at the hands of Kingdom of Hungary. We lose about 2,695 men.
+   • Vidin under siege by Kingdom of Hungary, month 3: breach 22%, 1,143 defenders.
+   • League of Lezhë (Albania) (Gjergj Kastrioti Skanderbeg) declares war on the Sublime State, renouncing its tribute.
+   Δ loyalty: Janissaries -7, Rumelian beys -4
+   ledger: treasury 15,013k | arrears 0k | grain 4.7 mo | jan 60 ul 50 rum 72 ana 52 har 55 mer 55 mil 41 | provinces 14 | army: returning Belgrade
+   next Divan (July 1452): Rivalry between the mothers of princes | A bumper harvest
+
+── Resolved July 1452 (weather: fair) — treasury 15.01M → 15.72M, net budget 306k, grain 6.1 mo
+   ⚖ Rivalry between the mothers of princes → Favour the younger line
+   ⚖ A bumper harvest → License exports to Venice
    ▶ enacted Auction mukataas to tax farmers (iltizam)
    • Enacted: Auction mukataas to tax farmers (iltizam).
-   • 675 acemi oğlans pass into the Janissary corps.
-   • Raiders of Beylik of Karaman burn villages around Kütahya (Germiyan) (prosperity −8).
-   Δ loyalty: Janissaries +3
-   ledger: treasury 20,363k | arrears 0k | grain 9.4 mo | jan 82 ul 42 rum 74 ana 45 har 54 mer 62 mil 44 | provinces 15
-   next Divan (September 1452): Merchants petition over customs
+   • Vidin under siege by Kingdom of Hungary, month 4: breach 30%, 1,134 defenders.
+   Δ loyalty: Merchants +6
 
-── Resolved September 1452 (weather: fair) — treasury 20.36M → 21.12M, net budget 761k, grain 9.7 mo
-   ⚖ Merchants petition over customs → Raise customs by one point
-   • Raiders of Beylik of Karaman burn villages around Ankara (prosperity −4).
-   • Şehzade Orhan Çelebi dies at 40.
-   Δ loyalty: Rumelian beys -2, Merchants -4
-   ledger: treasury 21,124k | arrears 0k | grain 9.7 mo | jan 80 ul 43 rum 72 ana 45 har 55 mer 58 mil 46 | provinces 15
-
-── Resolved October 1452 (weather: fair) — treasury 21.12M → 21.89M, net budget 763k, grain 9.6 mo
-   • Raiders of Beylik of Karaman burn villages around Kütahya (Germiyan) (prosperity −5).
-   ledger: treasury 21,886k | arrears 0k | grain 9.6 mo | jan 78 ul 41 rum 71 ana 45 har 55 mer 58 mil 46 | provinces 15
-
-── Resolved November 1452 (weather: fair) — treasury 21.89M → 22.65M, net budget 759k, grain 9.4 mo
-   Δ loyalty: Ulema -2, Merchants +3
-   ledger: treasury 22,645k | arrears 0k | grain 9.4 mo | jan 77 ul 39 rum 71 ana 46 har 56 mer 62 mil 45 | provinces 15
-   next Divan (December 1452): The Valide offers counsel
-
-── Resolved December 1452 (weather: mild) — treasury 22.65M → 23.49M, net budget 845k, grain 9.1 mo
-   ⚖ The Valide offers counsel → Grant the villages
-   Δ loyalty: Janissaries -2, Rumelian beys +2, Anatolian beys +2, Harem +4, Christian millets +4
-   ledger: treasury 23,490k | arrears 0k | grain 9.1 mo | jan 75 ul 39 rum 73 ana 48 har 60 mer 63 mil 49 | provinces 15
-   next Divan (January 1453): An embassy from the Aq Qoyunlu | A tax farmer bleeds the peasants
-
-── Resolved January 1453 (weather: mild) — treasury 23.49M → 24.28M, net budget 850k, grain 8.6 mo
-   ⚖ An embassy from the Aq Qoyunlu → Exchange gifts and recognise the frontier
-   ⚖ A tax farmer bleeds the peasants → Fine him and renew his contract
-   • The tax farmer of Bursa (Hüdavendigâr) is fined.
-   • Şehzade Mustafa dies at 3.
-   Δ loyalty: Janissaries -2, Ulema -2
-
-══ February 1453 — Mehmed II, age 21, health 87 — capital Edirne (Thrace) ══
-Treasury 24.28M akçe   Arrears 0   Coin 0.98 g Ag   Cizye 35/hh   Customs 5%
+══ August 1452 — Mehmed II, age 20, health 86 — capital Edirne (Thrace) ══
+Treasury 15.72M akçe   Arrears 0   Coin 0.98 g Ag   Cizye 35/hh   Customs 4%
 Budget (TRUE), akçe/month:
-  Crown domains land tax (hass)                1.08M   Janissary pay (ulufe)                     448k
-  Cizye (poll tax on non-Muslims)               715k   Porte cavalry pay (altı bölük)            646k
-  Customs & tolls (gümrük)                      745k   Fortress garrisons                        729k
-  Tax farms: mines, mints, salt (mukataa)       867k   Court, harem & chancery                   499k
-  Tribute from vassals (haraç)                  117k   Fleet upkeep                               97k
-                                                       Artillery & armourers (topçu, cebeci)      16k
-                                                       Payments to foreign powers                 25k
-                                                       Acemi oğlan (cadets) upkeep                45k
-                                                       Unaccounted (shrinkage)                   137k
-  TOTAL REVENUE                                3.52M   TOTAL EXPENSES                           2.64M   NET 883k
-Grain: 154,006 kile (8.6 months for 27,600 people)
-Army: 4,263 Janissaries, 1,795 Porte cavalry, 22,520 timariots at home, 40 guns + 0 bombards (q 0.70), 34 galleys, cadets 1000
+  Crown domains land tax (hass)                 987k   Janissary pay (ulufe)                     291k
+  Cizye (poll tax on non-Muslims)               634k   Porte cavalry pay (altı bölük)            499k
+  Customs & tolls (gümrük)                      603k   Fortress garrisons                        654k
+  Tax farms: mines, mints, salt (mukataa)       867k   Court, harem & chancery                   549k
+  Tribute from vassals (haraç)                  138k   Fleet upkeep                              112k
+                                                       Artillery & armourers (topçu, cebeci)      18k
+                                                       Campaign provisioning                     195k
+                                                       Construction & waqf works                 250k
+                                                       Payments to foreign powers                 50k
+                                                       Acemi oğlan (cadets) upkeep               169k
+                                                       Unaccounted (shrinkage)                   126k
+  TOTAL REVENUE                                3.23M   TOTAL EXPENSES                           2.91M   NET 315k
+Grain: 109,371 kile (6.1 months for 27,600 people)
+Army: 578 Janissaries, 289 Porte cavalry, 15,954 timariots at home, 0 guns + 0 bombards (q 0.85), 40 galleys, cadets 3750
+Campaign → Belgrade: returning (1 mo), 8816 men (2196 jan / 1097 cav / 5523 tim), 30 guns 4 bombards, morale 50, supply 3.2
+Siege of Vidin (hungary vs ottoman): month 4, breach 30%, 1134 defenders, stores 1.0
 Factions (loyalty → equilibrium):
-  Janissaries 73→70 | Ulema 36→38 | Rumelian beys 71→68 | Anatolian beys 49→50 | Harem 60→61 | Merchants 64→65 | Christian millets 48→53
-Wars: Beylik of Karaman (score -15)
-Neighbours: hungary truce -40 [40k], venice peace 57 [12k], papacy none -52 [0k], serbia tributary 22 [14k], wallachia tributary 24 [14k], byzantium peace -28 [9k], karaman war -63 [25k], mamluks peace 11 [37k], aqqoyunlu none 13 [35k]
-Provinces: 15 Ottoman; avg loyalty 59, avg prosperity 62
-Dynasty: Mara Hatun (Valide, inf 71); princes: Bayezid (son, 6, hh 10, amb 28)
+  Janissaries 62→62 | Ulema 51→49 | Rumelian beys 72→82 | Anatolian beys 53→53 | Harem 55→57 | Merchants 61→65 | Christian millets 41→39
+Wars: Kingdom of Hungary (score -28); League of Lezhë (Albania) (score 0)
+Neighbours: hungary war -87 [38k], venice peace -14 [12k], papacy none -57 [0k], serbia tributary 5 [14k], wallachia tributary -25 [14k], byzantium peace -6 [8k], karaman peace -12 [25k], mamluks peace 7 [34k], aqqoyunlu none -14 [34k], albania war -98 [10k]
+Provinces: 14 Ottoman; avg loyalty 61, avg prosperity 63
+Dynasty: Mara Hatun (Valide, inf 50); princes: Bayezid (son, 5, hh 10, amb 28); Mustafa (son, 2, hh 10, amb 20); Küçük Ahmed (brother, 2, hh 5, amb 15); Orhan Çelebi (pretender, 40, held by byzantium, hh 20, amb 60)
 Laws: Trade capitulations to Venice and Genoa; Revert waqf and freehold lands to the state; Register the akıncı raiders; Auction mukataas to tax farmers (iltizam)
-Hidden: Mahmud Çelebi under-reports tax farm and customs revenue by 137,473 akçe/month; Kazancı Doğan reports the corps 11 points more content than it is; Dayı Karaca Pasha understates Balkan armies by 16%
-   next Divan (February 1453): Sipahis evade campaign service | Raiders cross the frontier | Whispers about the Defterdar
+Building: Imperial mosque complex (külliye) (14 mo)
+Hidden: Mahmud Çelebi under-reports tax farm and customs revenue by 125,884 akçe/month; Kazancı Doğan reports the corps 11 points more content than it is; Çandarlı Halil Pasha paints Byzantine Empire as friendlier (+24) and stronger than it is; Dayı Karaca Pasha understates Balkan armies by 16%
+   next Divan (August 1452): A plot is uncovered | A foreign embassy at the Porte
+
+── Resolved August 1452 (weather: rain) — treasury 15.72M → 15.95M, net budget 315k, grain 7.1 mo
+   ⚖ A plot is uncovered → Dismiss it as eunuch intrigue
+   ⚖ A foreign embassy at the Porte → The customary gifts (80,000 akçe)
+   • 675 acemi oğlans pass into the Janissary corps.
+   • The army returns to winter at home: the campaign is over.
+   • Raiders of League of Lezhë (Albania) burn villages around Üsküp (Skopje) (prosperity −4).
+   • Vidin falls to Kingdom of Hungary.
+   Δ loyalty: Janissaries -5, Rumelian beys -5
+   ledger: treasury 15,954k | arrears 0k | grain 7.1 mo | jan 58 ul 51 rum 67 ana 54 har 55 mer 61 mil 43 | provinces 13
+   next Divan (September 1452): Merchants petition over customs | The war goes badly
+
+── Resolved September 1452 (weather: drought) — treasury 15.95M → 16.35M, net budget 393k, grain 6.9 mo
+   ⚖ Merchants petition over customs → Keep the rate
+   ⚖ The war goes badly → Offer status quo
+   • The enemy rejects a peace without gain.
+   Δ loyalty: Ulema -4, Rumelian beys +3, Harem -2
+   ledger: treasury 16,347k | arrears 0k | grain 6.9 mo | jan 59 ul 47 rum 70 ana 53 har 52 mer 62 mil 43 | provinces 13
+   next Divan (October 1452): Drought and locusts | Whispers about the Defterdar
+
+── Resolved October 1452 (weather: fair) — treasury 16.35M → 16.73M, net budget 388k, grain 6.8 mo
+   ⚖ Drought and locusts → Remit the crown dues for a year
+   ⚖ Whispers about the Defterdar → Let him know the Sultan is watching
+   • The Defterdar receives a pointed gift: an empty purse.
+   • Raiders of League of Lezhë (Albania) burn villages around Üsküp (Skopje) (prosperity −5).
+   Δ loyalty: Anatolian beys +5
+   ledger: treasury 16,734k | arrears 0k | grain 6.8 mo | jan 59 ul 47 rum 72 ana 58 har 53 mer 60 mil 42 | provinces 13
+   next Divan (November 1452): Raiders cross the frontier
+
+── Resolved November 1452 (weather: fair) — treasury 16.73M → 17.25M, net budget 375k, grain 6.7 mo
+   ⚖ Raiders cross the frontier → Unleash the akıncıs in reprisal
+   • Sittişah Hatun gives birth to a son, Şehzade Ahmed. Seven days of celebration.
+   Δ loyalty: Rumelian beys +5
+   ledger: treasury 17,251k | arrears 0k | grain 6.7 mo | jan 58 ul 49 rum 77 ana 57 har 54 mer 62 mil 42 | provinces 13
+   next Divan (December 1452): The war party against the Grand Vizier
+
+── Resolved December 1452 (weather: harshWinter) — treasury 17.25M → 17.71M, net budget 457k, grain 6.1 mo
+   ⚖ The war party against the Grand Vizier → Keep him; experience matters
+   Δ loyalty: Ulema +3, Rumelian beys -5
+   ledger: treasury 17,709k | arrears 0k | grain 6.1 mo | jan 59 ul 52 rum 72 ana 59 har 54 mer 62 mil 41 | provinces 13
+   next Divan (January 1453): The war goes badly | An embassy from the Aq Qoyunlu
+
+── Resolved January 1453 (weather: rain) — treasury 17.71M → 18.17M, net budget 461k, grain 5.5 mo
+   ⚖ The war goes badly → Offer status quo
+   ⚖ An embassy from the Aq Qoyunlu → Rebuff him
+   • The enemy rejects a peace without gain.
+   Δ loyalty: Anatolian beys -2, Christian millets -3
+
+══ February 1453 — Mehmed II, age 21, health 86 — capital Edirne (Thrace) ══
+Treasury 18.17M akçe   Arrears 0   Coin 0.98 g Ag   Cizye 35/hh   Customs 4%
+Budget (TRUE), akçe/month:
+  Crown domains land tax (hass)                 961k   Janissary pay (ulufe)                     361k
+  Cizye (poll tax on non-Muslims)               599k   Porte cavalry pay (altı bölük)            497k
+  Customs & tolls (gümrük)                      587k   Fortress garrisons                        603k
+  Tax farms: mines, mints, salt (mukataa)       867k   Court, harem & chancery                   574k
+  Tribute from vassals (haraç)                  138k   Fleet upkeep                              112k
+                                                       Artillery & armourers (topçu, cebeci)      18k
+                                                       Construction & waqf works                 250k
+                                                       Payments to foreign powers                 50k
+                                                       Acemi oğlan (cadets) upkeep               135k
+                                                       Unaccounted (shrinkage)                    85k
+  TOTAL REVENUE                                3.15M   TOTAL EXPENSES                           2.68M   NET 466k
+Grain: 99,453 kile (5.5 months for 27,600 people)
+Army: 3,437 Janissaries, 1,380 Porte cavalry, 20,299 timariots at home, 30 guns + 4 bombards (q 0.85), 40 galleys, cadets 3000
+Factions (loyalty → equilibrium):
+  Janissaries 60→52 | Ulema 52→49 | Rumelian beys 72→81 | Anatolian beys 56→53 | Harem 55→57 | Merchants 63→65 | Christian millets 38→39
+Wars: Kingdom of Hungary (score -53); League of Lezhë (Albania) (score -6)
+Neighbours: hungary war -78 [40k], venice peace -16 [12k], papacy none -52 [0k], serbia tributary -1 [14k], wallachia tributary -21 [14k], byzantium peace -8 [9k], karaman peace -9 [25k], mamluks peace 10 [37k], aqqoyunlu none -39 [35k], albania war -95 [12k]
+Provinces: 13 Ottoman; avg loyalty 61, avg prosperity 63
+Dynasty: Mara Hatun (Valide, inf 50); princes: Bayezid (son, 6, hh 10, amb 28); Mustafa (son, 3, hh 10, amb 20); Küçük Ahmed (brother, 3, hh 5, amb 15); Orhan Çelebi (pretender, 41, held by byzantium, hh 20, amb 60); Ahmed (son, 1, hh 5, amb 10)
+Laws: Trade capitulations to Venice and Genoa; Revert waqf and freehold lands to the state; Register the akıncı raiders; Auction mukataas to tax farmers (iltizam)
+Building: Imperial mosque complex (külliye) (8 mo)
+Hidden: Mahmud Çelebi under-reports tax farm and customs revenue by 85,081 akçe/month; Kazancı Doğan reports the corps 11 points more content than it is; Çandarlı Halil Pasha paints Byzantine Empire as friendlier (+24) and stronger than it is; Dayı Karaca Pasha understates Balkan armies by 16%
+   next Divan (February 1453): The question of the brothers
 
 ══ SUMMARY ══
-1451: revenue 35.1M akçe, expenses 38.2M, net -3.0M
-1452: revenue 39.3M akçe, expenses 34.4M, net 4.9M
-1453: revenue 3.5M akçe, expenses 2.7M, net 0.9M
-Run-rate now: revenue 42.3M/yr ≈ 940k ducats at 45 akçe/ducat
+1451: revenue 35.4M akçe, expenses 37.4M, net -2.0M
+1452: revenue 37.4M akçe, expenses 36.8M, net 0.6M
+1453: revenue 3.1M akçe, expenses 2.7M, net 0.5M
+Run-rate now: revenue 37.8M/yr ≈ 840k ducats at 45 akçe/ducat
 Status: active

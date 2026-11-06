@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "sim": "tsx scripts/sim.ts",
+    "balance": "tsx scripts/balance.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },

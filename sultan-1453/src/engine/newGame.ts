@@ -104,7 +104,7 @@ export function createGame(opts: NewGameOptions): GameState {
 
   // standing wars and truces from the scenario
   for (const n of Object.values(neighbours)) {
-    if (n.relation === 'war') s.wars.push({ id: `war-${n.id}`, enemies: [n.id], casusBelli: 'ongoing rebellion', startedTurn: 0, score: 0, declaredByUs: false });
+    if (n.relation === 'war') s.wars.push({ id: `war-${n.id}`, enemies: [n.id], casusBelli: 'ongoing rebellion', startedTurn: 0, score: 0, declaredByUs: false, peakEnemies: 1, devastation: {}, capitalBreached: [] });
     if (n.relation === 'truce') s.treaties.push({ id: `truce-${n.id}`, with: n.id, kind: 'truce', signedTurn: 0, expiresTurn: n.truceUntilTurn, terms: 'Truce inherited from the previous reign' });
     if (n.relation === 'tributary' || n.relation === 'vassal') s.treaties.push({ id: `trib-${n.id}`, with: n.id, kind: n.relation === 'vassal' ? 'vassalage' : 'tribute', signedTurn: 0, expiresTurn: null, terms: `Pays ${n.tributeToUs.toLocaleString()} akçe a year` });
   }

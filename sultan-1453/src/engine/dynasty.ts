@@ -82,7 +82,7 @@ export function dynastyMonth(ctx: TurnCtx) {
 
   // assassination
   const plotters = adultPrinces(s).filter((p) => p.ambition > 70 && p.household > 50 && !p.heldBy);
-  const assassinP = 0.0004 + plotters.length * 0.002 * (s.factions.janissaries < 40 ? 2 : 1) * (s.flags.plotWarning ? 0.4 : 1) + (s.modifiers.some((m) => m.id === 'plotUnchecked') ? 0.01 : 0);
+  const assassinP = 0.0002 + plotters.length * 0.002 * (s.factions.janissaries < 40 ? 2 : 1) * (s.flags.plotWarning ? 0.4 : 1) + (s.modifiers.some((m) => m.id === 'plotUnchecked') ? 0.004 : 0);
   if (ctx.rng.chance(assassinP)) {
     killSultan(ctx, plotters.length ? `poisoned; suspicion falls on the household of Şehzade ${plotters[0].name}` : 'assassinated by a disaffected officer');
     return;

@@ -146,6 +146,10 @@ export interface Neighbour {
   navy: number; // galleys
   /** strength recovery per month */
   recovery: number;
+  /** 0–10 will to keep fighting; ≥6 means core land is ceded only after a breached capital, sustained devastation or coalition collapse */
+  resilience: number;
+  /** seat of power (province id), or null if off-map */
+  capital: string | null;
   maxArmy: number;
 }
 
@@ -208,6 +212,12 @@ export interface War {
   /** -100 (we are losing badly) … +100 (crushing victory) */
   score: number;
   declaredByUs: boolean;
+  /** most enemies ever in this war (for coalition collapse) */
+  peakEnemies: number;
+  /** enemy → year → devastation points inflicted on them */
+  devastation: Record<string, Record<string, number>>;
+  /** enemies whose capital walls we have breached (≥50%) or taken */
+  capitalBreached: string[];
 }
 
 export interface Treaty {

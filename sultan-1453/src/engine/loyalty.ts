@@ -32,6 +32,10 @@ export function equilibriumTerms(s: GameState, f: FactionId): EquilibriumTerm[] 
     if (key.startsWith(`perm_${f}_`)) add(key.slice(6 + f.length), Number(s.flags[key]));
   }
 
+  // Royal largesse was expected. A Sultan sitting on more than a year of expenses looks miserly.
+  const hoard = s.treasury / Math.max(1, expensesEstimate(s));
+  if (hoard > 12 && (f === 'janissaries' || f === 'ulema' || f === 'harem')) add('a hoarding Sultan', -Math.min(f === 'janissaries' ? 8 : 5, (hoard - 12) * 0.5));
+
   switch (f) {
     case 'janissaries': {
       const monthlyPay = s.army.janissaries * C.janissaryDailyPay * 30 + 1;
@@ -94,6 +98,15 @@ export function equilibriumTerms(s: GameState, f: FactionId): EquilibriumTerm[] 
   return t;
 }
 
+/** Cheap expense estimate (avoids a circular import with economy.ts). */
+function expensesEstimate(s: GameState) {
+  const c = s.campaign;
+  const jan = s.army.janissaries + (c?.janissaries ?? 0);
+  const cav = s.army.palaceCavalry + (c?.palaceCavalry ?? 0);
+  const garrisons = ottomanProvinces(s).reduce((a, p) => a + p.garrison, 0);
+  return jan * C.janissaryDailyPay * 30 + cav * C.palaceCavalryDailyPay * 30 + garrisons * C.garrisonDailyPay * 30 + C.courtBase;
+}
+
 export function equilibrium(s: GameState, f: FactionId) {
   return clamp(equilibriumTerms(s, f).reduce((a, b) => a + b.value, 0), 5, 95);
 }
@@ -124,7 +137,11 @@ export function applyProvinceDrift(ctx: TurnCtx) {
     const plague = s.modifiers.some((m) => m.plague && m.province === p.id);
     const target = clamp(55 + (p.garrison / 1000) * 3 - (s.taxes.cizyePerHousehold - customary) * 0.4 + (p.prosperity - 50) / 5 + (s.factions.millets - 50) / 10);
     p.loyalty = Math.round(clamp(p.loyalty + (target - p.loyalty) * 0.05 + ctx.rng.normal() * 0.5) * 10) / 10;
-    const ptarget = plague ? 30 : 85;
-    p.prosperity = Math.round(clamp(p.prosperity + (ptarget - p.prosperity) * 0.006 + (plague ? -1.5 : 0)) * 10) / 10;
+    // the capital's prosperity follows its population (an empty city is a poor city)
+    const cap = p.id === s.capital ? clamp(25 + s.grain.population / 1500, 30, 90) : 85;
+    const ptarget = plague ? 30 : cap;
+    // ruined land is rebuilt faster than good land is improved
+    const rate = p.prosperity < 50 ? 0.02 : 0.006;
+    p.prosperity = Math.round(clamp(p.prosperity + (ptarget - p.prosperity) * rate + (plague ? -1.5 : 0)) * 10) / 10;
   }
 }

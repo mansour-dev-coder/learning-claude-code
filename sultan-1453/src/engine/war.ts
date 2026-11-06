@@ -165,7 +165,7 @@ export function declareWar(ctx: TurnCtx, enemy: NeighbourId, casusBelli: string,
   const n = s.neighbours[enemy];
   const brokeTruce = byUs && n.relation === 'truce' && n.truceUntilTurn > s.turn;
   const wasTributary = n.relation === 'tributary' || n.relation === 'vassal';
-  const war: War = { id: newId(s, 'war'), enemies: [enemy], casusBelli, startedTurn: s.turn, score: 0, declaredByUs: byUs };
+  const war: War = { id: newId(s, 'war'), enemies: [enemy], casusBelli, startedTurn: s.turn, score: 0, declaredByUs: byUs, peakEnemies: 1, devastation: {}, capitalBreached: [] };
   s.wars.push(war);
   n.relation = 'war';
   stance(s, enemy, -30);
@@ -187,6 +187,7 @@ export function declareWar(ctx: TurnCtx, enemy: NeighbourId, casusBelli: string,
       const p = a.stance < -40 && s.neighbours.papacy.stance < -50 ? 0.25 : 0.05;
       if (a.relation !== 'truce' && ctx.rng.chance(p)) {
         war.enemies.push(ally);
+        war.peakEnemies = Math.max(war.peakEnemies, war.enemies.length);
         a.relation = 'war';
         log(ctx, 'war', `${a.name} joins the war against us at the Pope's urging.`);
       }
@@ -266,12 +267,46 @@ export const PEACE_THRESHOLD: Record<PeaceTerms, number> = {
   cessionResettle: 50,
 };
 
+const CORE_TERMS: PeaceTerms[] = ['cession', 'cessionResettle', 'vassalage'];
+
+/** Record damage done to an enemy's lands, by campaign year. */
+export function devastate(s: GameState, war: War | undefined, enemy: NeighbourId, points: number) {
+  if (!war) return;
+  const byYear = (war.devastation[enemy] ??= {});
+  byYear[s.date.year] = (byYear[s.date.year] ?? 0) + points;
+}
+
+/** Seasons (years) in which we inflicted at least 3 points of devastation. */
+export function devastatedSeasons(war: War, enemy: NeighbourId) {
+  return Object.values(war.devastation[enemy] ?? {}).filter((v) => v >= 3).length;
+}
+
+/**
+ * Resilient powers (resilience ≥ 6: Skanderbeg, Vlad, Uzun Hasan, Karaman, Byzantium…) do not give up
+ * core land or sovereignty because they lost a battle or two. One of these must hold first:
+ *  - their capital's walls have been breached (≥50%) or taken,
+ *  - sustained devastation: 2 campaign seasons of damage (3 if resilience ≥ 8),
+ *  - coalition collapse: they began the war with allies and now stand alone.
+ */
+export function peaceGate(s: GameState, war: War, enemy: NeighbourId): { open: boolean; reason: string } {
+  const n = s.neighbours[enemy];
+  if (n.resilience < 6) return { open: true, reason: 'not a resilient power' };
+  if (war.capitalBreached.includes(enemy)) return { open: true, reason: 'their capital has been breached' };
+  const need = n.resilience >= 8 ? 3 : 2;
+  const seasons = devastatedSeasons(war, enemy);
+  if (seasons >= need) return { open: true, reason: `${seasons} seasons of devastation` };
+  if (war.peakEnemies > 1 && war.enemies.length === 1) return { open: true, reason: 'their coalition has collapsed' };
+  return { open: false, reason: `${n.ruler} will not yield land or sovereignty: breach his capital, devastate his lands for ${need - seasons} more season(s), or break his coalition` };
+}
+
 export function peaceAcceptance(s: GameState, war: War, enemy: NeighbourId, terms: PeaceTerms): number {
   const n = s.neighbours[enemy];
+  if (CORE_TERMS.includes(terms) && !peaceGate(s, war, enemy).open) return 0;
   const ourField = ottomanFieldStrength(s);
   const strength = n.fieldArmy / Math.max(1, ourField);
   const weariness = Math.min(20, (s.turn - war.startedTurn) * 0.6);
-  const margin = war.score + weariness - PEACE_THRESHOLD[terms] - strength * 15;
+  const defiance = terms === 'whitePeace' || terms === 'payTribute' ? 0 : Math.max(0, n.resilience - 5) * 3;
+  const margin = war.score + weariness - PEACE_THRESHOLD[terms] - strength * 15 - defiance;
   return clamp(0.5 + margin / 40, 0, 1);
 }
 
@@ -459,6 +494,7 @@ export function fightCampaignBattle(ctx: TurnCtx, enemy: NeighbourId, enemyMen: 
   if (res.winner === 'a') {
     c.morale = clamp(c.morale + 12);
     if (war) war.score = clamp(war.score + 20, -100, 100);
+    devastate(s, war, enemy, 1);
     s.flags.lastVictoryTurn = s.turn;
     shocks(s, { janissaries: 5, rumelianBeys: 4 });
     log(ctx, 'battle', `${label}: victory over ${n.name}. Their losses about ${theirLoss.toLocaleString()}, ours about ${ourLoss.toLocaleString()}.`);
@@ -617,6 +653,16 @@ export function campaignMonth(ctx: TurnCtx) {
       );
       applyCampaignLosses(c, res.attackerLossShare);
       Object.assign(sg, res.siege);
+      // the army lives off the enemy's land around the siege
+      if (inCampaignSeason(s.date)) {
+        target.prosperity = clamp(target.prosperity - 2);
+        devastate(s, warWith(s, enemy), enemy, 1);
+      }
+      const w = warWith(s, enemy);
+      if (w && target.id === s.neighbours[enemy].capital && sg.breach >= 50 && !w.capitalBreached.includes(enemy)) {
+        w.capitalBreached.push(enemy);
+        log(ctx, 'siege', `The walls of ${target.name}, seat of ${s.neighbours[enemy].ruler}, are breached.`);
+      }
       for (const note of res.notes) log(ctx, 'siege', `${target.name}: ${note}`);
       if (res.outcome === 'repulsed') c.morale = clamp(c.morale - 10);
       if (res.outcome === 'stormed' || res.outcome === 'surrender') {
@@ -648,7 +694,12 @@ function captureByCampaign(ctx: TurnCtx, enemy: NeighbourId, stormed: boolean) {
   const war = warWith(s, enemy);
   const booty = Math.round((p.landTax + p.customs) * (stormed ? 0.5 : 0.15) * (p.prosperity / 100));
   gain(s, Math.round(booty * 0.2)); // the Sultan's fifth (pençik)
+  const wasCapital = p.id === s.neighbours[enemy].capital;
   transferProvince(ctx, p.id, 'ottoman');
+  if (war) {
+    devastate(s, war, enemy, 2);
+    if (wasCapital && !war.capitalBreached.includes(enemy)) war.capitalBreached.push(enemy);
+  }
   if (stormed) p.prosperity = clamp(p.prosperity - 20);
   s.sieges = s.sieges.filter((x) => !(x.province === p.id && x.attacker === 'ottoman'));
   if (war) war.score = clamp(war.score + 25 + p.walls / 4, -100, 100);

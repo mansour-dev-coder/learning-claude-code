@@ -163,7 +163,7 @@ export const ECONOMY_EVENTS: EventDef[] = [
       { id: 'requisition', label: 'Requisition from Thrace at the fixed price (narh)', summary: 'Cheap grain; the Rumelian beys and peasants pay for it.', apply: (ctx) => { const q = grainConsumption(ctx.s) * 2; spend(ctx.s, Math.min(ctx.s.treasury, q * C.baseGrainPrice * 0.6)); ctx.s.grain.stock += q; shocks(ctx.s, { rumelianBeys: -7, millets: -5 }); ctx.s.provinces.edirne.prosperity = clamp(ctx.s.provinces.edirne.prosperity - 4); } },
       { id: 'ceiling', label: 'Impose a bread price ceiling and hang hoarders', summary: 'No cost; bakers cheat, supply falls further.', apply: (ctx) => { shock(ctx.s, 'merchants', -8); shock(ctx.s, 'janissaries', 3); addModifier(ctx.s, { id: 'narh', label: 'bread price ceiling', months: 3, grainSupplyMult: 0.9 }); } },
     ],
-    defaultOption: 'ceiling',
+    defaultOption: 'buy',
   },
   {
     id: 'bumperHarvest',

@@ -48,7 +48,9 @@ export function computeBudget(s: GameState): Budget {
     const pm = provMod(s, p.id, 'revenueMult');
     hass += p.landTax * (p.prosperity / 100) * loyal * pm;
     cizye += p.christianHouseholds * (0.5 + 0.5 * (p.prosperity / 100)) * s.taxes.cizyePerHousehold * (0.7 + 0.3 * (p.loyalty / 100)) * pm;
-    customs += p.customs * (p.prosperity / 100) * provMod(s, p.id, 'customsMult');
+    // an imperial capital is a market: its customs grow with its population (Istanbul ~16k households by 1478)
+    const capTrade = p.id === s.capital && p.id === 'constantinople' ? clamp(s.grain.population / 50_000, 0.6, 2.5) : 1;
+    customs += p.customs * (p.prosperity / 100) * provMod(s, p.id, 'customsMult') * capTrade;
     const special = SPECIAL_INCOME[p.id];
     if (special) farms += special.amount * (p.prosperity / 100);
   }
@@ -176,7 +178,10 @@ export function applyGrain(ctx: TurnCtx, bought: number): GrainReport {
   else if (s.weather === 'rain') w = 0.95;
   const mod = s.modifiers.reduce((m, x) => m * (x.grainSupplyMult ?? 1), 1);
   const annualNeed = consumed * 12;
-  const supplied = Math.round(annualNeed * 1.04 * harvestShare(s.date.month) * w * (hp / 70) * mod);
+  // a coastal capital also draws Black Sea and Thessalian grain by sea, which smooths the year
+  const seaShare = s.provinces[s.capital]?.coastal && !atWarWith(s, 'venice') ? 0.3 : 0;
+  const landShare = 1 - seaShare;
+  const supplied = Math.round(annualNeed * 1.06 * (landShare * harvestShare(s.date.month) + seaShare / 12) * w * Math.min(1.2, hp / 65) * mod);
   let stock = stockStart + supplied + bought - consumed;
   const shortage = stock < 0;
   if (shortage) {

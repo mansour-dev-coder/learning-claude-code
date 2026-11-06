@@ -42,7 +42,7 @@ function botActions(s: GameState): Action[] {
       if (hostile.length) {
         const t = bot.pick(hostile);
         acts.push({ type: 'declareWar', target: t.id, casusBelli: s.flags[`casusBelli_${t.id}`] ? 'the Emperor’s threats over Orhan' : 'border raids' });
-        war = { id: 'pending', enemies: [t.id], casusBelli: '', startedTurn: s.turn, score: 0, declaredByUs: true };
+        war = { id: 'pending', enemies: [t.id], casusBelli: '', startedTurn: s.turn, score: 0, declaredByUs: true, peakEnemies: 1, devastation: {}, capitalBreached: [] };
       }
     }
     if (war) {

@@ -5,7 +5,7 @@ import { C } from './constants';
 import { LAW_BY_ID } from './data/laws';
 import { PROJECT_BY_ID } from './data/projects';
 import { atWarWith, canAfford, clamp, gain, log, ottomanProvinces, princeAge, shock, shocks, spend, stance, warWith, type TurnCtx } from './state';
-import { declareWar, disbandCampaign, endWar, peaceAcceptance, startCampaign, validateCampaign, type PeaceTerms } from './war';
+import { declareWar, disbandCampaign, endWar, peaceAcceptance, peaceGate, startCampaign, validateCampaign, type PeaceTerms } from './war';
 import { applyDilemmaChoice } from './events/select';
 import { debase, audit } from './events/economy';
 import { replaceMinister } from './events/court';
@@ -157,6 +157,13 @@ export function applyAction(ctx: TurnCtx, a: Action): ActionResult {
       const war = warWith(s, a.target);
       if (!war) return fail(`not at war with ${a.target}`);
       if ((a.terms === 'cession' || a.terms === 'cessionResettle') && (!a.province || s.provinces[a.province]?.owner !== a.target)) return fail('cession requires a province they own');
+      if (a.terms === 'cession' || a.terms === 'cessionResettle' || a.terms === 'vassalage') {
+        const gate = peaceGate(s, war, a.target);
+        if (!gate.open) {
+          log(ctx, 'diplomacy', `${s.neighbours[a.target].name} rejects our terms out of hand.`);
+          return ok(`peace rejected: ${gate.reason}`);
+        }
+      }
       const p = peaceAcceptance(s, war, a.target, a.terms);
       if (ctx.rng.chance(p)) {
         endWar(ctx, war, a.target, a.terms, a.province);

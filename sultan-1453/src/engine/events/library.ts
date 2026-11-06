@@ -3,10 +3,11 @@ import type { TurnCtx } from '../state';
 import { ECONOMY_EVENTS } from './economy';
 import { MILITARY_EVENTS } from './military';
 import { COURT_EVENTS } from './court';
+import { SPENDING_EVENTS } from './spending';
 import { log, spend, shock } from '../state';
 import { C } from '../constants';
 
-export const EVENT_LIBRARY: EventDef[] = [...ECONOMY_EVENTS, ...MILITARY_EVENTS, ...COURT_EVENTS];
+export const EVENT_LIBRARY: EventDef[] = [...ECONOMY_EVENTS, ...MILITARY_EVENTS, ...COURT_EVENTS, ...SPENDING_EVENTS];
 export const EVENT_BY_ID: Record<string, EventDef> = Object.fromEntries(EVENT_LIBRARY.map((e) => [e.id, e]));
 
 /** Delayed consequences queued by events (ScheduledItem.kind === 'effect'). */

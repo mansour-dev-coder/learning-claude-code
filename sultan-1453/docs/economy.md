@@ -83,3 +83,41 @@ The Sultan's annual death hazard is 0.006 × e^(0.085 × (age − 20)), scaled b
 | 50 | ≈ 7.7% |
 
 Mehmed II died at 49 and Murad II at 46, both of illness.
+
+## Growth to 1475 (test: tests/revenue.test.ts)
+
+**Setup.** A scripted reign follows Mehmed II's acquisitions:
+- Constantinople 1453
+- Novo Brdo 1455
+- Smederevo 1459
+- Morea 1460
+- Konya 1468
+- Negroponte 1470
+- Larende 1474
+
+It also follows his reforms: Patriarchate 1453, tahrir 1455, iltizam 1460. Wars are switched off to isolate the revenue curve.
+
+**Result.** Central revenue goes from about 37–38M akçe a year in 1451 to about 59–60M in January 1475, **≈1.6×**.
+
+| Line | 1451 | 1475 |
+|---|---|---|
+| Hass | 11.8M | 16.0M |
+| Cizye | 8.1M | 12.5M |
+| Customs | 6.6M | 11.2M |
+| Tax farms | 9.0M | 19.5M |
+| Tribute | 1.6M | 0.5M |
+
+Raising the cizye to 45 akçe in 1465 lifts the result to about 1.65×.
+
+**The model does not reach the ~2× (≈1.8M ducat) anchor. Flagged.** What is missing is mostly map, not mechanics:
+1. **Conquests of 1461–75 that are not on the map:**
+   - Bosnia (1463), with the Srebrenica silver mines
+   - Trebizond and Amasra (1461)
+   - Kastamonu/Sinop (1461), with the Küre copper mines
+   - Lesbos (1462) and the Aegean islands
+   - Caffa (1475)
+2. **Tributes not modelled:** Moldavia, Ragusa, and the raised Wallachian tribute.
+3. **Nominal growth from debasements.** The scripted run never debases. Mehmed re-minted roughly once a decade, which raises akçe-denominated revenue.
+4. **Promontorio's 1.8M ducats** may include revenue that never reached the central treasury, which would make the true central-treasury gap smaller.
+
+Adding items 1–2 (about 6 provinces) should close most of the gap. The test is marked `it.fails` for ≥1.8×, so it will flag automatically once that's done.

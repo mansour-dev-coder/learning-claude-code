@@ -57,6 +57,14 @@ Each entry is something I decided without asking you. To override one, tell me i
    - In season, enemies at war raid border provinces or besiege your forts. Those sieges use the same resolver.
    - Christian wars can draw in Venice and Hungary when the Pope is hostile.
 23. **Peace:** acceptance depends on war score, months of war and the enemy's remaining strength against yours. Thresholds: white peace −5, tribute 25, cession 40, vassalage 50.
+23a. **Resilience (0–10) for every power.** Albania 9, Byzantium 9, Wallachia 7, Aq Qoyunlu 7, Karaman 6, Hungary 6, Mamluks 6, Venice 4, Serbia 3, Papacy 3. Each point above 5 raises the score needed for any demand beyond white peace by 3.
+   - **Resilient powers (≥6) never cede land or accept vassalage** on war score alone. One of these must hold first:
+     - their capital's walls breached (≥50%) or the capital taken (capitals: Krujë, Târgoviște, Konya, Constantinople, Buda, Diyarbakır, Smederevo);
+     - sustained devastation: at least 3 points of damage in each of 2 campaign seasons, or 3 seasons for resilience ≥8;
+     - their coalition has collapsed (they began with allies and now fight alone).
+   - **Devastation comes from:** each in-season month our army sits in their land (+1), field victories (+1), akıncı raids (+2), reprisal raids (+1) and taking a non-capital province (+2).
+   - The gate's reason is returned to the player, so the narrator can say *why* Skanderbeg refused.
+   - Krujë sieges still make about 1% breach a month against strength-80 walls with small guns. That is the historical answer: Mehmed failed there twice.
 
 ## Dynasty
 
@@ -79,7 +87,26 @@ Each entry is something I decided without asking you. To override one, tell me i
 
 ## Known balance issues to fix in Phase 4 (from the sim)
 
-- The peacetime surplus reaches about +0.8–0.9M akçe a month by 1453, which may be too generous. Historically, Mehmed's building and campaigns kept the treasury thin.
-- The Janissaries settle around 70–80 loyalty under a random player. The corps may be too docile.
-- Peace acceptance is too easy against small, defiant powers. In one run Skanderbeg ceded Krujë after two lost battles; he never would have.
+- ~~Peacetime surplus too generous~~ — **resolved (see 31)**: it was mostly a bot artefact plus a missing pressure class.
+- The Janissaries settle around 70–80 loyalty under a random player. The corps may be too docile. **Deferred to Phase 4** so it can be tuned on human play.
+- ~~Peace too easy against defiant small powers~~ — **resolved (23a)**.
 - Under random play, Janissary numbers shrink (campaign losses outpace cadets). A human player recruits; the sim bot does not.
+- Revenue grows about 1.6× from 1451 to 1475 under the scripted conquest reign, short of the ~2× anchor. See docs/economy.md, "Growth to 1475".
+
+## Phase 1 review changes
+
+31. **Discretionary spending.** The spending *actions* already existed: donatives, embassies, construction, galleys, cannon, devşirme. What was missing was the Divan *pushing* the Sultan to use them. Now:
+   - **Four pressure events** whose weight grows with the treasury: the imperial külliye, the Kapudan's fleet programme, return gifts for foreign embassies, and the princes' circumcision festival. Refusing costs loyalty or stance.
+   - **A "hoarding Sultan" penalty** on Janissary, ulema and harem equilibria once the treasury exceeds 12 months of expenses. Royal largesse was expected.
+   - **Result** (`npm run balance`, 20 seeds, 36 months of peace from 1451):
+
+     | Policy | Treasury change over 3 years |
+     |---|---|
+     | Frugal | +6.5M |
+     | Random | −8.4M |
+     | Generous | −24M |
+
+     So the surplus now depends on the player's choices rather than being structural. Earlier sims showed +0.9M a month because the bot rarely spent and nothing pushed it to. The old sim figure was a bot artefact.
+32. **Grain fixes found by the 25-year run.** Supply was calibrated against prosperity 70 while provinces sit near 65, which meant a permanent ~3% deficit and bread riots every spring. It is now normalised to 65 with a 6% margin. A coastal capital draws 30% of its grain by sea, flat through the year. The grain-shortage dilemma now defaults to buying, which was the grain administration's routine.
+33. **Assassination was too frequent.** In the 25-year run young Sultans were assassinated about once per run. Base risk is now 0.02% a month, and an ignored plot adds 0.4% a month for 6 months (was 1%).
+34. **Recovery and the capital.** Ruined provinces (prosperity below 50) rebuild at 2% of the gap a month instead of 0.6%. The capital's prosperity target follows its population. Constantinople's customs scale with population, from ×0.6 to ×2.5 against a 50k baseline.

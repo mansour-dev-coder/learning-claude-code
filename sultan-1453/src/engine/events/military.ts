@@ -2,7 +2,7 @@
 import type { EventDef } from './types';
 import type { NeighbourId } from '../types';
 import { addModifier, atWarWith, canAfford, clamp, gain, log, schedule, shock, shocks, spend, stance, warWith } from '../state';
-import { declareWar, endWar, peaceAcceptance } from '../war';
+import { declareWar, devastate, endWar, peaceAcceptance, peaceGate } from '../war';
 import { C } from '../constants';
 import { borderNeighbours, k, n, owns, pickProvince } from './helpers';
 import { enactFromEvent, startProjectFromEvent } from './economy';
@@ -74,7 +74,7 @@ export const MILITARY_EVENTS: EventDef[] = [
     },
     brief: (s, c) => `Men of ${n(s, String(c.enemy)).name} have burned villages near ${c.name} and driven off livestock.`,
     options: [
-      { id: 'counterRaid', label: 'Unleash the akıncıs in reprisal', summary: 'Booty and captives; their stance hardens and they may declare war.', apply: (ctx, c) => { gain(ctx.s, ctx.rng.int(100_000, 300_000)); stance(ctx.s, c.enemy as NeighbourId, -15); shock(ctx.s, 'rumelianBeys', 5); } },
+      { id: 'counterRaid', label: 'Unleash the akıncıs in reprisal', summary: 'Booty and captives; their stance hardens and they may declare war.', apply: (ctx, c) => { devastate(ctx.s, warWith(ctx.s, c.enemy as NeighbourId), c.enemy as NeighbourId, 1); gain(ctx.s, ctx.rng.int(100_000, 300_000)); stance(ctx.s, c.enemy as NeighbourId, -15); shock(ctx.s, 'rumelianBeys', 5); } },
       { id: 'garrison', label: `Reinforce the garrison (${k(150_000)})`, summary: '+800 men on the frontier.', available: (s) => canAfford(s, 150_000), apply: (ctx, c) => { spend(ctx.s, 150_000); ctx.s.provinces[String(c.pid)].garrison += 800; } },
       { id: 'protest', label: 'Send a çavuş to demand reparations', summary: 'Diplomacy; little effect.', apply: (ctx, c) => { ctx.s.provinces[String(c.pid)].prosperity = clamp(ctx.s.provinces[String(c.pid)].prosperity - 4); if (ctx.rng.chance(0.4)) gain(ctx.s, 50_000); } },
     ],
@@ -94,7 +94,7 @@ export const MILITARY_EVENTS: EventDef[] = [
     },
     brief: (s, c) => `The Mihaloğlu and Malkoçoğlu raider families want to ride into the lands of ${n(s, String(c.enemy)).name} for slaves and plunder.`,
     options: [
-      { id: 'allow', label: 'Allow the raid', summary: 'Pençik (the fifth) to the treasury; risks war if they are at peace with us.', apply: (ctx, c) => { const e = c.enemy as NeighbourId; gain(ctx.s, ctx.rng.int(150_000, 500_000)); stance(ctx.s, e, -18); shock(ctx.s, 'rumelianBeys', 6); if (!atWarWith(ctx.s, e) && ctx.s.neighbours[e].stance < -50 && ctx.rng.chance(0.3)) declareWar(ctx, e, 'akıncı raids', false); } },
+      { id: 'allow', label: 'Allow the raid', summary: 'Pençik (the fifth) to the treasury; risks war if they are at peace with us.', apply: (ctx, c) => { const e = c.enemy as NeighbourId; devastate(ctx.s, warWith(ctx.s, e), e, 2); gain(ctx.s, ctx.rng.int(150_000, 500_000)); stance(ctx.s, e, -18); shock(ctx.s, 'rumelianBeys', 6); if (!atWarWith(ctx.s, e) && ctx.s.neighbours[e].stance < -50 && ctx.rng.chance(0.3)) declareWar(ctx, e, 'akıncı raids', false); } },
       { id: 'forbid', label: 'Forbid it', summary: 'The marcher lords resent the leash.', apply: (ctx) => shock(ctx.s, 'rumelianBeys', -5) },
     ],
     defaultOption: 'allow',
@@ -402,7 +402,7 @@ export const MILITARY_EVENTS: EventDef[] = [
     brief: (s, c) => `Envoys of ${n(s, String(c.enemy)).name} have come to the camp. War score ${s.wars.find((w) => w.id === c.warId)?.score.toFixed(0)}.`,
     options: [
       { id: 'tribute', label: 'Peace for annual tribute', summary: 'Haraç every year; they keep their lands.', apply: (ctx, c) => { const w = ctx.s.wars.find((x) => x.id === c.warId); if (w) endWar(ctx, w, c.enemy as NeighbourId, 'tribute'); } },
-      { id: 'cession', label: 'Demand a border province', summary: (s, c) => (c.pid ? `${s.provinces[String(c.pid)].name}; they may refuse.` : 'They have nothing adjacent to give.'), available: (s, c) => !!c.pid, apply: (ctx, c) => { const w = ctx.s.wars.find((x) => x.id === c.warId); if (!w) return; const p = peaceAcceptance(ctx.s, w, c.enemy as NeighbourId, 'cession'); if (ctx.rng.chance(p)) endWar(ctx, w, c.enemy as NeighbourId, 'cession', String(c.pid)); else log(ctx, 'diplomacy', 'The envoys refuse to cede land and depart.'); } },
+      { id: 'cession', label: 'Demand a border province', summary: (s, c) => { if (!c.pid) return 'They have nothing adjacent to give.'; const w = s.wars.find((x) => x.id === c.warId); const g = w ? peaceGate(s, w, c.enemy as NeighbourId) : { open: false, reason: '' }; return g.open ? `${s.provinces[String(c.pid)].name}; they may refuse.` : `They will refuse: ${g.reason}.`; }, available: (s, c) => { const w = s.wars.find((x) => x.id === c.warId); return !!c.pid && !!w && peaceGate(s, w, c.enemy as NeighbourId).open; }, apply: (ctx, c) => { const w = ctx.s.wars.find((x) => x.id === c.warId); if (!w) return; const p = peaceAcceptance(ctx.s, w, c.enemy as NeighbourId, 'cession'); if (ctx.rng.chance(p)) endWar(ctx, w, c.enemy as NeighbourId, 'cession', String(c.pid)); else log(ctx, 'diplomacy', 'The envoys refuse to cede land and depart.'); } },
       { id: 'fight', label: 'Send them away: the war goes on', summary: 'Seek total victory.', apply: () => {} },
     ],
     defaultOption: 'fight',
