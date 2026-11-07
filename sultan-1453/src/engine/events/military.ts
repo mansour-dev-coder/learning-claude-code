@@ -69,7 +69,7 @@ export const MILITARY_EVENTS: EventDef[] = [
     weight: 4,
     brief: () => 'Orban, a founder who left the Emperor’s service for want of pay, says he can cast a bombard “to shatter the walls of Babylon itself.” He asks four times what Constantinople offered.',
     options: [
-      { id: 'hire', label: 'Hire him: a great bombard every two months', summary: `${k(250_000)} now plus ${k(C.bombardCastCost)} per gun; up to four great bombards.`, available: (s) => canAfford(s, 250_000), apply: (ctx) => { spend(ctx.s, 250_000); for (let i = 1; i <= 4; i++) schedule(ctx.s, i * 2, 'effect', 'bombardCast', 'Orban casts a bombard'); ctx.s.army.artillery.quality = clamp(ctx.s.army.artillery.quality + 0.15, 0, 1.5); log(ctx, 'military', 'Orban is taken into the Sultan’s service at Edirne.'); } },
+      { id: 'hire', label: 'Hire him: a great bombard every two months', summary: `${k(250_000)} now plus ${k(C.bombardCastCost)} per gun; up to four great bombards.`, available: (s) => canAfford(s, 250_000), apply: (ctx) => { spend(ctx.s, 250_000); for (let i = 1; i <= 4; i++) schedule(ctx.s, i * 2, 'effect', 'bombardCast', 'Orban casts a bombard'); ctx.s.army.artillery.quality = clamp(ctx.s.army.artillery.quality + 0.15, 0, 1.5); ctx.s.flags.orbanHired = ctx.s.turn; log(ctx, 'military', 'Orban is taken into the Sultan’s service at Edirne.'); } },
       { id: 'refuse', label: 'Send him away', summary: 'He may find another patron.', apply: () => {} },
     ],
     defaultOption: 'refuse',

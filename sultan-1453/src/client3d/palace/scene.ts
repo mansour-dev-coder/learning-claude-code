@@ -134,7 +134,7 @@ export class PalaceScene {
 
   /** Place the court from the current state. `answered` holds dilemma ids the Sultan has already ruled on. */
   setState(s: GameState, answered: Set<string>) {
-    this.ensureLayout(s.capital === 'constantinople' ? 'topkapi' : 'edirne');
+    this.ensureLayout(s.capital === 'constantinople' && !s.flags.lockTopkapi ? 'topkapi' : 'edirne');
     this.answered = answered;
     const sp = this.layout.spots;
     const want: { npc: Npc; at: THREE.Vector3; face: THREE.Vector3 }[] = [];

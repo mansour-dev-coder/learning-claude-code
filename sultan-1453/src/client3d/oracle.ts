@@ -6,6 +6,8 @@ import type { GameState } from '../engine/types';
 import type { Action } from '../engine/actions';
 import { plainNarration } from '../llm/sheets';
 import { toolCallToAction } from '../llm/actionTools';
+import type { CampaignProgress, MissionResult, MissionRun } from '../campaign/types';
+import type { CinematicSpec } from './cinematic';
 
 export interface NarrateResult { text: string; warnings: string[] }
 export interface ParseResult { actions: Action[]; reply: string }
@@ -76,6 +78,8 @@ export function httpOracle(base = ''): Oracle {
 export interface Storage3D {
   load(): Promise<SaveGame | null>;
   save(g: SaveGame): Promise<string>;
+  loadProgress?(): Promise<CampaignProgress | null>;
+  saveProgress?(p: CampaignProgress): Promise<void>;
 }
 
 export interface SaveGame {
@@ -84,6 +88,10 @@ export interface SaveGame {
   chronicle: string[];
   narration: string;
   warnings: string[];
+  /** set when playing a campaign mission */
+  mission?: { id: string; run: MissionRun; tutorial: number; result?: MissionResult };
+  /** a cinematic the player can watch for the month just resolved */
+  watch?: CinematicSpec | null;
 }
 
 export function localStore(key = 'sultan1453.3d.save'): Storage3D {
@@ -93,6 +101,12 @@ export function localStore(key = 'sultan1453.3d.save'): Storage3D {
     },
     async save(g) {
       try { localStorage.setItem(key, JSON.stringify({ ...g, chronicle: g.chronicle.slice(-2) })); return 'Saved on this device'; } catch { return 'Could not save'; }
+    },
+    async loadProgress() {
+      try { const raw = localStorage.getItem(`${key}.campaign`); return raw ? JSON.parse(raw) : null; } catch { return null; }
+    },
+    async saveProgress(p) {
+      try { localStorage.setItem(`${key}.campaign`, JSON.stringify(p)); } catch { /* storage unavailable */ }
     },
   };
 }

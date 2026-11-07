@@ -180,6 +180,7 @@ export function applyAction(ctx: TurnCtx, a: Action): ActionResult {
       const f = s.flags.foundry ? 0.75 : 1;
       const cost = Math.round((guns * C.gunCastCost + bombards * C.bombardCastCost) * f);
       if (guns + bombards === 0) return fail('nothing to cast');
+      if (bombards > 0 && s.flags.lockBombards) return fail('great bombards are not yet within the Porte’s art (a campaign reward)');
       if (bombards > 0 && s.army.artillery.quality < 0.8 && !s.flags.foundry) return fail('no founder at the Porte can yet cast great bombards (build a tophane or hire a master founder)');
       if (!canAfford(s, cost)) return fail(`casting costs ${cost.toLocaleString()} akçe`);
       spend(s, cost);
@@ -190,6 +191,7 @@ export function applyAction(ctx: TurnCtx, a: Action): ActionResult {
     case 'buildGalleys': {
       const f = s.flags.arsenal ? 0.67 : 1;
       const cost = Math.round(a.count * C.galleyBuildCost * f);
+      if (s.flags.lockFleet) return fail('the imperial fleet programme is not yet available (a campaign reward)');
       if (a.count <= 0 || a.count > 100) return fail('1–100 galleys');
       if (!canAfford(s, cost)) return fail(`building costs ${cost.toLocaleString()} akçe`);
       spend(s, cost);

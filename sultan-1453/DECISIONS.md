@@ -210,3 +210,64 @@ Each entry is something I decided without asking you. To override one, tell me i
     - People turn to face the Sultan when he comes within 5 m.
     - When a month ends while you are in the palace, you are taken to the Divan hall for the new matters.
 58. **Rendering.** The map pauses while you are in the palace, so only one scene renders at a time. Each building set is a single merged mesh, and each person is one mesh plus a label.
+
+## Campaign layer
+
+59. **Missions wrap the engine; they don't change its rules.** A mission (`src/campaign/missions.ts`) has:
+    - a starting state
+    - an objective with a win check
+    - a time limit and a par
+    - a bonus condition
+    - a reward
+    - optionally, a script and an end cinematic
+
+    `advanceMission` calls `resolveTurn`, runs the mission's script (scripted history between months, such as Karaman rising in April 1451), checks the objective, and keeps score. The engine's only campaign change is four capability locks in `state.flags`: `lockBombards`, `lockFleet` (building galleys), `lockNavalInvasion` and `lockTopkapi`. Rewards lift them; sandbox games have none.
+60. **Starting states come from the scripted conquest timeline** (`src/campaign/timeline.ts`), which the 1451–75 revenue test also uses now.
+    - **What it applies:** conquests, reforms, Grand Viziers (Zaganos 1453, Mahmud Pasha 1456), the dynasty (Küçük Ahmed dead after the accession, Orhan dead in 1453, Cem from 1459), the Hungarian truce lapsing, and the Bosporus fortress after August 1452.
+    - **No months are simulated,** so a mission starts instantly and is identical for a given seed.
+    - **Rewards change the start:** with *bombards* unlocked, Mission 3 starts with 10 great bombards (Orban's monster and the guns cast over the winter of 1452–53). Without them it starts with field guns only, and the city usually falls only when its stores run out.
+61. **Stars:** 1 for the objective, +1 for finishing within par, +1 for the bonus. A failed mission scores 0. Replays keep the best result, and the reward is granted on the first win.
+
+    | Mission | Objective | Limit | Par | Bonus | Reward |
+    |---|---|---|---|---|---|
+    | 1. Accession 1451 | Bring Karaman to terms, Janissaries 45+ | 14 | 9 | no arrears ever, corps 60+ at the end | +10 Janissary loyalty in later missions |
+    | 2. Rumeli Hisarı 1452 | Complete the fortress | 9 | 6 | hire Orban | great bombards |
+    | 3. Constantinople 1453 | Take the City | 8 | 5 | no failed assault | fleet programme, Topkapı, Sandbox |
+    | 4–9 | stubs (Serbia, Morea, Trebizond, Skanderbeg, Otlukbeli, Otranto) | | | | silver, naval invasion, Black Sea, mountain war, field artillery, Conqueror |
+
+    **Calibration (tests/campaign.test.ts):**
+    - **Mission 1:** a sensible player wins in at least 6 of 8 seeds.
+    - **Mission 2:** building at once and hiring Orban gives 3 stars; never ordering the fortress fails on the clock.
+    - **Mission 3:** with bombards and a direct march it was won in all 8 test seeds, usually in 5–7 months, so par 5 is hard and the no-failed-assault bonus is harder. The historical 53 days is a perfect run.
+62. **"Fleet after Mission 3"** means the *programme*: building galleys and, later, naval invasion. Baltaoğlu's historical fleet of about 100 vessels is part of Mission 3's starting state, because the blockade of 1453 needs it.
+63. **Missions 6 and 9 need map additions.** Trebizond, and Otranto in southern Italy, are not on the map yet; they are in the Phase 4 backlog. Missions 4–9 are listed on the mission map as "in development".
+64. **Results screen:**
+    - stars;
+    - how each star was earned;
+    - treasury change (start → end), plus the total paid out over the mission;
+    - soldiers lost;
+    - up to six chronicle highlights (battles, captures, declarations, peace, deaths), with routine siege-progress lines left out;
+    - the reward unlocked.
+65. **Main menu:**
+    - **Continue** resumes the current game, or reopens the last results.
+    - **Campaign** opens the mission map: nine cards showing locked, ready or starred, and the map pans to each mission's place.
+    - **Sandbox** is locked until Mission 3 is won.
+    - Campaign progress is saved separately from the current game: in your private artifact storage, or in browser storage in the Next.js app.
+66. **The tutorial (Mission 1)** is eleven steps from Çandarlı Halil, in `src/client3d/tutorial.ts`.
+    - Each step waits for the player's action (answering the two accession matters, opening a province, finding him in the Divan hall, ending a month, reacting to Karaman) or for "Next".
+    - Steps highlight the relevant panel, and the tutorial can be skipped.
+67. **Click-to-order on the map.** So the game is fully playable without Claude, clicking a province opens its orders:
+    - **Enemy province:** declare war, send an embassy, march on it, or offer peace terms.
+    - **Your province:** relieve a siege, reinforce, build Rumeli Hisarı from Edirne or Gelibolu, or rebuild the walls.
+    - **A siege you are running:** order an assault, or lift the siege.
+
+## Phase 3 Stage C — cinematics
+
+68. Three scenes in `src/client3d/cinematic.ts`, each a stylised voxel scene of about 16–23 seconds, with letterboxing, captions and a Skip button:
+    - **Siege:** the wall is built of individual blocks. Bombards fire in turn and knock out blocks until the breach shown matches the engine's breach for that month. The assault storms or is thrown back, or a white flag goes up, and the tower banner changes colour on capture. Constantinople gets the outer wall, the moat and Hagia Sophia.
+    - **Field battle:** the two lines close, and the loser breaks and runs. Troop numbers scale with the engine's figures.
+    - **The Throat-Cutter:** Rumeli Hisarı's guns sink a Venetian ship (Antonio Rizzo, November 1452).
+69. **When they play:**
+    - **Mission ends:** the Bosporus scene closes a won Mission 2. Mission 3 ends with the siege scene of its final month (the storm or the surrender, or the siege still in progress if time ran out).
+    - **During play:** after any month in which your army fought a siege month or a field battle, the chronicle offers "▶ Watch".
+    - **The engine already decided the result;** the scene only shows it.

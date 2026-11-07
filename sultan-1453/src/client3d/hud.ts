@@ -105,7 +105,59 @@ export const HUD_CSS = `
 .s3 .hint { font: 12px var(--ui); color: var(--muted); }
 .s3 .fps { position: absolute; right: 12px; bottom: 8px; font: 11px var(--ui); color: rgba(255,255,255,.7); text-shadow: 0 1px 2px #000; pointer-events: none; }
 
+.s3 .menu { width: min(760px, 100%); max-height: calc(100% - 32px); overflow-y: auto; }
+.s3 .menu-btns { display: grid; gap: 10px; }
+.s3 .menu-btns.row { display: flex; gap: 8px; }
+.s3 button.big { display: grid; text-align: left; gap: 2px; padding: 14px 16px; }
+.s3 button.big b { font: 700 19px var(--display); letter-spacing: .03em; }
+.s3 button.big span { font: 400 13px var(--ui); color: var(--muted); }
+.s3 button.big.primary span { color: #f3d6cf; }
+.s3 .fine { font-size: 13px; color: var(--muted); }
+.s3 .vhead { display: flex; gap: 12px; align-items: center; }
+.s3 .vhead h2 { font-size: 26px; }
+.s3 .missions { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+.s3 .mission { text-align: left; display: grid; gap: 3px; padding: 12px; width: 100%; height: 100%; }
+.s3 .mission .yr { font: 600 12px var(--ui); color: var(--muted); letter-spacing: .08em; }
+.s3 .mission b { font: 700 17px var(--display); }
+.s3 .mission .stars { color: var(--gold); letter-spacing: 2px; font-size: 15px; }
+.s3 .stars .off { color: rgba(255,255,255,.18); }
+.s3 .mission .lock { color: var(--muted); font-size: 12.5px; }
+.s3 .mission.locked { opacity: .55; }
+.s3 .mission.done { border-color: rgba(233,196,106,.6); }
+.s3 .brief-body { display: grid; gap: 10px; font: 16px/1.5 var(--body); }
+.s3 .brief-body dl { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; margin: 0; font: 14px/1.4 var(--ui); }
+.s3 .brief-body dt { color: var(--muted); }
+.s3 .brief-body dd { margin: 0; }
+.s3 .results { width: min(620px, 100%); max-height: calc(100% - 32px); overflow-y: auto; }
+.s3 .results .bigstars { font-size: 44px; letter-spacing: 8px; color: var(--gold); text-align: center; }
+.s3 .results .bigstars .off { color: rgba(255,255,255,.18); }
+.s3 .results h2 { text-align: center; }
+.s3 .results dl { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; margin: 0; }
+.s3 .results dt { color: var(--muted); }
+.s3 .results dd { margin: 0; font-variant-numeric: tabular-nums; }
+.s3 .results ul { margin: 0; padding-left: 18px; font: 15px/1.5 var(--body); color: #dfe4ec; }
+.s3 .results .reward { border: 1px solid rgba(233,196,106,.5); border-radius: 8px; padding: 10px 12px; background: rgba(233,196,106,.1); }
+.s3 .obj { top: 140px; left: max(10px, env(safe-area-inset-left, 0px)); width: 420px; }
+.s3 .obj .pbody { font-size: 14px; gap: 6px; }
+.s3 .obj .pbody p { margin: 0; }
+.s3 .obj .k { color: var(--muted); }
+.s3 .obj .ok { color: var(--turq); }
+.s3 .tut { left: 50%; transform: translateX(-50%); bottom: 150px; width: min(560px, calc(100% - 20px)); padding: 12px 14px; display: grid; gap: 8px; z-index: 6; border-color: rgba(233,196,106,.6); }
+.s3 .tut p { margin: 0; font: 15.5px/1.5 var(--body); }
+.s3 .tut .tut-who { font: 700 14px var(--display); color: var(--gold); }
+.s3 .tut .row { display: flex; gap: 8px; }
+.s3 .pulse { outline: 2px solid var(--gold) !important; outline-offset: 3px; animation: s3pulse 1.4s ease-in-out infinite; }
+@keyframes s3pulse { 50% { outline-color: rgba(233,196,106,.25); } }
+@media (prefers-reduced-motion: reduce) { .s3 .pulse { animation: none; } }
+.s3 .prov { width: 320px; z-index: 5; }
+.s3 .prov .pbody { gap: 6px; }
+.s3 .prov .note { font-size: 12.5px; color: var(--muted); margin: -2px 0 4px; }
+.s3 .watch { justify-self: start; }
+
 @media (max-width: 820px) {
+  .s3 .obj { top: auto; bottom: 150px; left: 10px; right: 10px; width: auto; }
+  .s3 .prov { left: 10px !important; right: 10px; width: auto; top: auto !important; bottom: 150px; }
+  .s3 .tut { bottom: 205px; }
   .s3 .hud .facs, .s3 .hud .opt-stat { display: none; }
   .s3 .tabs { display: flex; }
   .s3 .divan, .s3 .chron { left: 10px; right: 10px; width: auto; top: auto; bottom: 150px; max-height: 52%; }
@@ -157,16 +209,39 @@ export const HUD_HTML = `
 <div class="panel legend" id="s3-legend" hidden></div>
 <div class="fps" id="s3-fps"></div>
 <div class="start" id="s3-start">
-  <div class="panel card">
-    <h2>The throne of Osman</h2>
-    <p>Rule from Edirne. Each month the Divan brings you its troubles; armies march, fleets sail and walls fall on the map. Your ministers advise you, not always honestly.</p>
-    <label for="s3-scn">Reign<select id="s3-scn">
-      <option value="mehmed1451">Mehmed II, February 1451</option>
-      <option value="murad1421">Murad II, June 1421</option>
-      <option value="fictional">An unknown Sultan, in a year you choose</option></select></label>
-    <label for="s3-year" id="s3-year-w" hidden>Year of accession (1420–1500)<input id="s3-year" type="number" min="1420" max="1500" value="1460"></label>
-    <label for="s3-dif">Difficulty<select id="s3-dif"><option value="easy">Gentle</option><option value="normal" selected>Historical</option><option value="hard">Harsh</option></select></label>
-    <div class="row" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button id="s3-new" class="primary">Ascend the throne</button><button id="s3-cont" hidden>Continue reign</button><span id="s3-cont-note" style="color:var(--muted);font-size:13px"></span></div>
-    <p id="s3-ai" style="font-size:13px;color:var(--muted)"></p>
+  <div class="panel card menu">
+    <section id="s3-v-main">
+      <h2>Sultan: 1453</h2>
+      <p>Rule the House of Osman month by month. Armies march, fleets sail and walls fall on the map; your ministers advise you, not always honestly.</p>
+      <div class="menu-btns">
+        <button id="s3-m-cont" class="big" hidden><b>Continue</b><span id="s3-cont-note"></span></button>
+        <button id="s3-m-camp" class="big primary"><b>Campaign</b><span>Mehmed II, 1451–1481: nine missions</span></button>
+        <button id="s3-m-sand" class="big"><b>Sandbox</b><span id="s3-sand-note">Free play from any reign</span></button>
+      </div>
+      <p id="s3-ai" class="fine"></p>
+    </section>
+    <section id="s3-v-camp" hidden>
+      <div class="vhead"><button id="s3-camp-back">‹ Back</button><h2>The Conqueror’s campaign</h2></div>
+      <ol class="missions" id="s3-missions"></ol>
+    </section>
+    <section id="s3-v-brief" hidden>
+      <div class="vhead"><button id="s3-brief-back">‹ Missions</button><h2 id="s3-brief-title"></h2></div>
+      <div id="s3-brief-body" class="brief-body"></div>
+      <div class="menu-btns row"><button id="s3-brief-go" class="primary">Begin</button></div>
+    </section>
+    <section id="s3-v-sand" hidden>
+      <div class="vhead"><button id="s3-sand-back">‹ Back</button><h2>Sandbox</h2></div>
+      <label for="s3-scn">Reign<select id="s3-scn">
+        <option value="mehmed1451">Mehmed II, February 1451</option>
+        <option value="murad1421">Murad II, June 1421</option>
+        <option value="fictional">An unknown Sultan, in a year you choose</option></select></label>
+      <label for="s3-year" id="s3-year-w" hidden>Year of accession (1420–1500)<input id="s3-year" type="number" min="1420" max="1500" value="1460"></label>
+      <label for="s3-dif">Difficulty<select id="s3-dif"><option value="easy">Gentle</option><option value="normal" selected>Historical</option><option value="hard">Harsh</option></select></label>
+      <div class="menu-btns row"><button id="s3-new" class="primary">Ascend the throne</button></div>
+    </section>
   </div>
-</div>`;
+</div>
+<div class="start" id="s3-res" hidden><div class="panel card results" id="s3-res-card"></div></div>
+<section class="panel obj" id="s3-obj" hidden><div class="phead"><h3 id="s3-obj-title">Mission</h3><button id="s3-obj-t" aria-label="Collapse mission panel">–</button></div><div class="pbody" id="s3-obj-body"></div></section>
+<section class="panel tut" id="s3-tut" hidden><p class="tut-who">Çandarlı Halil Pasha, Grand Vizier</p><p id="s3-tut-text"></p><div class="row"><button id="s3-tut-next" class="primary">Next</button><button id="s3-tut-skip">Skip the tutorial</button></div></section>
+<section class="panel prov" id="s3-prov" hidden><div class="phead"><h3 id="s3-prov-title"></h3><button id="s3-prov-x" aria-label="Close">×</button></div><div class="pbody" id="s3-prov-body"></div></section>`;

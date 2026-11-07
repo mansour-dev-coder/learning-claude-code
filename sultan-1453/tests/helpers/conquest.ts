@@ -6,16 +6,8 @@ import { transferProvince } from '../../src/engine/war';
 import type { TurnCtx } from '../../src/engine/state';
 import { succeed } from '../../src/engine/dynasty';
 import { grainConsumption } from '../../src/engine/economy';
+import { CONQUESTS } from '../../src/campaign/timeline';
 
-const CONQUESTS: [number, number, string[]][] = [
-  [1453, 6, ['constantinople']],
-  [1455, 6, ['novobrdo']],
-  [1459, 6, ['smederevo']],
-  [1460, 6, ['morea']],
-  [1468, 6, ['konya']],
-  [1470, 7, ['negroponte']],
-  [1474, 6, ['larende']],
-];
 
 export function conquestReign(seed: number, opts: { cizyeRaise?: boolean } = {}) {
   let s: GameState = createGame({ scenario: 'mehmed1451', seed });

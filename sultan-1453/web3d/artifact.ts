@@ -70,6 +70,16 @@ function dbStore(db: any, uid: string | null): Storage3D {
       }
       return 'Saved on this device';
     },
+    async loadProgress() {
+      if (db && uid) {
+        try { const snap = await db.doc(`data/users/${uid}/campaign`).get(); const json = snap?.exists ? snap.data?.json : undefined; if (json) return JSON.parse(json); } catch { /* fall back */ }
+      }
+      return local.loadProgress!();
+    },
+    async saveProgress(p) {
+      await local.saveProgress!(p);
+      if (db && uid) { try { await db.doc(`data/users/${uid}/campaign`).set({ json: JSON.stringify(p) }); } catch { /* local only */ } }
+    },
   };
 }
 
@@ -81,7 +91,7 @@ hot?.snapshot?.(() => (latest ? { game: latest } : {}));
 let storage: Storage3D = localStore();
 const app = mountGame(root, {
   oracle: offlineOracle,
-  storage: { load: () => storage.load(), save: (g) => storage.save(g) },
+  storage: { load: () => storage.load(), save: (g) => storage.save(g), loadProgress: () => storage.loadProgress!(), saveProgress: (p) => storage.saveProgress!(p) },
   resume: hot?.data?.game,
   onChange: (g) => { latest = g; },
 });
@@ -94,5 +104,6 @@ const app = mountGame(root, {
   let uid: string | null = null;
   try { uid = (await user?.id?.()) ?? null; } catch { uid = null; }
   storage = dbStore(db, uid);
+  void app.reloadProgress();
   if (sample) app.setOracle(sampleOracle(sample));
 })();

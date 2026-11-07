@@ -385,8 +385,10 @@ export function validateCampaign(s: GameState, o: CampaignOrder): string | null 
   const besiegedOwn = p.owner === 'ottoman' && s.sieges.some((sg) => sg.province === p.id && sg.defender === 'ottoman');
   if (p.owner === 'ottoman' && !besiegedOwn) return `${p.name} is already ours.`;
   if (p.owner !== 'ottoman' && !atWarWith(s, p.owner as NeighbourId)) return `We are not at war with ${s.neighbours[p.owner as NeighbourId].name}. Declare war first.`;
-  const reachable = p.owner === 'ottoman' || p.adjacent.some((a) => s.provinces[a]?.owner === 'ottoman') || (p.coastal && o.fleet && s.army.fleet.galleys >= 20);
-  if (!reachable) return `${p.name} does not border our lands.`;
+  const byLand = p.owner === 'ottoman' || p.adjacent.some((a) => s.provinces[a]?.owner === 'ottoman');
+  const bySea = p.coastal && o.fleet && s.army.fleet.galleys >= 20;
+  if (!byLand && bySea && s.flags.lockNavalInvasion) return `${p.name} can only be reached by sea, and seaborne invasion is not yet available (a campaign reward).`;
+  if (!byLand && !bySea) return `${p.name} does not border our lands.`;
   return null;
 }
 
