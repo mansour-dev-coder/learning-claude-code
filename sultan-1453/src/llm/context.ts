@@ -69,7 +69,7 @@ export function divanRoster(s: GameState): string {
     .join('\n') + `\n- ${s.dynasty.chiefEunuch.name}, ${s.dynasty.chiefEunuch.title}: the palace gatekeeper and the Sultan's ears in the harem.` + (s.dynasty.valide?.alive ? `\n- ${s.dynasty.valide.name}: ${s.dynasty.valide.note}.` : '');
 }
 
-function agendaText(s: GameState, a: string, target?: string) {
+export function agendaText(s: GameState, a: string, target?: string) {
   switch (a) {
     case 'embezzle': return 'skims the revenues and keeps the books looking clean; deflects any talk of audits';
     case 'peaceParty': return `wants peace with ${target && s.neighbours[target as 'byzantium'] ? s.neighbours[target as 'byzantium'].name : 'the Christian powers'}, may be in their pay; talks up their strength and goodwill`;

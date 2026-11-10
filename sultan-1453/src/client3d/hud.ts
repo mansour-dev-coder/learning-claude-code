@@ -102,6 +102,30 @@ export const HUD_CSS = `
 .s3 .dlg .speech { margin: 0; }
 .s3 .dlg .who2 { color: var(--muted); font: 13px var(--ui); margin: 0; }
 .s3 .dlg .acts { display: grid; gap: 6px; }
+.s3 .dlg .pbody { display: flex; flex-direction: column; gap: 10px; }
+.s3 .aud-log { display: flex; flex-direction: column; gap: 8px; max-height: 30vh; min-height: 60px; overflow-y: auto; padding-right: 4px; }
+.s3 .aud-ctl { display: flex; flex-direction: column; gap: 9px; }
+.s3 .ln { margin: 0; padding: 8px 11px; border-radius: 9px; max-width: 94%; }
+.s3 .ln.them { background: rgba(233,196,106,.09); border-left: 3px solid var(--gold); align-self: flex-start; font: 16px/1.5 var(--body); }
+.s3 .ln.them em { color: var(--muted); }
+.s3 .ln.sultan { background: rgba(155,42,34,.32); align-self: flex-end; font: italic 14.5px/1.45 var(--body); }
+.s3 .ln.sultan::before { content: "You: "; font: 600 12px var(--ui); color: var(--gold); font-style: normal; }
+.s3 .ln.note { color: var(--muted); font: 13px var(--ui); align-self: center; text-align: center; }
+.s3 .matter { border: 1px solid var(--line); border-radius: 9px; padding: 9px; display: grid; gap: 7px; background: rgba(0,0,0,.18); }
+.s3 .matter .mt { font: 700 14px var(--display); color: var(--gold); }
+.s3 .matter .tabs { display: flex; flex-wrap: wrap; gap: 5px; }
+.s3 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.s3 .chip { padding: 5px 10px; font: 500 13px var(--ui); border-radius: 999px; background: rgba(255,255,255,.06); }
+.s3 .chip.on { border-color: var(--gold); background: rgba(233,196,106,.18); }
+.s3 .backers { display: block; font: italic 12px var(--ui); color: var(--turq); margin-top: 3px; }
+.s3 .speak { display: flex; gap: 6px; }
+.s3 .speak input { flex: 1; min-width: 0; font: 15px var(--body); color: var(--ink); background: rgba(0,0,0,.35); border: 1px solid var(--line); border-radius: 7px; padding: 8px 10px; }
+@media (min-width: 1000px) {
+  .s3 .dlg { left: auto; right: 14px; transform: none; top: 120px; bottom: 90px; width: 470px; max-height: none; }
+  .s3 .dlg .pbody { flex: 1; min-height: 0; overflow: hidden; }
+  .s3 .aud-log { max-height: none; flex: 1 1 45%; min-height: 140px; }
+  .s3 .aud-ctl { flex: 1 1 55%; min-height: 0; overflow-y: auto; padding-right: 4px; }
+}
 .s3 .hint { font: 12px var(--ui); color: var(--muted); }
 .s3 .fps { position: absolute; right: 12px; bottom: 8px; font: 11px var(--ui); color: rgba(255,255,255,.7); text-shadow: 0 1px 2px #000; pointer-events: none; }
 
@@ -191,7 +215,7 @@ export const HUD_HTML = `
   <span class="spacer"></span>
   <div class="tabs"><button id="s3-tab-divan">Divan</button><button id="s3-tab-chron">Chronicle</button></div>
   <button id="s3-mode" class="primary">Enter the palace</button>
-  <button id="s3-legend-t" aria-pressed="false">Legend</button>
+  <button id="s3-legend-t" aria-pressed="false">Legend</button><button id="s3-style-t" title="Switch between the realistic relief and the block map">Block map</button>
   <button id="s3-menu">Menu</button>
   <button id="s3-hud-t" aria-label="Collapse top bar">–</button>
 </div>

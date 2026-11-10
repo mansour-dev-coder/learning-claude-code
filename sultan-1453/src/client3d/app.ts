@@ -21,6 +21,7 @@ import type { CampaignProgress, MissionDef, MissionResult } from '../campaign/ty
 import { playCinematic, type CinematicSpec } from './cinematic';
 import { provinceActions } from './provinceActions';
 import { TUTORIAL, type TutorialEvent } from './tutorial';
+import { createAudience } from './audience';
 
 const MOOD = (v: number) => (v >= 75 ? 'devoted' : v >= 60 ? 'content' : v >= 45 ? 'uneasy' : v >= 30 ? 'resentful' : 'mutinous');
 const FL: Record<string, string> = { janissaries: 'Janissaries', ulema: 'Ulema', rumelianBeys: 'Rumelian beys', anatolianBeys: 'Anatolian beys', harem: 'Harem', merchants: 'Merchants', millets: 'Christian millets' };
@@ -207,41 +208,15 @@ export function mountGame(root: HTMLElement, opts: MountOptions) {
     return para ? para.replace(/\*\*/g, '').replace(/^\s*[-*] /gm, '').trim() : null;
   };
 
-  const closeDialogue = () => { talking = null; $('s3-dlg').hidden = true; };
+  const closeDialogue = () => { talking = null; $('s3-dlg').hidden = true; audience?.close(); palace.faceAudience?.(null); };
 
-  const renderDialogue = (npc: Npc) => {
+  const staticExtras = (npc: Npc, body: HTMLElement) => {
     const s = game!.state;
-    $('s3-dlg-name').innerHTML = `${esc(npc.name)}<small>${esc(npc.title)}</small>`;
-    const body = $('s3-dlg-body');
-    body.innerHTML = '';
     const p = (html: string, cls = 'speech') => { const el = document.createElement('p'); el.className = cls; el.innerHTML = html; body.append(el); return el; };
     const act = (label: string, fn: () => void, disabled = false) => { const b = document.createElement('button'); b.className = 'opt'; b.textContent = label; b.disabled = disabled || busy; b.onclick = fn; return b; };
-    const dls = s.pendingDilemmas.filter((d) => npc.dilemmas.includes(d.id));
-    if (dls.length) {
-      const said = speechFor(npc.name);
-      if (said) p(esc(said));
-      for (const d of dls) {
-        const chosen = game!.orders.find((o) => o.type === 'resolveDilemma' && o.dilemmaId === d.id) as { optionId: string } | undefined;
-        p(`<strong>${esc(d.title)}.</strong> ${esc(d.brief)}`, said ? 'who2' : 'speech');
-        const box = document.createElement('div');
-        box.className = 'acts';
-        d.options.forEach((o, j) => {
-          const b = document.createElement('button');
-          b.className = `opt${chosen?.optionId === o.id ? ' chosen' : ''}`;
-          b.disabled = !o.available || busy;
-          b.innerHTML = `<b>${LETTERS[j]}</b><span>${esc(o.label)}<span>${esc(o.summary)}${o.available ? '' : ' (not possible now)'}</span></span>`;
-          b.onclick = () => addOrders([{ type: 'resolveDilemma', dilemmaId: d.id, optionId: o.id }], '');
-          box.append(b);
-        });
-        body.append(box);
-        p(chosen ? 'Your answer is recorded. It takes effect when the month ends.' : `If you give no order: ${esc(d.options.find((o) => o.id === d.defaultOptionId)?.label ?? '')}`, 'who2');
-      }
-      return;
-    }
     switch (npc.kind) {
       case 'minister': {
         const m = Object.values(s.ministers).find((x) => x.name === npc.name);
-        p(`“My Sultan, I have nothing before the Divan this month.”`);
         if (m) p(esc(m.personality), 'who2');
         break;
       }
@@ -275,18 +250,43 @@ export function mountGame(root: HTMLElement, opts: MountOptions) {
     }
   };
 
-  palace.onInteract = (npc) => { tutorialEvent(`talk:${npc.id}` as TutorialEvent); talking = npc; $('s3-prompt').hidden = true; $('s3-dlg').hidden = false; renderDialogue(npc); };
+  const audience = createAudience({
+    body: $('s3-dlg-body'),
+    state: () => game?.state ?? null,
+    orders: () => (game?.orders ?? []) as { type: string; dilemmaId?: string; optionId?: string }[],
+    busy: () => busy,
+    oracle: () => oracle,
+    rule: (dilemmaId, optionId) => addOrders([{ type: 'resolveDilemma', dilemmaId, optionId }], ''),
+    speechFor,
+    extras: staticExtras,
+    speaking: (npc, on) => palace.setSpeaking?.(npc.id, on),
+  });
+  const renderDialogue = (npc: Npc) => {
+    $('s3-dlg-name').innerHTML = `${esc(npc.name)}<small>${esc(npc.title)}</small>`;
+    if (audience.current?.id !== npc.id) audience.open(npc); else audience.render();
+  };
+
+  palace.onInteract = (npc) => { tutorialEvent(`talk:${npc.id}` as TutorialEvent); talking = npc; $('s3-prompt').hidden = true; $('s3-dlg').hidden = false; palace.faceAudience?.(npc.id); renderDialogue(npc); };
   palace.onNear = (npc) => {
     const el = $('s3-prompt');
     if (!npc || talking) { el.hidden = true; return; }
     el.hidden = false;
     el.textContent = `${npc.dilemmas.length ? '★ ' : ''}Speak with ${npc.name} (E, or tap him)`;
   };
+  palace.onLeave = () => closeDialogue();
   palace.onRoom = (room) => { $('s3-room').textContent = room?.name ?? 'The palace grounds'; };
   $('s3-dlg-x').onclick = closeDialogue;
   window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && talking) closeDialogue(); });
   root.querySelectorAll<HTMLButtonElement>('#s3-place button[data-room]').forEach((b) => (b.onclick = () => { closeDialogue(); palace.teleport(b.dataset.room as 'divan'); }));
   $('s3-mode').onclick = () => setMode(!inPalace);
+  // map style: realistic relief (default) or the block map; remembered on this device
+  const applyStyle = (st: 'relief' | 'voxel') => {
+    scene.setStyle(st, game?.state);
+    $('s3-style-t').textContent = st === 'relief' ? 'Block map' : 'Relief map';
+    try { localStorage.setItem('sultan1453.mapStyle', st); } catch { /* storage unavailable */ }
+  };
+  $('s3-style-t').onclick = () => applyStyle(scene.terrain.style === 'relief' ? 'voxel' : 'relief');
+  try { if (localStorage.getItem('sultan1453.mapStyle') === 'voxel') applyStyle('voxel'); } catch { /* storage unavailable */ }
 
   const flash = (t: string) => { $('s3-reply').textContent = t; };
 

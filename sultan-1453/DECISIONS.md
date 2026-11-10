@@ -271,3 +271,43 @@ Each entry is something I decided without asking you. To override one, tell me i
     - **Mission ends:** the Bosporus scene closes a won Mission 2. Mission 3 ends with the siege scene of its final month (the storm or the surrender, or the siege still in progress if time ran out).
     - **During play:** after any month in which your army fought a siege month or a field battle, the chronicle offers "▶ Watch".
     - **The engine already decided the result;** the scene only shows it.
+
+## Realism pass — the Divan that counsels, and a more lifelike world
+
+70. **Counsel comes from the engine, not from the model.** `src/court/counsel.ts` dry-runs every option of a matter on a copy of the state (`applyDilemmaChoice` on a `structuredClone`) and diffs the treasury, faction moods, foreign stances, provinces, wars, lives and laws. Each minister then weighs those effects by his office (the Agha cares about the corps, the Defterdar about money, the Mufti about the ulema) and by his secret agenda. Advice is therefore consistent with what will actually happen, and two ministers really do disagree.
+71. **Ministers shade their figures the way their agendas say.** An embezzling Defterdar reports costs smaller; a patron of the corps exaggerates its mood. Asking "Are your figures sound?" can catch a dishonest minister: the chance rises with the Sultan's intrigue and the minister's dishonesty, and is fixed per month, so asking again does not re-roll.
+72. **The audience** replaces the old one-shot dialogue box. You can:
+    - hear the minister's own words (Claude's speech from the chronicle when there is one, the engine's otherwise);
+    - ask fixed questions (counsel, cost, who gains and who loses, what the rest of the Divan says, whether his figures are sound, which courses are closed; for ministers with no matter, a report on his office);
+    - speak freely through Claude;
+    - rule. The minister then reacts: pleased, resigned or plainly displeased.
+    
+    Each option shows which ministers favour it.
+73. **Free speech** goes through `Oracle.converse`:
+    - In the Next app it uses `/api/converse` (streamed, server key).
+    - In the artifact it uses the viewer's own Claude.
+    - With no Claude, the box is disabled and the fixed questions still work.
+    
+    The briefing (`src/llm/converse.ts` and `prompts/audience.md`) gives the courtier his secret agenda, his honesty and loyalty, the realm as the registers report it, and the engine's effects for each option. He may colour the figures but not invent new ones. Orders given in conversation are not executed; he tells the Sultan to rule in the Divan. That keeps the engine the only source of change.
+74. **Address and register.** Ministers use court forms of address (Padişahım, Devletlü Padişahım, Refuge of the World, Shadow of God on earth) and speak as kul to master. Humbler forms come from loyal ministers. The audience prompt forbids assistant-like phrasing.
+75. **Staging:**
+    - The courtier bows when the audience opens.
+    - The camera cuts to a side-on two-shot, with the speaker left of centre on wide screens because the panel sits on the right.
+    - The speaker gestures while his words are typed out (click to finish a line). Nearby courtiers fold their hands and listen.
+    - The whole Divan bows when the Sultan enters the hall.
+    - Walking away (a movement key or a click on the floor) ends the audience.
+76. **People.**
+    - Built from lathe-turned kaftans over an inner robe of another colour (open at the front), rounded heads with a beard and moustache, and the right headgear for each office: the tall kavuk with a gold band, wound turbans, the Janissary börk with its falling sleeve, the imperial turban with aigrette, and the harem headdress.
+    - Rigged at the waist, head and shoulders for breathing, walking, talking, listening and bowing.
+    - Still stylised. Detailed faces and cloth would need imported assets, and the artifact has to stay self-contained.
+77. **Palace realism.** All textures are procedural canvases, so there are no image files:
+    - İznik tile wainscots in the Divan hall and the Harem, a medallion carpet before the throne, marble floors, paved paths and grass courts.
+    - Colonnaded porticoes before the Divan hall and the Treasury, a şadırvan fountain in the second court, and hanging kandil lamps with warm light.
+    - Standard (PBR) materials, ACES tone mapping, soft sun shadows and a sky gradient.
+78. **Map realism.** The default map is a smooth relief rather than voxel columns:
+    - Continuous heights from the same ridges and plateaus, with fractal hills, a fine land mask with blurred shores, and lit normals.
+    - The land keeps its own colours (forest, steppe, rock on steep slopes, snow on high peaks), washed with the owner's colour at 40% with dark borders.
+    - A few thousand instanced trees on the wet Balkans, Epirus and Pontic coast.
+    - Glossy water with moving wave normals, and sun shadows.
+    
+    The block map is one click away ("Block map"), and the choice is remembered on the device. Owner colours are weaker in relief than in the block map; the legend and labels carry the politics.

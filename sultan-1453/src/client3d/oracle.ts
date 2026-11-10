@@ -8,6 +8,8 @@ import { plainNarration } from '../llm/sheets';
 import { toolCallToAction } from '../llm/actionTools';
 import type { CampaignProgress, MissionResult, MissionRun } from '../campaign/types';
 import type { CinematicSpec } from './cinematic';
+import type { Speaker, Turn } from '../llm/converse';
+export type { Speaker, Turn };
 
 export interface NarrateResult { text: string; warnings: string[] }
 export interface ParseResult { actions: Action[]; reply: string }
@@ -16,6 +18,8 @@ export interface Oracle {
   readonly online: boolean;
   narrate(state: GameState, chronicle: string[], onText: (text: string) => void): Promise<NarrateResult>;
   parse(state: GameState, text: string, pending: Action[]): Promise<ParseResult>;
+  /** Free speech with a courtier, in character. Returns null when Claude is unavailable. */
+  converse(state: GameState, speaker: Speaker, history: Turn[], text: string, onText: (text: string) => void): Promise<string | null>;
 }
 
 /** The engine's own account of the month without the Divan (the HUD shows dilemmas as cards). */
@@ -28,6 +32,7 @@ export const offlineOracle: Oracle = {
   online: false,
   async narrate(s) { return { text: plainChronicle(s), warnings: [] }; },
   async parse() { return { actions: [], reply: 'Free-text orders need Claude. Use the Divan buttons, or type shortcuts like "1a 2c".' }; },
+  async converse() { return null; },
 };
 
 /** Next.js API routes: /api/narrate streams text; /api/orders returns parsed actions. */
@@ -71,6 +76,22 @@ export function httpOracle(base = ''): Oracle {
       } catch (e) {
         return { actions: [], reply: `The secretary is unavailable (${(e as Error).message}). Use the Divan buttons.` };
       }
+    },
+    async converse(state, speaker, history, text, onText) {
+      try {
+        const res = await fetch(`${base}/api/converse`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ state, speaker, history, text }) });
+        if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
+        const reader = res.body.getReader();
+        const dec = new TextDecoder();
+        let out = '';
+        for (;;) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          out += dec.decode(value, { stream: true });
+          if (!out.includes('\u0000ERROR')) onText(out);
+        }
+        return out.includes('\u0000ERROR') ? null : out.trim();
+      } catch { return null; }
     },
   };
 }

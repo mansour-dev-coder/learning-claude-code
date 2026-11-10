@@ -10,6 +10,8 @@ import { describeAction, type Action } from '../src/engine/actions';
 import GM from '../src/llm/prompts/game_master.md';
 import MINISTERS from '../src/llm/prompts/ministers.md';
 import PARSER from '../src/llm/prompts/parser.md';
+import AUDIENCE from '../src/llm/prompts/audience.md';
+import { audienceBrief, audienceInput } from '../src/llm/converse';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 declare const claude: any;
@@ -49,6 +51,13 @@ function sampleOracle(sample: any): Oracle {
       } catch (e: any) {
         return { actions: [], reply: e?.code === 'invalid_json' ? 'The secretary could not make that out. Rephrase, or use the Divan buttons.' : `The secretary is unavailable (${e?.code ?? 'error'}).` };
       }
+    },
+    async converse(state, speaker, history, text, onText) {
+      const input = `${AUDIENCE}\n\n${MINISTERS}\n\n=====\n\n${audienceBrief(state, speaker)}\n\n=====\n\n${audienceInput(history, text)}`;
+      try {
+        const { text: out } = await sample(input, { model: MODEL, modelTier: 'default', effort: 'low', cache: false, onText: ({ text: t }: { text: string }) => onText(t) });
+        return String(out).trim();
+      } catch { return null; }
     },
   };
 }

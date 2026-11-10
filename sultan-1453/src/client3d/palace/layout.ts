@@ -7,6 +7,7 @@
 //   east side, a single gate tower, plane trees.
 import * as THREE from 'three';
 import { Builder } from '../models';
+import { carpet, grass, iznik, marble, paving } from '../textures';
 
 export type PalaceStyle = 'topkapi' | 'edirne';
 export type RoomId = 'gate' | 'court' | 'divan' | 'treasury' | 'harem';
@@ -42,7 +43,7 @@ const H = 4; // wall height
 
 /** Cutaway: while the Sultan is inside a room, everything above this plane is trimmed so walls never hide him. */
 export const CUT = new THREE.Plane(new THREE.Vector3(0, -1, 0), 1000);
-export const PALACE_MAT = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true, clippingPlanes: [CUT] });
+export const PALACE_MAT = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.86, metalness: 0, clippingPlanes: [CUT] });
 export function setCutaway(on: boolean) { CUT.constant = on ? 2.3 : 1000; }
 const T = 0.5; // wall thickness
 
@@ -55,7 +56,8 @@ const STYLE: Record<PalaceStyle, StyleSet> = {
 };
 
 /** A rectangular room's walls with door gaps. `doors` lists [side, centre offset, width]. */
-function walls(b: Builder, cols: Rect[], r: Rect, color: string, doors: ['n' | 's' | 'e' | 'w', number, number][]) {
+function walls(b: Builder, cols: Rect[], r: Rect, color: string, doors: ['n' | 's' | 'e' | 'w', number, number][], tiles?: THREE.Group) {
+  let face: 'n' | 's' | 'e' | 'w' = 'n';
   const seg = (x0: number, z0: number, x1: number, z1: number) => {
     if (z0 === z1) {
       if (x1 - x0 < 0.05) return;
@@ -66,8 +68,19 @@ function walls(b: Builder, cols: Rect[], r: Rect, color: string, doors: ['n' | '
       b.box(T, H, z1 - z0, color, x0, 0, (z0 + z1) / 2);
       cols.push({ x0: x0 - T / 2, z0, x1: x0 + T / 2, z1 });
     }
+    if (tiles) {
+      const len = z0 === z1 ? x1 - x0 : z1 - z0;
+      const h = 2.0;
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(len, h), tileMat(len, h));
+      const inward = face === 'n' ? 1 : face === 's' ? -1 : face === 'w' ? 1 : -1;
+      if (z0 === z1) { m.position.set((x0 + x1) / 2, 0.15 + h / 2, z0 + inward * (T / 2 + 0.01)); m.rotation.y = inward > 0 ? 0 : Math.PI; }
+      else { m.position.set(x0 + inward * (T / 2 + 0.01), 0.15 + h / 2, (z0 + z1) / 2); m.rotation.y = inward > 0 ? Math.PI / 2 : -Math.PI / 2; }
+      m.receiveShadow = true;
+      tiles.add(m);
+    }
   };
   const side = (s: 'n' | 's' | 'e' | 'w') => {
+    face = s;
     const horizontal = s === 'n' || s === 's';
     const fixed = s === 'n' ? r.z0 : s === 's' ? r.z1 : s === 'w' ? r.x0 : r.x1;
     const a = horizontal ? r.x0 : r.z0, bEnd = horizontal ? r.x1 : r.z1;
@@ -79,6 +92,26 @@ function walls(b: Builder, cols: Rect[], r: Rect, color: string, doors: ['n' | '
     }
   };
   (['n', 's', 'e', 'w'] as const).forEach(side);
+}
+
+function tileMat(w: number, h: number) {
+  const t = iznik().clone();
+  t.repeat.set(w / 0.6, h / 0.6);
+  t.needsUpdate = true;
+  return new THREE.MeshStandardMaterial({ map: t, roughness: 0.35, clippingPlanes: [CUT] });
+}
+
+/** A textured rug or paving laid over a floor rectangle. */
+function overlay(group: THREE.Group, r: Rect, tex: THREE.Texture, tile: number | null, y: number, rough = 0.9) {
+  const w = r.x1 - r.x0, d = r.z1 - r.z0;
+  const t = tex.clone();
+  if (tile) t.repeat.set(w / tile, d / tile); else t.repeat.set(1, 1);
+  t.needsUpdate = true;
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(w, d).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ map: t, roughness: rough }));
+  m.position.set((r.x0 + r.x1) / 2, y, (r.z0 + r.z1) / 2);
+  m.receiveShadow = true;
+  group.add(m);
+  return m;
 }
 
 function roofOver(r: Rect, color: string, dome: boolean, lead: string) {
@@ -115,13 +148,46 @@ export function buildPalace(style: PalaceStyle): PalaceLayout {
   floorB.box(2.4, 0.13, 4, '#d8ccb0', -3, 0, -12); // to the Harem
   const floor = floorB.mesh();
   group.add(floor);
+  const deco = new THREE.Group(); // textured floors and tiles (not used for clicks)
+  group.add(deco);
+  overlay(deco, { x0: -40, z0: -40, x1: 40, z1: 40 }, grass(), 6, -0.04);
+  overlay(deco, court, grass(), 5, 0.125);
+  overlay(deco, gate, paving(), 2.5, 0.125);
+  overlay(deco, { x0: -1.2, z0: -10, x1: 1.2, z1: 16 }, paving(), 2.4, 0.135);
+  overlay(deco, { x0: -4.2, z0: -14, x1: -1.8, z1: -10 }, paving(), 2.4, 0.135);
+  overlay(deco, divan, marble(), 1.5, 0.145, 0.4);
+  overlay(deco, { x0: divan.x0 + 2.6, z0: divan.z0 + 2.2, x1: divan.x1 - 1.2, z1: divan.z1 - 2.2 }, carpet(), null, 0.15);
+  overlay(deco, treasury, marble(), 1.2, 0.145, 0.35);
+  overlay(deco, harem, marble(), 1.4, 0.145, 0.35);
+  overlay(deco, { x0: -11, z0: -24.5, x1: 5, z1: -21 }, carpet(), null, 0.15);
 
   // outer enclosure (the gate court and second court share it)
   walls(b, cols, { x0: -16, z0: -10, x1: 16, z1: 16 }, S.wall, [['s', 0, 3.2], ['n', -3, 2.4]]);
   walls(b, cols, gate, S.wall, [['s', 0, 3.2], ['n', 0, 3.2]]);
-  walls(b, cols, divan, S.wall, [['e', 0, 2.4]]);
+  walls(b, cols, divan, S.wall, [['e', 0, 2.4]], deco);
   walls(b, cols, treasury, S.wall, [['w', 0, 2.4]]);
-  walls(b, cols, harem, S.wall, [['s', 0, 2.4]]);
+  walls(b, cols, harem, S.wall, [['s', 0, 2.4]], deco);
+
+  // porticoes: slender columns and a deep eave before the Divan hall and the Treasury
+  const portico = (x: number, z0: number, z1: number, toward: number, door: number) => {
+    for (let z = z0; z <= z1 + 0.01; z += 2.1) {
+      if (Math.abs(z - door) < 1.0) continue; // keep the doorway clear
+      b.cyl(0.22, 0.3, 8, S.trim, x, 0, z).cyl(0.14, H - 0.6, 10, '#efe9dd', x, 0.3, z).cyl(0.24, 0.3, 8, S.trim, x, H - 0.3, z);
+      cols.push({ x0: x - 0.2, z0: z - 0.2, x1: x + 0.2, z1: z + 0.2 });
+    }
+    b.box(Math.abs(toward) + 0.6, 0.3, z1 - z0 + 1.4, S.roof, x - toward / 2, H, (z0 + z1) / 2);
+  };
+  portico(-1.4, -8.4, 2.4, 1.6, -3);
+  portico(3.5, -8.4, 0.4, -1.5, -4);
+
+  // a marble fountain (şadırvan) in the second court
+  const fx = 8, fz = 9;
+  b.add(new THREE.CylinderGeometry(1.5, 1.6, 0.55, 8), '#e6dfd0', fx, 0.28, fz)
+    .add(new THREE.CylinderGeometry(1.32, 1.32, 0.05, 8), '#4fa3c7', fx, 0.5, fz)
+    .add(new THREE.CylinderGeometry(0.22, 0.3, 1.2, 8), '#e6dfd0', fx, 0.6, fz)
+    .add(new THREE.CylinderGeometry(0.55, 0.35, 0.18, 8), '#e6dfd0', fx, 1.25, fz)
+    .add(new THREE.ConeGeometry(0.16, 0.4, 8), S.roof, fx, 1.55, fz);
+  cols.push({ x0: fx - 1.55, z0: fz - 1.55, x1: fx + 1.55, z1: fz + 1.55 });
   // corridor between the Gate of Felicity and the Harem door
   cols.push({ x0: -5.0, z0: -12, x1: -4.3, z1: -10 }, { x0: -1.7, z0: -12, x1: -1.0, z1: -10 });
   b.box(0.7, H, 2, S.wall, -4.65, 0, -11).box(0.7, H, 2, S.wall, -1.35, 0, -11);
@@ -171,6 +237,24 @@ export function buildPalace(style: PalaceStyle): PalaceLayout {
   const haremSpots = [[-9, -22], [-6.5, -23], [-4, -23], [-1.5, -23], [1, -22], [-9, -16], [-7, -15], [1.5, -16], [3.5, -17]].map(([x, z]) => new THREE.Vector3(x, 0, z));
 
   group.add(b.mesh(PALACE_MAT));
+
+  // hanging oil lamps (kandil) and warm light in the halls
+  const glass = new THREE.MeshStandardMaterial({ color: '#ffd27a', emissive: '#ffb347', emissiveIntensity: 1.6, roughness: 0.3, clippingPlanes: [CUT] });
+  const chain = new THREE.MeshStandardMaterial({ color: '#8a6d2f', metalness: 0.6, roughness: 0.4, clippingPlanes: [CUT] });
+  const lamp = (x: number, z: number, y = 2.6) => {
+    const c = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, H - y, 4), chain);
+    c.position.set(x, y + (H - y) / 2, z);
+    const g = new THREE.Mesh(new THREE.SphereGeometry(0.13, 10, 8), glass);
+    g.position.set(x, y, z);
+    deco.add(c, g);
+  };
+  for (const [x, z] of [[-11, -6], [-11, 0], [-7, -6], [-7, 0], [-9, -3]]) lamp(x, z);
+  for (const [x, z] of [[-8, -19], [-3, -22], [2, -19]]) lamp(x, z);
+  for (const [x, z] of [[8, -6], [12, -3]]) lamp(x, z);
+  const warm = (x: number, z: number, i: number, d: number) => { const l = new THREE.PointLight('#ffb867', i, d, 1.6); l.position.set(x, 3, z); group.add(l); };
+  warm(-9, -3, 9, 13);
+  warm(-3, -19, 8, 14);
+  warm(10, -4, 6, 10);
 
   const rooms: Room[] = [
     { id: 'divan', name: style === 'topkapi' ? 'The Divan hall (Kubbealtı)' : 'The Divan pavilion', rect: divan, spawn: new THREE.Vector3(-4.6, 0, -3) },

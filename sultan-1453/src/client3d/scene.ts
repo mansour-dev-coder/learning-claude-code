@@ -5,6 +5,8 @@ import type { GameState } from '../engine/types';
 import { Terrain } from './terrain';
 import { Markers } from './markers';
 import { SEATS, toWorld } from './geo';
+import { sky } from './textures';
+import type { MapStyle } from './terrain';
 
 export interface HoverInfo {
   province: string | null;
@@ -30,6 +32,7 @@ export class MapScene {
   private running = true;
   private paused = false;
   private fpsSamples: number[] = [];
+  private waterNormals: THREE.Texture;
   private focusTween: { from: THREE.Vector3; to: THREE.Vector3; t: number } | null = null;
   onHover: (h: HoverInfo) => void = () => {};
   onClick: (province: string | null) => void = () => {};
@@ -38,10 +41,14 @@ export class MapScene {
     this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+    this.renderer.shadowMap.enabled = true;
+    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 1.08;
     container.appendChild(this.renderer.domElement);
 
-    this.scene.background = new THREE.Color('#9fc4dc');
-    this.scene.fog = new THREE.Fog('#9fc4dc', 60, 140);
+    this.scene.background = sky('#7aa7d4', '#e9e1cf');
+    this.scene.fog = new THREE.Fog('#dcdcd0', 70, 160);
     this.camera = new THREE.PerspectiveCamera(45, 1, 0.1, 400);
     const start = toWorld(SEATS.constantinople.lon - 3, SEATS.constantinople.lat - 1.5);
     this.camera.position.set(start.x - 2, 34, start.z + 30);
@@ -56,22 +63,29 @@ export class MapScene {
     this.controls.screenSpacePanning = false;
     this.controls.zoomToCursor = true;
 
-    this.scene.add(new THREE.HemisphereLight('#e8f1ff', '#5a5040', 1.6));
-    const sun = new THREE.DirectionalLight('#fff4e0', 2.2);
-    sun.position.set(-30, 60, 25);
+    this.scene.add(new THREE.HemisphereLight('#e3eeff', '#5a5040', 1.25));
+    const sun = new THREE.DirectionalLight('#ffeacc', 3.0);
+    sun.position.set(-40, 55, 30);
+    sun.castShadow = true;
+    sun.shadow.mapSize.set(2048, 2048);
+    Object.assign(sun.shadow.camera, { left: -60, right: 60, top: 42, bottom: -42, near: 1, far: 200 });
+    sun.shadow.bias = -0.0004;
+    sun.shadow.normalBias = 0.05;
     this.scene.add(sun);
 
-    // the sea: a shallow shelf and the water surface
-    const floor = new THREE.Mesh(new THREE.PlaneGeometry(400, 300), new THREE.MeshLambertMaterial({ color: '#2f6c8f' }));
+    // the sea: a shelf below and a glossy, gently moving surface
+    const floor = new THREE.Mesh(new THREE.PlaneGeometry(400, 300), new THREE.MeshLambertMaterial({ color: '#21566f' }));
     floor.rotation.x = -Math.PI / 2;
-    floor.position.y = -0.2;
+    floor.position.y = -0.6;
     this.scene.add(floor);
-    const water = new THREE.Mesh(new THREE.PlaneGeometry(400, 300), new THREE.MeshLambertMaterial({ color: '#3d8fbf', transparent: true, opacity: 0.78 }));
+    this.waterNormals = waveTexture();
+    const water = new THREE.Mesh(new THREE.PlaneGeometry(400, 300), new THREE.MeshStandardMaterial({ color: '#2f7fae', roughness: 0.18, metalness: 0.1, transparent: true, opacity: 0.84, normalMap: this.waterNormals, normalScale: new THREE.Vector2(0.35, 0.35) }));
     water.rotation.x = -Math.PI / 2;
     water.position.y = 0.22;
+    water.receiveShadow = true;
     this.scene.add(water);
 
-    this.scene.add(this.terrain.mesh);
+    this.scene.add(this.terrain.group);
     this.markers = new Markers(this.terrain);
     this.scene.add(this.markers.group);
 
@@ -121,6 +135,12 @@ export class MapScene {
     for (const p of Object.values(s.provinces)) owners[p.id] = p.owner;
     this.terrain.setOwners(owners);
     this.markers.update(s, first);
+    this.markers.group.traverse((o) => { if ((o as THREE.Mesh).isMesh) o.castShadow = true; });
+  }
+
+  setStyle(style: MapStyle, s?: GameState) {
+    this.terrain.setStyle(style);
+    if (s) this.markers.update(s, true);
   }
 
   /** Glide the camera to look at a province. */
@@ -138,6 +158,10 @@ export class MapScene {
       let o: THREE.Object3D | null = h.object;
       while (o && !o.userData.province) o = o.parent;
       if (o) return o.userData.province as string;
+    }
+    if (this.terrain.style === 'relief') {
+      const hit = this.raycaster.intersectObject(this.terrain.relief, false)[0];
+      return hit ? (this.terrain.cellAtWorld(hit.point.x, hit.point.z)?.province ?? null) : null;
     }
     const hit = this.raycaster.intersectObject(this.terrain.mesh, false)[0];
     if (hit?.instanceId === undefined) return null;
@@ -204,6 +228,7 @@ export class MapScene {
     }
     this.controls.update();
     this.markers.tick(dt, this.clock.elapsedTime);
+    this.waterNormals.offset.set(this.clock.elapsedTime * 0.004, this.clock.elapsedTime * 0.0025);
     if (this.tickCount++ % 6 === 0) {
       this.markers.setZoom(this.camera.position.distanceTo(this.controls.target));
       this.declutter();
@@ -223,4 +248,24 @@ export class MapScene {
     this.renderer.dispose();
     this.renderer.domElement.remove();
   }
+}
+
+/** A tiling normal map of small waves, drawn on a canvas. */
+function waveTexture() {
+  const n = 128;
+  const c = document.createElement('canvas');
+  c.width = c.height = n;
+  const g = c.getContext('2d')!;
+  const img = g.createImageData(n, n);
+  const h = (x: number, y: number) => Math.sin((x / n) * Math.PI * 2 * 6 + Math.sin((y / n) * Math.PI * 2 * 2) * 1.5) * 0.5 + Math.sin(((x + y) / n) * Math.PI * 2 * 9) * 0.3 + Math.sin(((x - 2 * y) / n) * Math.PI * 2 * 4) * 0.4;
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+    const dx = h(x + 1, y) - h(x - 1, y), dy = h(x, y + 1) - h(x, y - 1);
+    const i = (y * n + x) * 4;
+    img.data[i] = 128 + dx * 60; img.data[i + 1] = 128 + dy * 60; img.data[i + 2] = 255; img.data[i + 3] = 255;
+  }
+  g.putImageData(img, 0, 0);
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.repeat.set(60, 45);
+  return t;
 }

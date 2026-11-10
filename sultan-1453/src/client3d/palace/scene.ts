@@ -7,7 +7,8 @@ import { TITLES } from '../../engine/data/ministers';
 import { livingPrinces, princeAge } from '../../engine/state';
 import { Builder, labelSprite } from '../models';
 import { buildPalace, roomAt, setCutaway, type PalaceLayout, type PalaceStyle, type Rect, type Room, type RoomId } from './layout';
-import { DRESS_FOR_ROLE, personModel, type Dress } from './people';
+import { DRESS_FOR_ROLE, personModel, animatePerson, type Dress, type Pose } from './people';
+import { sky } from '../textures';
 
 export interface Npc {
   id: string;
@@ -22,7 +23,7 @@ export interface Npc {
   kind: 'minister' | 'treasurer' | 'valide' | 'consort' | 'prince' | 'eunuch' | 'petitioner' | 'guard';
 }
 
-interface NpcObj { npc: Npc; obj: THREE.Group; badge: THREE.Sprite | null; name: THREE.Sprite; face: number }
+interface NpcObj { npc: Npc; obj: THREE.Group; person: THREE.Group; badge: THREE.Sprite | null; name: THREE.Sprite; face: number }
 
 const RADIUS = 0.35;
 const SPEED = 4.2;
@@ -49,23 +50,39 @@ export class PalaceScene {
   private room: Room | null = null;
   private near: string | null = null;
   private answered = new Set<string>();
-  private walkBob = 0;
+  private walking = false;
+  private speakingId: string | null = null;
+  private audienceId: string | null = null;
+  private bows = new Map<string, number>();
+  private lookAt = new THREE.Vector3();
   onInteract: (npc: Npc) => void = () => {};
   onNear: (npc: Npc | null) => void = () => {};
   onRoom: (room: Room | null) => void = () => {};
+  /** the Sultan walked away from an audience */
+  onLeave: () => void = () => {};
 
   constructor(private container: HTMLElement) {
     this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.localClippingEnabled = true;
+    this.renderer.shadowMap.enabled = true;
+    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 1.05;
     container.appendChild(this.renderer.domElement);
     this.renderer.domElement.style.display = 'none';
-    this.scene.background = new THREE.Color('#a9cde3');
-    this.scene.fog = new THREE.Fog('#a9cde3', 45, 110);
-    this.scene.add(new THREE.HemisphereLight('#f4f8ff', '#6b5a44', 1.7));
-    const sun = new THREE.DirectionalLight('#fff1d6', 2.1);
-    sun.position.set(-20, 40, 18);
+    this.scene.background = sky('#6f9fd0', '#efe2c6');
+    this.scene.fog = new THREE.Fog('#e6dcc6', 50, 120);
+    this.scene.add(new THREE.HemisphereLight('#dfeaff', '#7a6448', 1.25));
+    const sun = new THREE.DirectionalLight('#ffe2b8', 3.0);
+    sun.position.set(-22, 34, 16);
+    sun.castShadow = true;
+    sun.shadow.mapSize.set(2048, 2048);
+    sun.shadow.camera.left = -36; sun.shadow.camera.right = 36; sun.shadow.camera.top = 36; sun.shadow.camera.bottom = -36;
+    sun.shadow.camera.near = 1; sun.shadow.camera.far = 100;
+    sun.shadow.bias = -0.0006;
+    sun.shadow.normalBias = 0.03;
     this.scene.add(sun);
     this.scene.add(this.avatar, this.chests, this.dynamic);
 
@@ -78,6 +95,7 @@ export class PalaceScene {
         if (k === 'e' && this.near) { this.interact(this.near); return; }
         this.keys.add(k);
         this.target = null; this.seek = null;
+        if (this.audienceId && k !== 'q' && !k.startsWith('arrowl') && !k.startsWith('arrowr')) this.onLeave();
         e.preventDefault();
       }
     });
@@ -127,6 +145,7 @@ export class PalaceScene {
     if (this.style === style) return;
     if (this.layout) this.scene.remove(this.layout.group);
     this.layout = buildPalace(style);
+    this.layout.group.traverse((o) => { if ((o as THREE.Mesh).isMesh) { o.receiveShadow = true; if (o !== this.layout.floor && !(o as THREE.Mesh).geometry.type.startsWith('Plane')) o.castShadow = true; } });
     this.scene.add(this.layout.group);
     this.style = style;
     this.teleport('gate');
@@ -175,13 +194,14 @@ export class PalaceScene {
       if (!o || o.npc.dress !== w.npc.dress || o.npc.name !== w.npc.name) {
         if (o) this.dynamic.remove(o.obj);
         const obj = new THREE.Group();
-        obj.add(personModel(w.npc.dress));
+        const person = personModel(w.npc.dress);
+        obj.add(person);
         const name = labelSprite(w.npc.name, { kind: 'city' });
         name.position.set(0, 2.25, 0);
         obj.add(name);
         obj.userData.npc = w.npc.id;
         this.dynamic.add(obj);
-        o = { npc: w.npc, obj, badge: null, name, face: 0 };
+        o = { npc: w.npc, obj, person, badge: null, name, face: 0 };
         this.npcs.set(w.npc.id, o);
       }
       o.npc = w.npc;
@@ -211,6 +231,19 @@ export class PalaceScene {
 
   npcList() { return [...this.npcs.values()].map((o) => o.npc); }
 
+  /** The person speaking in an audience gestures; others idle. */
+  setSpeaking(id: string, on: boolean) {
+    if (on) this.speakingId = id;
+    else if (this.speakingId === id) this.speakingId = null;
+  }
+
+  /** Begin (id) or end (null) an audience: the courtier bows and the camera frames him over the Sultan's shoulder. */
+  faceAudience(id: string | null) {
+    if (id && id !== this.audienceId) this.bows.set(id, this.clock.elapsedTime);
+    this.audienceId = id;
+    if (id) { this.keys.clear(); this.target = null; this.seek = null; }
+  }
+
   teleport(room: RoomId) {
     const r = this.layout?.rooms.find((x) => x.id === room);
     if (!r) return;
@@ -238,7 +271,7 @@ export class PalaceScene {
       if (obj) { this.interact(obj.userData.npc as string); return; }
     }
     const f = this.ray.intersectObject(this.layout.floor, false)[0];
-    if (f) { this.target = f.point.clone().setY(0); this.seek = null; }
+    if (f) { this.target = f.point.clone().setY(0); this.seek = null; if (this.audienceId) this.onLeave(); }
   }
 
   private collide(p: THREE.Vector3) {
@@ -298,9 +331,10 @@ export class PalaceScene {
         if (o && o.obj.position.distanceTo(pos) < TALK + 1.6) this.onInteract(o.npc);
       }
       this.avatar.rotation.y = Math.atan2(move.x, move.z);
-      this.walkBob += dt * 10;
-      this.avatar.position.y = Math.abs(Math.sin(this.walkBob)) * 0.06;
-    } else this.avatar.position.y = 0;
+      this.walking = true;
+    } else this.walking = false;
+    const t = this.clock.elapsedTime;
+    animatePerson(this.avatar, t, this.walking ? 'walk' : 'idle');
 
     // camera follows behind and above; indoors it rises for a cutaway view
     const indoors = !!this.room && this.room.id !== 'court' && this.room.id !== 'gate';
@@ -317,14 +351,33 @@ export class PalaceScene {
       this.ray.far = Infinity;
       if (hit) camPos.copy(camTarget).addScaledVector(dir, Math.max(1.2, hit.distance - 0.4));
     }
-    this.camera.position.lerp(camPos, 1 - Math.pow(0.001, dt));
-    this.camera.lookAt(camTarget);
+    const aud = this.audienceId ? this.npcs.get(this.audienceId) : null;
+    if (aud) {
+      // a two-shot from the side: the courtier faces the camera three-quarters, the Sultan at the frame's edge
+      const np = aud.obj.position;
+      const back = pos.clone().sub(np).setY(0).normalize();
+      const side = new THREE.Vector3(-back.z, 0, back.x);
+      const mid = pos.clone().lerp(np, 0.4);
+      camPos.copy(mid).addScaledVector(side, 2.4).addScaledVector(back, 1.3).setY(1.95);
+      camTarget.set(np.x, 1.4, np.z).addScaledVector(back, 0.3);
+      // on wide screens the audience panel sits on the right: keep the speaker left of centre
+      if (this.container.clientWidth >= 1000) {
+        const fwd2 = camTarget.clone().sub(camPos).setY(0).normalize();
+        camTarget.addScaledVector(new THREE.Vector3(-fwd2.z, 0, fwd2.x), 0.9);
+      }
+      this.avatar.rotation.y = Math.atan2(np.x - pos.x, np.z - pos.z);
+    }
+    this.camera.position.lerp(camPos, 1 - Math.pow(aud ? 0.02 : 0.001, dt));
+    this.lookAt.lerp(camTarget, 1 - Math.pow(aud ? 0.02 : 0.0001, dt));
+    this.camera.lookAt(this.lookAt);
 
     // which room; hide its roof
     const room = roomAt(this.layout.rooms, pos.x, pos.z);
     if (room?.id !== this.room?.id) {
       for (const r of this.layout.rooms) if (r.roof) r.roof.visible = r.id !== room?.id;
       setCutaway(!!room && room.id !== 'court' && room.id !== 'gate');
+      // the Divan rises and bows when the Sultan enters the hall
+      if (room?.id === 'divan') for (const o of this.npcs.values()) if (o.npc.kind === 'minister') this.bows.set(o.npc.id, this.clock.elapsedTime + Math.random() * 0.3);
       this.room = room;
       this.onRoom(room);
     }
@@ -340,7 +393,15 @@ export class PalaceScene {
       let diff = want - o.obj.rotation.y;
       diff = Math.atan2(Math.sin(diff), Math.cos(diff));
       o.obj.rotation.y += diff * Math.min(1, dt * 5);
-      if (o.badge) o.badge.position.y = 2.6 + Math.sin(this.clock.elapsedTime * 2 + o.obj.position.x) * 0.06;
+      if (o.badge) { o.badge.position.y = 2.6 + Math.sin(t * 2 + o.obj.position.x) * 0.06; o.badge.visible = o.npc.id !== this.audienceId; }
+      if (o.npc.id === this.audienceId) o.name.visible = false;
+      const bowAt = this.bows.get(o.npc.id);
+      let pose: Pose = 'idle';
+      let bowT = 0;
+      if (bowAt !== undefined && t - bowAt < 1.6) { pose = 'bow'; bowT = (t - bowAt) / 1.6; }
+      else if (this.speakingId === o.npc.id) pose = 'talk';
+      else if (o.npc.id === this.audienceId || (d < 4 && o.npc.kind !== 'guard')) pose = 'listen';
+      if (d < 30) animatePerson(o.person, t, pose, bowT);
     }
     const nearId = best?.npc.id ?? null;
     if (nearId !== this.near) { this.near = nearId; this.onNear(best?.npc ?? null); }

@@ -18,7 +18,7 @@ export function getClient(): Anthropic {
 
 const cache = new Map<string, string>();
 /** Prompts live in src/llm/prompts. Look beside this module first (tsx/vitest), then from the project root (Next.js bundles). */
-export function prompt(name: 'game_master' | 'ministers' | 'parser'): string {
+export function prompt(name: 'game_master' | 'ministers' | 'parser' | 'audience'): string {
   if (!cache.has(name)) {
     const candidates = [join(process.cwd(), 'src', 'llm', 'prompts', `${name}.md`)];
     try { candidates.unshift(join(dirname(fileURLToPath(import.meta.url)), 'prompts', `${name}.md`)); } catch { /* bundled */ }

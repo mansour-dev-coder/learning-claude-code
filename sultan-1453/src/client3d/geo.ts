@@ -200,3 +200,30 @@ export function provinceAt(lon: number, lat: number): string | null {
   }
   return bestD <= 2.0 ? best : null;
 }
+
+/** Smooth value noise in [0,1] for the relief view. */
+function vnoise(x: number, y: number) {
+  const xi = Math.floor(x), yi = Math.floor(y);
+  const fx = x - xi, fy = y - yi;
+  const u = fx * fx * (3 - 2 * fx), v = fy * fy * (3 - 2 * fy);
+  const a = hash(xi, yi), b = hash(xi + 1, yi), c = hash(xi, yi + 1), d = hash(xi + 1, yi + 1);
+  return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
+}
+
+/** Continuous height (same ridges and plateaus as the voxel map, unrounded, with fractal detail). */
+export function reliefHeight(lon: number, lat: number): number {
+  let h = 1;
+  for (const r of RIDGES) {
+    let d = Infinity;
+    for (let i = 0; i < r.pts.length - 1; i++) d = Math.min(d, distToSegment(lon, lat, r.pts[i][0], r.pts[i][1], r.pts[i + 1][0], r.pts[i + 1][1]));
+    h = Math.max(h, 1 + r.h * Math.exp(-(d * d) / (r.w * r.w)));
+  }
+  for (const p of PLATEAUS) {
+    const q = ((lon - p.lon) / p.rx) ** 2 + ((lat - p.lat) / p.ry) ** 2;
+    if (q < 1) h += p.h * (1 - q * q);
+  }
+  // hills: three octaves, stronger where the land is already high
+  const n = vnoise(lon * 1.3, lat * 1.3) * 0.6 + vnoise(lon * 3.1, lat * 3.1) * 0.3 + vnoise(lon * 7.3, lat * 7.3) * 0.15;
+  h += (n - 0.5) * (0.9 + (h - 1) * 0.35);
+  return Math.max(1, h);
+}
